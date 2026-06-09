@@ -1,0 +1,19 @@
+[project]
+name = "scorecard"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.107.1",
+    "google-genai>=1.16",
+    "torch>=2.0",
+    "click>=8.4.1",
+    "numpy>=1.24",
+    "opencv-python-headless>=4.8",
+    "openpyxl>=3.1.5",
+    "pillow>=12.2.0",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.3",
+    "rapidfuzz>=3.14.5",
+]

@@ -1,0 +1,33 @@
+# Secrets — never commit
+.env
+*.env
+**/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+**/.venv/
+*.egg-info/
+
+# Models / large binaries (re-downloadable)
+*.pth
+*.onnx
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated pipeline artifacts (regenerable from source images)
+images/rows/
+images/rows_enhanced*/
+images/step1_cache/
+images/**/_*.png
+**/step2_debug.txt
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

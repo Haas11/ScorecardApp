@@ -1,0 +1,17 @@
+league:
+  avg_ops: 0.720
+  avg_obp: 0.320
+  avg_slg: 0.400
+  avg_woba: 0.320
+  woba_weights:
+    bb: 0.69
+    hp: 0.72
+    single: 0.89
+    double: 1.27
+    triple: 1.62
+    hr: 2.10
+stats:
+  small_sample_threshold: 10
+fuzzy:
+  auto_match_threshold: 90
+  warn_threshold: 70

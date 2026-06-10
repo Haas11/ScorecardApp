@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Optional
@@ -212,6 +213,41 @@ def export_season(
             ws2.cell(row=row_idx, column=col_idx, value=val)
 
     _autofit(ws2)
+
+    # ── Per-game sheets: one box-score tab per game (regenerated from DB) ──
+    per_game_cols = ["#", "Name", "PA", "AB", "H", "2B", "3B", "HR",
+                     "R", "RBI", "BB", "K", "SB", "CS", "AVG", "OBP"]
+    games_meta = conn.execute(
+        "SELECT game_id, date, opponent, game_number FROM games ORDER BY date ASC, game_id ASC"
+    ).fetchall()
+    used_names: set[str] = set()
+    for gm in games_meta:
+        entries = [d for (pid, gid), d in game_player.items() if gid == gm["game_id"]]
+        if not entries:
+            continue
+        entries.sort(key=lambda x: x["batting_order"])
+        base = f"{gm['date'] or '?'} {gm['opponent'] or '?'}"
+        if gm["game_number"]:
+            base += f" g{gm['game_number']}"
+        sheet_name = re.sub(r"[\[\]:*?/\\]", "", base)[:31] or f"game{gm['game_id']}"
+        unique, k = sheet_name, 2
+        while unique in used_names:
+            unique = (sheet_name[:28] + f"_{k}")[:31]
+            k += 1
+        used_names.add(unique)
+
+        wsg = wb.create_sheet(unique)
+        _write_header(wsg, per_game_cols)
+        for row_idx, d in enumerate(entries, 2):
+            ab, h, bb = d["AB"], d["H"], d["BB"]
+            avg = round(h / ab, 3) if ab > 0 else 0.0
+            obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
+            vals = [d["batting_order"], d["name"], d["PA"], d["AB"], d["H"],
+                    d["2B"], d["3B"], d["HR"], d["R"], d["RBI"], d["BB"],
+                    d["K"], d["SB"], d["CS"], avg, obp]
+            for col_idx, val in enumerate(vals, 1):
+                wsg.cell(row=row_idx, column=col_idx, value=val)
+        _autofit(wsg)
 
     # ── Sheet 3: Low Confidence ────────────────────────────────────────
     ws3 = wb.create_sheet("Low Confidence")

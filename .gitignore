@@ -14,10 +14,11 @@ __pycache__/
 *.pth
 *.onnx
 
-# Databases
+# Databases + generated exports (DB is source of truth; export regenerates)
 *.db
 *.sqlite
 *.sqlite3
+*.xlsx
 
 # Generated pipeline artifacts (regenerable from source images)
 images/rows/

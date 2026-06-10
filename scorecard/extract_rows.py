@@ -101,6 +101,329 @@ def _read_totals_cache(path, innings: int) -> dict:
             "errors": errors, "lob": lob, "cumulative": None}
 
 
+_STATS_SYSTEM = (
+    "This strip is the far-right PER-PLAYER TOTALS column of a baseball scorecard, "
+    "one row per batting-order slot, top to bottom = slots 1, 2, 3 ... down the order. "
+    "Each cell shows the player's line as \"H-AB\" (hits - at-bats), e.g. '3-4' = 3 hits, "
+    "4 at-bats. Some slots have TWO stacked values (a substitution) — report both, "
+    "starter first. Output ONLY lines of the form 'slot H AB' (whitespace separated), "
+    "no prose. A substitution slot produces two lines with the same slot number."
+)
+
+
+_SECOND_PASS_SYSTEM = """You are re-reading ONE player's row of a KNBSB baseball scorecard to CORRECT the
+plate-appearance results. The image shows the inning-number header on top and the
+player's scoring row below. For each inning the player batted, read the BOT-RIGHT
+result and whether the batter scored.
+
+CELL RULES (2x2 split by a red crosshair):
+- A LARGE circle filling BOT-RIGHT = OUT; read contents (K, KL, F7, 6-3, 5-4, 3...).
+- A circle ON A BASE (top quadrant / centre) = a baserunning out, NOT the result.
+- Vertical stroke with crossbars = HIT; base from X marks in the top quadrants:
+  X_COUNT 0 -> 1B, 1 -> 2B, 2 -> 3B.
+- Letters "BB" (two rounded humps) NOT inside a circle = walk (BB).
+- "E"+digit = reached on error (E6); "FC" = fielder's choice; "HP"/"HBP" = HBP.
+- Run scored if BOT-LEFT has any mark OR a black dot sits on the centre crosshair.
+
+Use the CONSTRAINTS to disambiguate hard cells (they are ground truth from the
+card's printed totals):
+{constraints}
+
+Output ONLY one line per inning listed above, nothing else:
+  <inning> | <result> | <run 0 or 1>
+e.g.  4 | 1B | 0
+"""
+
+
+def _build_refine_context(player: dict, h_target: int | None, walk_target: int | None,
+                          card: dict | None) -> str:
+    innings = sorted(int(pa.get("inning", 0)) for pa in player.get("plate_appearances", []))
+    lines = [f"- This player batted in innings: {innings}."]
+    if h_target is not None:
+        lines.append(f"- This player has exactly {h_target} hit(s) total (1B/2B/3B/HR).")
+    if walk_target is not None and walk_target >= 0:
+        lines.append(f"- This player has exactly {walk_target} walk(s)/HBP total (BB/HBP).")
+    if card:
+        ch, ce, cr = card.get("hits") or [], card.get("errors") or [], card.get("runs_per_inning") or []
+        for i in innings:
+            parts = []
+            if i - 1 < len(cr):
+                parts.append(f"{cr[i-1]} run(s)")
+            if i - 1 < len(ch):
+                parts.append(f"{ch[i-1]} hit(s)")
+            if i - 1 < len(ce):
+                parts.append(f"{ce[i-1]} error(s)")
+            if parts:
+                lines.append(f"- Inning {i} (whole team): " + ", ".join(parts) + ".")
+    return "\n".join(lines)
+
+
+def _apply_refinement(player: dict, text: str) -> list[str]:
+    by_inn = {int(pa.get("inning", 0)): pa for pa in player.get("plate_appearances", [])}
+    changes: list[str] = []
+    for line in text.splitlines():
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) >= 2 and parts[0].lstrip("-").isdigit():
+            inn = int(parts[0])
+            result = parts[1]
+            run = len(parts) >= 3 and parts[2].strip() in ("1", "true", "True", "yes")
+            pa = by_inn.get(inn)
+            if pa and result and pa.get("result") != result:
+                changes.append(f"inn{inn} {pa.get('result')}->{result}")
+                pa["result"] = result
+                pa["run_scored"] = run
+                pa["confidence"] = "high"
+            elif pa:
+                pa["run_scored"] = run
+    return changes
+
+
+def _crop_stats_strip(image_path, out_dir, left_ratio: float = 0.85, upscale: int = 3):
+    """Crop the far-right per-player H-AB totals column and upscale it."""
+    from PIL import Image as _Image
+    img_path = Path(image_path)
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    im = _Image.open(img_path).convert("RGB")
+    w, h = im.size
+    crop = im.crop((int(w * left_ratio), 0, w, h))
+    if upscale > 1:
+        crop = crop.resize((crop.width * upscale, crop.height * upscale), _Image.LANCZOS)
+    out = out_dir / f"{img_path.stem}_stats.png"
+    crop.save(out, "PNG")
+    return out
+
+
+def _parse_player_stats(text: str) -> list[tuple[int, int, int]]:
+    """Parse 'slot H AB' lines into ordered (slot, H, AB) tuples."""
+    rows: list[tuple[int, int, int]] = []
+    for line in text.splitlines():
+        nums = [int(x) for x in re.findall(r"-?\d+", line)]
+        if len(nums) >= 3:
+            rows.append((nums[0], nums[1], nums[2]))
+    return rows
+
+
+def _write_player_stats_cache(path, rows: list[tuple[int, int, int]]) -> None:
+    lines = [
+        "# Per-player totals — hand-edit to match the scorecard, then re-run.",
+        "# H = hits, AB = at-bats. One row per player; a substitution slot has two",
+        "# rows with the same slot number (starter first).",
+        "#   slot  H  AB",
+    ]
+    for slot, h, ab in rows:
+        lines.append(f"{slot}\t{h}\t{ab}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _read_player_stats_cache(path) -> dict[int, list[tuple[int, int]]]:
+    """Return {slot: [(H, AB), ...]} preserving starter-then-sub order."""
+    by_slot: dict[int, list[tuple[int, int]]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        nums = [int(x) for x in re.findall(r"-?\d+", s)]
+        if len(nums) >= 3:
+            by_slot.setdefault(nums[0], []).append((nums[1], nums[2]))
+    return by_slot
+
+
+def _enforce_player_hits(raw_json: dict, stats_by_slot: dict[int, list[tuple[int, int]]],
+                         low_conf_only: bool = True) -> list[str]:
+    """Force each player's hit count to the card's per-player H. More precise than
+    the per-inning hit pass because it pins WHO (just maybe the wrong cell/type).
+    Promotes a non-hit PA to 1B / demotes a hit to Out; low-confidence first.
+    """
+    msgs: list[str] = []
+    HITS = {"1B", "2B", "3B", "HR"}
+
+    def is_low(pa):
+        return pa.get("confidence", "high") == "low"
+
+    for slot in raw_json.get("lineup", []):
+        bo = slot.get("batting_order")
+        targets = stats_by_slot.get(bo, [])
+        for idx, p in enumerate(slot.get("players", [])):
+            if idx >= len(targets):
+                continue
+            h_target = targets[idx][0]
+            pas = p.get("plate_appearances", [])
+            hits = [pa for pa in pas if (pa.get("result") or "").upper() in HITS]
+            cur = len(hits)
+            if cur == h_target:
+                continue
+            name = p.get("name", f"slot{bo}")
+            if cur > h_target:
+                cand = sorted([pa for pa in hits if (not low_conf_only) or is_low(pa)],
+                              key=lambda pa: 0 if is_low(pa) else 1)
+                for pa in cand[: cur - h_target]:
+                    msgs.append(f"{name}: DEMOTE {pa.get('result')}@inn{pa.get('inning')}->Out (H={h_target}, had {cur})")
+                    pa["result"] = "Out"
+                    pa["run_scored"] = False
+            else:
+                cand = sorted([pa for pa in pas if (pa.get("result") or "").upper() not in HITS
+                               and ((not low_conf_only) or is_low(pa))],
+                              key=lambda pa: 0 if is_low(pa) else 1)
+                need = h_target - cur
+                for pa in cand[:need]:
+                    msgs.append(f"{name}: PROMOTE {pa.get('result')}@inn{pa.get('inning')}->1B (H={h_target}, had {cur})")
+                    pa["result"] = "1B"
+                if len(cand) < need:
+                    msgs.append(f"{name}: WARN H={h_target} but only {len(cand)} "
+                                f"{'low-conf ' if low_conf_only else ''}candidate(s) (had {cur})")
+    return msgs
+
+
+def _hit_type_from_notes(pa: dict) -> str:
+    """Infer hit base from step-1 evidence already in the notes: X_COUNT (0->1B,
+    1->2B, 2->3B) or crossbar count. Defaults to 1B."""
+    notes = pa.get("notes") or ""
+    m = re.search(r"X_COUNT\s*=?\s*([0-3])", notes)
+    if m:
+        return {"0": "1B", "1": "2B", "2": "3B", "3": "3B"}[m.group(1)]
+    m = re.search(r"(\d+)\s*crossbar", notes)
+    if m:
+        return {0: "1B", 1: "1B", 2: "2B", 3: "3B"}.get(int(m.group(1)), "1B")
+    return "1B"
+
+
+def _enforce_hits_double_entry(raw_json: dict, card_hits: list[int],
+                               stats_by_slot: dict[int, list[tuple[int, int]]],
+                               innings: int) -> list[str]:
+    """Assign hit cells using BOTH margins: per-player H (row sums) and per-inning
+    hits (column sums). A greedy fill marks the most hit-likely cells first (step-1
+    hit evidence > current hit > low-confidence > reached-base > out) while never
+    exceeding a player's H or an inning's hit count. This pins WHICH cells are hits;
+    the zoomed second pass later reads the TYPE (1B/2B/3B). Mutates raw_json.
+    """
+    HITS = {"1B", "2B", "3B", "HR"}
+    row_need: dict[int, int] = {}
+    player_pas: dict[int, list[dict]] = {}
+    for slot in raw_json.get("lineup", []):
+        targets = stats_by_slot.get(slot.get("batting_order"), [])
+        for idx, p in enumerate(slot.get("players", [])):
+            if idx >= len(targets):
+                continue
+            row_need[id(p)] = targets[idx][0]
+            player_pas[id(p)] = p.get("plate_appearances", [])
+    col_need = {i: (card_hits[i - 1] if i - 1 < len(card_hits) else 0) for i in range(1, innings + 1)}
+
+    def pref(pa: dict) -> int:
+        res = (pa.get("result") or "").upper()
+        notes = pa.get("notes") or ""
+        if res in HITS:
+            return 5
+        if "HIT_STROKE" in notes or re.search(r"X_COUNT\s*[1-9]", notes):
+            return 4
+        if pa.get("confidence") == "low":
+            return 2
+        if res in {"BB", "FC", "HBP"} or (res.startswith("E") and res[1:].isdigit()):
+            return 1
+        return 0
+
+    cand = []
+    for pid, pas in player_pas.items():
+        for pa in pas:
+            cand.append((pref(pa), pid, int(pa.get("inning", 0)), pa))
+    cand.sort(key=lambda c: -c[0])
+
+    rn, cn, assigned = dict(row_need), dict(col_need), set()
+    for _, pid, inn, pa in cand:
+        if rn.get(pid, 0) > 0 and cn.get(inn, 0) > 0:
+            assigned.add(id(pa))
+            rn[pid] -= 1
+            cn[inn] -= 1
+
+    msgs: list[str] = []
+    for pas in player_pas.values():
+        for pa in pas:
+            is_hit = (pa.get("result") or "").upper() in HITS
+            should = id(pa) in assigned
+            if should and not is_hit:
+                new_type = _hit_type_from_notes(pa)
+                msgs.append(f"inn{pa.get('inning')}: {pa.get('result')}->{new_type} (double-entry: row+col say hit)")
+                pa["result"] = new_type
+            elif is_hit and not should:
+                msgs.append(f"inn{pa.get('inning')}: {pa.get('result')}->Out (double-entry: not a hit cell)")
+                pa["result"] = "Out"
+                pa["run_scored"] = False
+    leftover = sum(v for v in rn.values() if v > 0) + sum(v for v in cn.values() if v > 0)
+    if leftover:
+        msgs.append(f"WARN double-entry left {leftover} hit(s) unplaced (margins infeasible / grid gaps)")
+    return msgs
+
+
+def _enforce_player_walks(raw_json: dict, stats_by_slot: dict[int, list[tuple[int, int]]]) -> list[str]:
+    """Each player has exactly PA - AB non-at-bat events (BB/HBP). Among their
+    NON-hit PAs (hits already pinned by double-entry), bring the BB/HBP count to
+    that target. Run-safe: only promotes outs->BB (adds no run) and only demotes
+    NON-scoring walks (removes no run), so per-inning run totals stay intact.
+    """
+    NON_AB = {"BB", "HBP"}
+    HITS = {"1B", "2B", "3B", "HR"}
+    msgs: list[str] = []
+
+    def is_low(pa):
+        return pa.get("confidence", "high") == "low"
+
+    for slot in raw_json.get("lineup", []):
+        targets = stats_by_slot.get(slot.get("batting_order"), [])
+        for idx, p in enumerate(slot.get("players", [])):
+            if idx >= len(targets):
+                continue
+            ab = targets[idx][1]
+            pas = p.get("plate_appearances", [])
+            target = len(pas) - ab
+            if target < 0:
+                continue
+            name = p.get("name", f"slot{slot.get('batting_order')}")
+            nonhit = [pa for pa in pas if (pa.get("result") or "").upper() not in HITS]
+            walks = [pa for pa in nonhit if (pa.get("result") or "").upper() in NON_AB]
+            n = len(walks)
+            if n == target:
+                continue
+            if n > target:
+                demotable = sorted([pa for pa in walks if not pa.get("run_scored")],
+                                   key=lambda pa: 0 if is_low(pa) else 1)
+                for pa in demotable[: n - target]:
+                    msgs.append(f"{name}: inn{pa.get('inning')} {pa.get('result')}->Out (walks={target}, had {n})")
+                    pa["result"] = "Out"
+                if len(demotable) < n - target:
+                    msgs.append(f"{name}: WARN walks={target} but {n} present (some scored — left as-is)")
+            else:
+                cand = sorted([pa for pa in nonhit if (pa.get("result") or "").upper() not in NON_AB],
+                              key=lambda pa: 0 if is_low(pa) else 1)
+                need = target - n
+                for pa in cand[:need]:
+                    msgs.append(f"{name}: inn{pa.get('inning')} {pa.get('result')}->BB (walks={target}, had {n})")
+                    pa["result"] = "BB"
+                if len(cand) < need:
+                    msgs.append(f"{name}: WARN walks={target} but only {len(cand)} candidate(s) (had {n})")
+    return msgs
+
+
+def _check_player_ab(raw_json: dict, stats_by_slot: dict[int, list[tuple[int, int]]]) -> list[str]:
+    """Advisory: PA - AB = number of non-at-bat events (BB/HBP/SAC/SF). Flag when
+    the extracted count of those disagrees (often a missed/extra walk)."""
+    NON_AB = {"BB", "HBP", "SAC", "SF"}
+    msgs: list[str] = []
+    for slot in raw_json.get("lineup", []):
+        bo = slot.get("batting_order")
+        targets = stats_by_slot.get(bo, [])
+        for idx, p in enumerate(slot.get("players", [])):
+            if idx >= len(targets):
+                continue
+            ab = targets[idx][1]
+            pas = p.get("plate_appearances", [])
+            expected = len(pas) - ab
+            got = sum(1 for pa in pas if (pa.get("result") or "").upper() in NON_AB)
+            if expected != got:
+                msgs.append(f"{p.get('name', f'slot{bo}')}: expected {expected} non-AB (PA{len(pas)}-AB{ab}), "
+                            f"found {got} BB/HBP")
+    return msgs
+
+
 def _first_monotonic_run(nums: list[int], length: int) -> list[int] | None:
     """Return the first non-decreasing window of >=length ints (the cumulative
     row's signature, e.g. 3 3 5 5 5 6 9 9 12), else None."""
@@ -408,7 +731,7 @@ def _enforce_batters_faced(raw_json: dict, card: dict | None, innings: int) -> l
 
 
 def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
-                           hits_low_conf_only: bool = True) -> list[str]:
+                           hits_low_conf_only: bool = True, do_hits: bool = True) -> list[str]:
     """Force per-inning RUNS and HITS to match the card's 'Totaal per inning'.
 
     RUNS (double-confirmed on the card → trusted): flip run_scored among the
@@ -455,8 +778,8 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
                 if len(elig) < need:
                     msgs.append(f"inn {inn}: WARN card={target} runs but only {len(elig)} eligible PAs")
 
-    # ── HITS (conservative) ──────────────────────────────────────────────────
-    if card_hits:
+    # ── HITS (conservative) — skipped when per-player H is available ──────────
+    if card_hits and do_hits:
         for inn in range(1, innings + 1):
             if inn - 1 >= len(card_hits):
                 continue
@@ -514,6 +837,14 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
 @click.option("--fresh-totals", is_flag=True, default=False,
               help="Re-read the bottom totals strip via the API and overwrite the cached/edited "
                    "totals table. Default: reuse the hand-editable totals_cache file if it exists.")
+@click.option("--stats-image", default=None, type=click.Path(exists=True),
+              help="Image containing the far-right per-player H-AB totals column. Extracted to a "
+                   "hand-editable player_stats_cache file and used for per-player hit enforcement.")
+@click.option("--fresh-stats", is_flag=True, default=False,
+              help="Re-read the per-player H-AB column via the API and overwrite the cached file.")
+@click.option("--second-pass", is_flag=True, default=False,
+              help="After enforcement, re-read rows containing low-confidence cells on their upscaled "
+                   "crops, with full per-player/per-inning constraints, to correct result labels.")
 @click.option("--red-lines", "use_red_lines", is_flag=True, default=True, show_default=True,
               help="Use red lines on image for row splitting (ignored if a directory is given)")
 @click.option("--export", "do_export", is_flag=True, help="Run Excel export after importing to DB")
@@ -528,6 +859,7 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
 def main(image_or_dir: str, provider: str, model: str | None, players_file: str | None,
          dry_run: bool, out: str | None, date_str: str | None, opponent: str | None,
          innings: int, players: int, reuse_step1: bool, realign: bool, fresh_totals: bool,
+         stats_image: str | None, fresh_stats: bool, second_pass: bool,
          use_red_lines: bool, do_export: bool, export_out: str, enhance_mode: str) -> None:
     # Apply default model per provider (env var EXTRACTION_MODEL overrides hardcoded default)
     if model is None:
@@ -692,6 +1024,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
                         contents=prompt,
                         config=gtypes.GenerateContentConfig(
                             system_instruction=_STEP2_SYSTEM,
+                            temperature=0,
                             max_output_tokens=32768,
                         ),
                     )
@@ -708,6 +1041,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
             msg = aclient.messages.create(
                 model=model,
                 max_tokens=8192,
+                temperature=0,
                 system=_STEP2_SYSTEM,
                 messages=[{"role": "user", "content": prompt}],
             )
@@ -724,17 +1058,69 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
                     "Read the totals rows.",
                 ],
                 config=gtypes.GenerateContentConfig(
-                    system_instruction=_TOTALS_SYSTEM, max_output_tokens=1024,
+                    system_instruction=_TOTALS_SYSTEM, temperature=0, max_output_tokens=1024,
                 ),
             )
             return response.text
         aclient = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
         img_data = base64.standard_b64encode(path.read_bytes()).decode()
         msg = aclient.messages.create(
-            model=model, max_tokens=1024, system=_TOTALS_SYSTEM,
+            model=model, max_tokens=1024, temperature=0, system=_TOTALS_SYSTEM,
             messages=[{"role": "user", "content": [
                 _make_image_content(img_data, "image/png"),
                 {"type": "text", "text": "Read the totals rows."},
+            ]}],
+        )
+        return msg.content[0].text
+
+    def call_stats(path: Path) -> str:
+        if provider == "google":
+            from google.genai import types as gtypes
+            gclient = _google_client()
+            response = gclient.models.generate_content(
+                model=model,
+                contents=[
+                    gtypes.Part.from_bytes(data=path.read_bytes(), mime_type="image/png"),
+                    "Read the per-player H-AB totals.",
+                ],
+                config=gtypes.GenerateContentConfig(
+                    system_instruction=_STATS_SYSTEM, temperature=0, max_output_tokens=512,
+                ),
+            )
+            return response.text
+        aclient = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        img_data = base64.standard_b64encode(path.read_bytes()).decode()
+        msg = aclient.messages.create(
+            model=model, max_tokens=512, temperature=0, system=_STATS_SYSTEM,
+            messages=[{"role": "user", "content": [
+                _make_image_content(img_data, "image/png"),
+                {"type": "text", "text": "Read the per-player H-AB totals."},
+            ]}],
+        )
+        return msg.content[0].text
+
+    def call_refine(path: Path, system: str) -> str:
+        if provider == "google":
+            from google.genai import types as gtypes
+            gclient = _google_client()
+            response = gclient.models.generate_content(
+                model=model,
+                contents=[
+                    gtypes.Part.from_bytes(data=path.read_bytes(), mime_type="image/png"),
+                    "Re-read this player's innings as instructed.",
+                ],
+                config=gtypes.GenerateContentConfig(
+                    system_instruction=system, temperature=0, max_output_tokens=512,
+                ),
+            )
+            return response.text
+        aclient = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        img_data = base64.standard_b64encode(path.read_bytes()).decode()
+        msg = aclient.messages.create(
+            model=model, max_tokens=512, temperature=0, system=system,
+            messages=[{"role": "user", "content": [
+                _make_image_content(img_data, "image/png"),
+                {"type": "text", "text": "Re-read this player's innings as instructed."},
             ]}],
         )
         return msg.content[0].text
@@ -852,6 +1238,31 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
                 _write_totals_cache(totals_cache_file, card, innings)
                 click.echo(f"Wrote totals table to {totals_cache_file} — "
                            f"open it, correct any numbers, then re-run to lock them in.")
+    # ── Per-player H-AB totals (optional, from --stats-image) ───────────────
+    player_stats: dict[int, list[tuple[int, int]]] | None = None
+    if stats_image is not None:
+        stats_src = Path(stats_image)
+        stats_cache_dir = rows_path.parent / "player_stats_cache"
+        stats_cache_dir.mkdir(exist_ok=True)
+        stats_cache_file = stats_cache_dir / f"{stats_src.stem}.txt"
+        if stats_cache_file.exists() and not fresh_stats:
+            player_stats = _read_player_stats_cache(stats_cache_file)
+            click.echo(f"\nUsing hand-verified player stats from {stats_cache_file.name} "
+                       f"(use --fresh-stats to re-read)")
+        else:
+            try:
+                stats_crop = _crop_stats_strip(stats_src, rows_path.parent / "stats_crop")
+                rows = _parse_player_stats(call_stats(stats_crop))
+                _write_player_stats_cache(stats_cache_file, rows)
+                player_stats = _read_player_stats_cache(stats_cache_file)
+                click.echo(f"\nExtracted per-player H-AB to {stats_cache_file} — review/edit, then re-run.")
+            except Exception as e:  # noqa: BLE001
+                click.echo(f"Player-stats extraction failed: {e}")
+    if player_stats:
+        click.echo("Per-player H by slot: "
+                   + ", ".join(f"{s}:{'/'.join(str(h) for h, _ in player_stats[s])}"
+                               for s in sorted(player_stats)))
+
     if card:
         click.echo(f"Card per-inning  runs={card.get('runs_per_inning')}  hits={card.get('hits')}  "
                    f"errors={card.get('errors')}  lob={card.get('lob')}")
@@ -878,24 +1289,100 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
         click.echo(f"  reconstructed per-slot PA: {[len(recon[s]) for s in sorted(recon)]}")
         for s in sorted(recon):
             click.echo(f"    slot {s}: innings {recon[s]}")
-        totals_agree = grid["total"] == extracted_total
-        if not totals_agree:
-            click.echo(f"  NOTE: grid total {grid['total']} != extracted {extracted_total} "
-                       f"— card read likely off (usually LOB); realignment unsafe")
-        if realign and totals_agree:
+        if realign:
+            # Per-slot realignment: _realign_innings only relabels slots whose PA
+            # count matches the grid, so it is safe to run even when the global
+            # total disagrees — correct slots get fixed; mismatched ones are skipped
+            # and surface as second-pass candidates.
             rmsgs = _realign_innings(raw_json, grid)
             if rmsgs:
-                click.echo("  -- realigned PA innings to grid --")
+                click.echo("  -- realigned PA innings to grid (per-slot; mismatched slots skipped) --")
                 for m in rmsgs:
                     click.echo(f"    {m}")
-        elif realign:
-            click.echo("  --realign requested but SKIPPED (grid/extracted totals disagree)")
+        if grid["total"] != extracted_total:
+            click.echo(f"  NOTE: grid total {grid['total']} != extracted {extracted_total} — "
+                       f"some slots have missing/extra PAs (second-pass candidates)")
+
+    # ── Second pass: re-read rows with low-confidence cells, with constraints ─
+    if second_pass:
+        click.echo("\n-- Second pass: re-reading low-confidence rows (constrained) --")
+        slot_to_crop = {bo: row_files[bo - 1] for bo in range(1, len(row_files) + 1)}
+        any_refined = False
+        for slot in sorted(raw_json.get("lineup", []), key=lambda s: s.get("batting_order", 99)):
+            bo = slot.get("batting_order")
+            slot_players = slot.get("players", [])
+            all_pas = [pa for p in slot_players for pa in p.get("plate_appearances", [])]
+            if not all_pas or not any(pa.get("confidence") == "low" for pa in all_pas):
+                continue
+            crop = slot_to_crop.get(bo)
+            if crop is None:
+                continue
+            ctx = [f"- This batting slot batted in innings: {sorted(int(pa.get('inning', 0)) for pa in all_pas)}."]
+            targets = player_stats.get(bo, []) if player_stats else []
+            for idx, p in enumerate(slot_players):
+                pinn = sorted(int(pa.get("inning", 0)) for pa in p.get("plate_appearances", []))
+                if idx < len(targets):
+                    h, ab = targets[idx]
+                    ctx.append(f"- {p.get('name', 'player')} (innings {pinn}): {h} hit(s), "
+                               f"{max(len(p.get('plate_appearances', [])) - ab, 0)} walk(s)/HBP.")
+            if card:
+                ch, ce, cr = card.get("hits") or [], card.get("errors") or [], card.get("runs_per_inning") or []
+                for i in sorted(int(pa.get("inning", 0)) for pa in all_pas):
+                    parts = []
+                    if i - 1 < len(cr):
+                        parts.append(f"{cr[i-1]} run(s)")
+                    if i - 1 < len(ch):
+                        parts.append(f"{ch[i-1]} hit(s)")
+                    if i - 1 < len(ce):
+                        parts.append(f"{ce[i-1]} error(s)")
+                    if parts:
+                        ctx.append(f"- Inning {i} (whole team): " + ", ".join(parts) + ".")
+            try:
+                text = call_refine(crop, _SECOND_PASS_SYSTEM.format(constraints="\n".join(ctx)))
+            except Exception as e:  # noqa: BLE001
+                click.echo(f"  slot {bo}: refine failed: {e}")
+                continue
+            changes = []
+            for p in slot_players:
+                changes += _apply_refinement(p, text)
+            names = "/".join(p.get("name", "") for p in slot_players)
+            click.echo(f"  slot {bo} ({names}): " + ("; ".join(changes) if changes else "no changes"))
+            any_refined = True
+        if not any_refined:
+            click.echo("  (no low-confidence rows to refine)")
 
     if card:
-        enforce_msgs = _enforce_inning_totals(raw_json, card, innings)
+        # Per-player H (if available) is more precise than per-inning hits, so let
+        # it own hit enforcement; the per-inning pass then only does runs.
+        enforce_msgs = _enforce_inning_totals(raw_json, card, innings, do_hits=(player_stats is None))
         if enforce_msgs:
-            click.echo("\n-- Enforcing card totals (runs + hits) --")
+            label = "runs" if player_stats else "runs + hits"
+            click.echo(f"\n-- Enforcing card totals ({label}) --")
             for m in enforce_msgs:
+                click.echo(f"  {m}")
+
+    if player_stats:
+        if card and card.get("hits"):
+            de_msgs = _enforce_hits_double_entry(raw_json, card["hits"], player_stats, innings)
+            if de_msgs:
+                click.echo("\n-- Double-entry hit assignment (per-player H x per-inning hits) --")
+                for m in de_msgs:
+                    click.echo(f"  {m}")
+        else:
+            ph_msgs = _enforce_player_hits(raw_json, player_stats)
+            if ph_msgs:
+                click.echo("\n-- Enforcing per-player hits (from H, no per-inning data) --")
+                for m in ph_msgs:
+                    click.echo(f"  {m}")
+        w_msgs = _enforce_player_walks(raw_json, player_stats)
+        if w_msgs:
+            click.echo("\n-- Enforcing per-player walks (PA - AB) --")
+            for m in w_msgs:
+                click.echo(f"  {m}")
+        ab_msgs = _check_player_ab(raw_json, player_stats)
+        if ab_msgs:
+            click.echo("\n-- Per-player AB check (advisory: PA-AB = expected BB/HBP) --")
+            for m in ab_msgs:
                 click.echo(f"  {m}")
 
     # ── Lineup-continuity check (structural; needs no card data) ─────────────

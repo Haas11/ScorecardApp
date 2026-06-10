@@ -184,7 +184,7 @@ def split_scorecard(
         out_path = out_dir / f"{stem}_row{i:02d}.png"
         combined.save(out_path, "PNG")
         out_paths.append(out_path)
-        print(f"  Row {i:2d}: y={y0}–{y1}  ({row_strip.height} px tall)  →  {out_path.name}")
+        print(f"  Row {i:2d}: y={y0}-{y1}  ({row_strip.height} px tall)  ->  {out_path.name}")
 
     crop_totals_strip(img_path, out_dir)
     return out_paths
@@ -246,7 +246,7 @@ def split_from_red_lines(
         out_path = out_dir / f"{stem}_row{i:02d}.png"
         combined.save(out_path, "PNG")
         out_paths.append(out_path)
-        print(f"  Row {i:2d}: y={y0}–{y1}  ({row_strip.height} px)  →  {out_path.name}")
+        print(f"  Row {i:2d}: y={y0}-{y1}  ({row_strip.height} px)  ->  {out_path.name}")
 
     crop_totals_strip(img_path, out_dir, min_red_px)
     return out_paths

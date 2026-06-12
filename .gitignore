@@ -21,12 +21,17 @@ __pycache__/
 *.xlsx
 
 # Generated pipeline artifacts (regenerable from source images)
-images/rows/
-images/rows_enhanced*/
-images/step1_cache/
-images/stats_crop/
+**/rows/
+**/rows_enhanced*/
+**/step1_cache/
+**/stats_crop/
 images/**/_*.png
 **/step2_debug.txt
+
+# Subdirectory cache dirs (ground-truth caches belong only in images/totals_cache/ and images/player_stats_cache/)
+images/*/totals_cache/
+images/*/player_stats_cache/
+images/scorecard/
 
 # OS / editor
 .DS_Store

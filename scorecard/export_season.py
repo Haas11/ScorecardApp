@@ -21,6 +21,8 @@ _DB_PATH = Path("data/season.db")
 
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
 HEADER_FONT = Font(bold=True, color="FFFFFF")
+TEAM_FILL = PatternFill("solid", fgColor="D9E1F2")
+TEAM_FONT = Font(bold=True)
 
 RATE_COLS = {"AVG", "OBP", "SLG", "OPS", "BABIP", "ISO", "wOBA"}
 SEASON_COLS = [
@@ -78,9 +80,69 @@ def _stats_row(s: PlayerStats) -> list:
     ]
 
 
-def _add_color_scale(ws, col_idx: int, min_val: float, mid_val: float, num_rows: int) -> None:
+def _team_season_row(stats: list) -> list:
+    if not stats:
+        return ["Team"] + [""] * (len(SEASON_COLS) - 1)
+    g = max(s.G for s in stats)
+    pa = sum(s.PA for s in stats)
+    ab = sum(s.AB for s in stats)
+    h = sum(s.H for s in stats)
+    d = sum(s.doubles for s in stats)
+    t = sum(s.triples for s in stats)
+    hr = sum(s.HR for s in stats)
+    r = sum(s.R for s in stats)
+    rbi = sum(s.RBI for s in stats)
+    bb = sum(s.BB for s in stats)
+    k = sum(s.K for s in stats)
+    sb = sum(s.SB for s in stats)
+    cs = sum(s.CS for s in stats)
+    avg = round(h / ab, 3) if ab > 0 else 0.0
+    obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
+    singles = h - d - t - hr
+    tb = singles + 2 * d + 3 * t + 4 * hr
+    slg = round(tb / ab, 3) if ab > 0 else 0.0
+    ops = round(obp + slg, 3)
+    babip_denom = ab - k - hr
+    babip = round((h - hr) / babip_denom, 3) if babip_denom > 0 else ""
+    iso = round(slg - avg, 3)
+    bb_pct = round(bb / pa, 3) if pa > 0 else 0.0
+    k_pct = round(k / pa, 3) if pa > 0 else 0.0
+    ab_hr = round(ab / hr, 1) if hr > 0 else ""
+    bb_k = round(bb / k, 2) if k > 0 else ""
+    return [
+        "Team", g, pa, ab, h, d, t, hr, r, rbi, bb, k, sb, cs,
+        avg, obp, slg, ops, babip, iso, bb_pct, k_pct, "", "", "", ab_hr, bb_k,
+    ]
+
+
+def _team_game_row(entries: list[dict]) -> list:
+    pa = sum(d["PA"] for d in entries)
+    ab = sum(d["AB"] for d in entries)
+    h = sum(d["H"] for d in entries)
+    d2 = sum(d["2B"] for d in entries)
+    t = sum(d["3B"] for d in entries)
+    hr = sum(d["HR"] for d in entries)
+    r = sum(d["R"] for d in entries)
+    rbi = sum(d["RBI"] for d in entries)
+    bb = sum(d["BB"] for d in entries)
+    k = sum(d["K"] for d in entries)
+    sb = sum(d["SB"] for d in entries)
+    cs = sum(d["CS"] for d in entries)
+    avg = round(h / ab, 3) if ab > 0 else 0.0
+    obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
+    return ["", "Team", pa, ab, h, d2, t, hr, r, rbi, bb, k, sb, cs, avg, obp]
+
+
+def _write_team_row(ws, row_idx: int, vals: list) -> None:
+    for col_idx, val in enumerate(vals, 1):
+        cell = ws.cell(row=row_idx, column=col_idx, value=val)
+        cell.font = TEAM_FONT
+        cell.fill = TEAM_FILL
+
+
+def _add_color_scale(ws, col_idx: int, min_val: float, mid_val: float, num_rows: int, start_row: int = 2) -> None:
     col_letter = get_column_letter(col_idx)
-    cell_range = f"{col_letter}2:{col_letter}{num_rows + 1}"
+    cell_range = f"{col_letter}{start_row}:{col_letter}{start_row + num_rows - 1}"
     rule = ColorScaleRule(
         start_type="num", start_value=min_val, start_color="FFFFFF",
         mid_type="num", mid_value=mid_val, mid_color="FFFFFF",
@@ -112,15 +174,17 @@ def export_season(
     ws1.title = "Season Stats"
     _write_header(ws1, SEASON_COLS)
 
+    _write_team_row(ws1, 2, _team_season_row(all_stats))
+
     italic_font = Font(italic=True)
-    for row_idx, s in enumerate(filtered, 2):
+    for row_idx, s in enumerate(filtered, 3):
         row_data = _stats_row(s)
         for col_idx, val in enumerate(row_data, 1):
             cell = ws1.cell(row=row_idx, column=col_idx, value=val)
             if s.small_sample:
                 cell.font = italic_font
 
-    # Color scale on AVG, OBP, OPS, wOBA
+    # Color scale on AVG, OBP, OPS, wOBA (skip team row at row 2)
     color_scale_targets = {
         "AVG": (0.200, 0.250),
         "OBP": (lg_obp - 0.050, lg_obp),
@@ -131,7 +195,7 @@ def export_season(
     for col_name, (min_v, mid_v) in color_scale_targets.items():
         if col_name in SEASON_COLS:
             col_idx = SEASON_COLS.index(col_name) + 1
-            _add_color_scale(ws1, col_idx, min_v, mid_v, num_rows)
+            _add_color_scale(ws1, col_idx, min_v, mid_v, num_rows, start_row=3)
 
     _autofit(ws1)
 
@@ -238,7 +302,8 @@ def export_season(
 
         wsg = wb.create_sheet(unique)
         _write_header(wsg, per_game_cols)
-        for row_idx, d in enumerate(entries, 2):
+        _write_team_row(wsg, 2, _team_game_row(entries))
+        for row_idx, d in enumerate(entries, 3):
             ab, h, bb = d["AB"], d["H"], d["BB"]
             avg = round(h / ab, 3) if ab > 0 else 0.0
             obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0

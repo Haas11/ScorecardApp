@@ -194,6 +194,16 @@ def find_duplicate_game(
     return row["game_id"] if row else None
 
 
+def mark_reviewed(conn: sqlite3.Connection, game_id: int) -> int:
+    """Set reviewed=1, needs_review=0 for all PAs of a game. Returns row count."""
+    n = conn.execute(
+        "UPDATE plate_appearances SET reviewed=1, needs_review=0 WHERE game_id=?",
+        (game_id,),
+    ).rowcount
+    conn.commit()
+    return n
+
+
 def delete_game(conn: sqlite3.Connection, game_id: int) -> None:
     conn.execute("DELETE FROM plate_appearances WHERE game_id=?", (game_id,))
     conn.execute("DELETE FROM pitching_appearances WHERE game_id=?", (game_id,))

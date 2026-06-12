@@ -838,8 +838,10 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
               help="Re-read the bottom totals strip via the API and overwrite the cached/edited "
                    "totals table. Default: reuse the hand-editable totals_cache file if it exists.")
 @click.option("--stats-image", default=None, type=click.Path(exists=True),
-              help="Image containing the far-right per-player H-AB totals column. Extracted to a "
-                   "hand-editable player_stats_cache file and used for per-player hit enforcement.")
+              help="Image containing the far-right per-player H-AB totals column. Defaults to the "
+                   "main image (assumes stats column is included there).")
+@click.option("--no-stats", is_flag=True, default=False,
+              help="Skip per-player H-AB extraction entirely (for games without a stats column).")
 @click.option("--fresh-stats", is_flag=True, default=False,
               help="Re-read the per-player H-AB column via the API and overwrite the cached file.")
 @click.option("--second-pass", is_flag=True, default=False,
@@ -859,7 +861,7 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
 def main(image_or_dir: str, provider: str, model: str | None, players_file: str | None,
          dry_run: bool, out: str | None, date_str: str | None, opponent: str | None,
          innings: int, players: int, reuse_step1: bool, realign: bool, fresh_totals: bool,
-         stats_image: str | None, fresh_stats: bool, second_pass: bool,
+         stats_image: str | None, no_stats: bool, fresh_stats: bool, second_pass: bool,
          use_red_lines: bool, do_export: bool, export_out: str, enhance_mode: str) -> None:
     # Apply default model per provider (env var EXTRACTION_MODEL overrides hardcoded default)
     if model is None:
@@ -884,6 +886,9 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
         click.echo(f"Split into {len(split_paths)} row crops.")
     else:
         rows_path = input_path
+
+    # Cache root is always images/ — one level above the scan subfolder (e.g. "score cards with grid/")
+    cache_root = rows_path.parent.parent if input_path.is_file() else rows_path.parent
 
     row_files = sorted(rows_path.glob("*_row*.png"))
     if not row_files:
@@ -1160,7 +1165,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     # description is replayed instead of calling the vision model — letting you
     # iterate on step-2/enforcement at zero step-1 cost. Fresh calls always
     # (re)write the cache.
-    step1_cache_dir = rows_path.parent / "step1_cache"
+    step1_cache_dir = cache_root / "step1_cache"
     step1_cache_dir.mkdir(exist_ok=True)
     descriptions: list[str] = []
     reused = 0
@@ -1220,7 +1225,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     #    (2) PA-ordering, (3) per-inning RUNS+HITS. All before archive/validation.
     card: dict | None = None
     if totals_img is not None:
-        totals_cache_dir = rows_path.parent / "totals_cache"
+        totals_cache_dir = cache_root / "totals_cache"
         totals_cache_dir.mkdir(exist_ok=True)
         totals_cache_file = totals_cache_dir / f"{totals_img.stem}.txt"
         if totals_cache_file.exists() and not fresh_totals:
@@ -1238,11 +1243,11 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
                 _write_totals_cache(totals_cache_file, card, innings)
                 click.echo(f"Wrote totals table to {totals_cache_file} — "
                            f"open it, correct any numbers, then re-run to lock them in.")
-    # ── Per-player H-AB totals (optional, from --stats-image) ───────────────
+    # ── Per-player H-AB totals ───────────────────────────────────────────────
     player_stats: dict[int, list[tuple[int, int]]] | None = None
-    if stats_image is not None:
-        stats_src = Path(stats_image)
-        stats_cache_dir = rows_path.parent / "player_stats_cache"
+    if not no_stats:
+        stats_src = Path(stats_image) if stats_image is not None else input_path
+        stats_cache_dir = cache_root / "player_stats_cache"
         stats_cache_dir.mkdir(exist_ok=True)
         stats_cache_file = stats_cache_dir / f"{stats_src.stem}.txt"
         if stats_cache_file.exists() and not fresh_stats:
@@ -1399,7 +1404,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
         game_date = raw_json.get("game", {}).get("date") or date_str or "unknown"
         opp_slug = (opponent or raw_json.get("game", {}).get("teams", {}).get("away") or "unknown").lower()
         opp_slug = re.sub(r"\s+", "_", opp_slug)
-        out_path = rows_path.parent.parent / "scorecard" / "data" / "raw" / f"{game_date}_{opp_slug}_rows.json"
+        out_path = Path("data") / "raw" / f"{game_date}_{opp_slug}_rows.json"
     else:
         out_path = Path(out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

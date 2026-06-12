@@ -20,18 +20,9 @@ __pycache__/
 *.sqlite3
 *.xlsx
 
-# Generated pipeline artifacts (regenerable from source images)
-**/rows/
-**/rows_enhanced*/
-**/step1_cache/
-**/stats_crop/
-images/**/_*.png
+# Generated pipeline cache (fully regenerable — never edit anything in here)
+images/_cache/
 **/step2_debug.txt
-
-# Subdirectory cache dirs (ground-truth caches belong only in images/totals_cache/ and images/player_stats_cache/)
-images/*/totals_cache/
-images/*/player_stats_cache/
-images/scorecard/
 
 # OS / editor
 .DS_Store

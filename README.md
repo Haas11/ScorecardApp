@@ -17,20 +17,29 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 ---
 
+## Image Naming Convention
+
+Name scan files as `YYYY-MM-DD_<opponent>.png` and place them in `images/scans/`:
+
+```
+images/scans/
+  2026-06-07_almere.png
+  2026-04-12_quick.png
+  2026-06-07_almere_g2.png   ← doubleheader game 2
+```
+
+Each scan should include hand-drawn red divider lines between rows **and** the per-player stats column on the right. Add `--no-stats` if a game has no stats column.
+
+---
+
 ## Analyzing a New Game
 
 All commands run from the `scorecard/` directory.
 
-You need **one image file** per game: a scan with hand-drawn red divider lines and the per-player stats column included on the right.
-
-Add `--no-stats` to skip per-player H-AB extraction for games that don't have a stats column.
-
----
-
 ### Step 1 — Extract and review
 
 ```powershell
-uv run python extract_rows.py "../images/score cards with grid/<GAME>.png" `
+uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
   --enhance esrgan --innings 9 --players 9 `
   --players-file ../players.txt `
   --date YYYY-MM-DD --opponent <NAME> `
@@ -40,17 +49,17 @@ uv run python extract_rows.py "../images/score cards with grid/<GAME>.png" `
 Read the terminal output. Check:
 
 - **`[LOW]` plays** — cells the model was uncertain about; compare against the physical card
-- **Reconciliation mismatches** — `MISSED run(s)`, `EXTRA E#`, etc. at the bottom of the output
+- **Reconciliation mismatches** — `MISSED run(s)`, `EXTRA E#`, etc. at the bottom
 
-If a mismatch is caused by the totals strip being misread (wrong run/hit/error/LOB count), correct it in the auto-generated cache file and re-run (step 2). If individual play results are wrong, note them — the constraints will fix most automatically on re-run.
+If totals were misread (wrong run/hit/error/LOB count), correct the generated ground-truth files and re-run (step 2).
 
 ---
 
 ### Step 2 — Correct misread totals (only if needed)
 
-Two text files are auto-generated during step 1. Open them in any text editor and fix misread numbers:
+Two files are auto-generated in `images/ground_truth/`. Open in any text editor and fix misread numbers:
 
-**`../images/totals_cache/<GAME>_totals.txt`** — per-inning team totals from the card's bottom strip:
+**`../images/ground_truth/YYYY-MM-DD_<opponent>_totals.txt`** — per-inning team totals from the card's bottom strip:
 
 ```
 # inning  runs  hits  errors  lob
@@ -58,7 +67,7 @@ Two text files are auto-generated during step 1. Open them in any text editor an
 2    0    2    0    2
 ```
 
-**`../images/player_stats_cache/<GAME>.txt`** — per-player H and AB from the stats column:
+**`../images/ground_truth/YYYY-MM-DD_<opponent>_stats.txt`** — per-player H and AB from the stats column:
 
 ```
 # slot  H  AB
@@ -73,15 +82,14 @@ You only need to edit these if the numbers don't match the physical card.
 ### Step 3 — Re-run until clean
 
 ```powershell
-uv run python extract_rows.py "../images/score cards with grid/<GAME>.png" `
+uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
   --enhance esrgan --reuse-step1 --innings 9 --players 9 `
   --players-file ../players.txt `
   --date YYYY-MM-DD --opponent <NAME> `
-  --stats-image "../images/score cards/<GAME clean>.jpg" `
   --realign --dry-run
 ```
 
-`--reuse-step1` replays the cached vision descriptions — no API calls, instant re-run. Repeat steps 2–3 until the output shows:
+`--reuse-step1` replays cached vision descriptions — no API calls, instant re-run. Repeat steps 2–3 until the output shows:
 
 ```
 Run reconciliation OK
@@ -97,7 +105,7 @@ Lineup continuity OK
 Drop `--dry-run` and add `--export`:
 
 ```powershell
-uv run python extract_rows.py "../images/score cards with grid/<GAME>.png" `
+uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
   --enhance esrgan --reuse-step1 --innings 9 --players 9 `
   --players-file ../players.txt `
   --date YYYY-MM-DD --opponent <NAME> `
@@ -137,15 +145,21 @@ uv run python mark_reviewed.py `
 
 ```
 images/
-  score cards with grid/  scans with red divider lines + per-player stats column
-  totals_cache/           hand-editable per-inning ground truth
-  player_stats_cache/     hand-editable per-player H/AB ground truth
+  scans/              ← drop scan images here (YYYY-MM-DD_<opponent>.png)
+  ground_truth/       ← auto-generated; hand-correct after each run
+    YYYY-MM-DD_<opponent>_totals.txt
+    YYYY-MM-DD_<opponent>_stats.txt
+  _cache/             ← fully generated; never edit; gitignored
+    rows/
+    rows_enhanced_esrgan/
+    step1/
+    stats_crop/
 
 scorecard/
-  extract_rows.py       main pipeline
-  export_season.py      Excel export
-  mark_reviewed.py      mark plays as reviewed in DB
+  extract_rows.py     main pipeline
+  export_season.py    Excel export
+  mark_reviewed.py    mark plays as reviewed in DB
   data/
-    season.db           SQLite database (single source of truth)
-    raw/                per-game JSON archives
+    season.db         SQLite database (single source of truth)
+    raw/              per-game JSON archives
 ```

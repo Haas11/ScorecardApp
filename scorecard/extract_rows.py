@@ -872,9 +872,18 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     click.echo(f"Provider: {provider}  Model: {model}")
     input_path = Path(image_or_dir)
 
-    # ── Auto-split if given an image file instead of a rows directory ──────
+    # ── Path layout ──────────────────────────────────────────────────────────
+    # images/
+    #   scans/          ← source images (input lives here)
+    #   ground_truth/   ← hand-editable totals + stats txt files
+    #   _cache/         ← fully generated; never edited; gitignored
+    #     rows/
+    #     rows_enhanced_esrgan/
+    #     step1/
+    #     stats_crop/
     if input_path.is_file():
-        rows_path = input_path.parent / "rows"
+        images_root = input_path.parent.parent  # images/ (parent of scans/)
+        rows_path = images_root / "_cache" / "rows"
         click.echo(f"Splitting {input_path.name} into row crops → {rows_path}")
         if use_red_lines:
             split_paths = split_from_red_lines(str(input_path), rows_path)
@@ -885,10 +894,11 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
             raise SystemExit(1)
         click.echo(f"Split into {len(split_paths)} row crops.")
     else:
+        images_root = input_path.parent
         rows_path = input_path
 
-    # Cache root is always images/ — one level above the scan subfolder (e.g. "score cards with grid/")
-    cache_root = rows_path.parent.parent if input_path.is_file() else rows_path.parent
+    cache_root = images_root / "_cache"
+    ground_truth_dir = images_root / "ground_truth"
 
     row_files = sorted(rows_path.glob("*_row*.png"))
     if not row_files:
@@ -1139,7 +1149,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
         # Cache enhanced crops per mode so repeated step-1/step-2 iteration does
         # not re-run the (slow) ESRGAN pass. A cached crop is reused when it
         # exists and is newer than its source row image.
-        enhanced_dir = rows_path.parent / f"rows_enhanced_{enhance_mode}"
+        enhanced_dir = cache_root / f"rows_enhanced_{enhance_mode}"
         enhanced_dir.mkdir(exist_ok=True)
         enhanced_files: list[Path] = []
         click.echo(f"Enhancing {len(row_files)} rows with mode={enhance_mode} (cache: {enhanced_dir.name})...")
@@ -1165,7 +1175,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     # description is replayed instead of calling the vision model — letting you
     # iterate on step-2/enforcement at zero step-1 cost. Fresh calls always
     # (re)write the cache.
-    step1_cache_dir = cache_root / "step1_cache"
+    step1_cache_dir = cache_root / "step1"
     step1_cache_dir.mkdir(exist_ok=True)
     descriptions: list[str] = []
     reused = 0
@@ -1225,9 +1235,8 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     #    (2) PA-ordering, (3) per-inning RUNS+HITS. All before archive/validation.
     card: dict | None = None
     if totals_img is not None:
-        totals_cache_dir = cache_root / "totals_cache"
-        totals_cache_dir.mkdir(exist_ok=True)
-        totals_cache_file = totals_cache_dir / f"{totals_img.stem}.txt"
+        ground_truth_dir.mkdir(exist_ok=True)
+        totals_cache_file = ground_truth_dir / f"{input_path.stem}_totals.txt"
         if totals_cache_file.exists() and not fresh_totals:
             card = _read_totals_cache(totals_cache_file, innings)
             click.echo(f"\nUsing hand-verified totals from {totals_cache_file.name} "
@@ -1247,16 +1256,15 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     player_stats: dict[int, list[tuple[int, int]]] | None = None
     if not no_stats:
         stats_src = Path(stats_image) if stats_image is not None else input_path
-        stats_cache_dir = cache_root / "player_stats_cache"
-        stats_cache_dir.mkdir(exist_ok=True)
-        stats_cache_file = stats_cache_dir / f"{stats_src.stem}.txt"
+        ground_truth_dir.mkdir(exist_ok=True)
+        stats_cache_file = ground_truth_dir / f"{input_path.stem}_stats.txt"
         if stats_cache_file.exists() and not fresh_stats:
             player_stats = _read_player_stats_cache(stats_cache_file)
             click.echo(f"\nUsing hand-verified player stats from {stats_cache_file.name} "
                        f"(use --fresh-stats to re-read)")
         else:
             try:
-                stats_crop = _crop_stats_strip(stats_src, rows_path.parent / "stats_crop")
+                stats_crop = _crop_stats_strip(stats_src, cache_root / "stats_crop")
                 rows = _parse_player_stats(call_stats(stats_crop))
                 _write_player_stats_cache(stats_cache_file, rows)
                 player_stats = _read_player_stats_cache(stats_cache_file)

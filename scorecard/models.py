@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from typing import Optional
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class GameInfo(BaseModel):
@@ -88,6 +88,12 @@ class AmbiguousCell(BaseModel):
 class InningTotals(BaseModel):
     runs_per_inning: list[int] = []
     errors_total: Optional[int] = None
+
+    @field_validator("runs_per_inning", mode="before")
+    @classmethod
+    def coerce_nulls(cls, v: list) -> list:
+        # Haiku sometimes outputs null for empty innings; treat as 0
+        return [x if x is not None else 0 for x in (v or [])]
 
 
 class GameExtraction(BaseModel):

@@ -966,9 +966,9 @@ def main(image_or_dir: str, provider: str, model: str | None, step2_model: str |
     game_context = "\n\nGAME CONTEXT:\n" + "\n".join(f"  - {l}" for l in game_context_lines)
 
     # Build roster hint
+    names: list[str] = []
     roster_hint = ""
     if players_file:
-        names = []
         for line in open(players_file, encoding="utf-8"):
             line = line.strip()
             if not line or line.startswith("#"):
@@ -1244,6 +1244,12 @@ def main(image_or_dir: str, provider: str, model: str | None, step2_model: str |
         step2_preamble_lines.append(f"Game date: {date_str}  (use this as game.date in the JSON)")
     if opponent:
         step2_preamble_lines.append(f"Away team: {opponent}  (use this as game.teams.away in the JSON)")
+    if names:
+        step2_preamble_lines.append(
+            "HOME TEAM ROSTER (use these exact names for player.name; "
+            "match handwritten abbreviations/initials to the closest entry): "
+            + ", ".join(names)
+        )
     step2_preamble = "\n".join(step2_preamble_lines) + "\n\n---\n\n"
 
     # ── Step 2: parse combined description into JSON ──────────────────────
@@ -1470,6 +1476,26 @@ def main(image_or_dir: str, provider: str, model: str | None, step2_model: str |
         encoding="utf-8",
     )
     click.echo(f"Archived to {out_path}")
+
+    # ── Fuzzy-match player names against roster ───────────────────────────
+    if names:
+        from rapidfuzz import fuzz, process as rfp
+        click.echo("\n-- Name matching -----------------------------------------")
+        for slot in raw_json.get("lineup", []):
+            for player in slot.get("players", []):
+                orig = (player.get("name") or "").strip()
+                if not orig:
+                    continue
+                result = rfp.extractOne(orig, names, scorer=fuzz.WRatio)
+                if result is None:
+                    continue
+                best, score, _ = result
+                if score >= 85 and best != orig:
+                    click.echo(f"  [{slot.get('batting_order')}] '{orig}' → '{best}' (score {score:.0f})")
+                    player["name"] = best
+                elif score < 70:
+                    click.echo(f"  [{slot.get('batting_order')}] '{orig}' — no confident match "
+                               f"(best: '{best}' at {score:.0f})")
 
     # ── Validate + print ───────────────────────────────────────────────────
     _remap_summary_keys(raw_json)

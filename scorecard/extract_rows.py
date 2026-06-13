@@ -872,6 +872,16 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     click.echo(f"Provider: {provider}  Model: {model}")
     input_path = Path(image_or_dir)
 
+    # ── Auto-detect date + opponent from filename (YYYY-MM-DD_opponent.ext) ──
+    m = re.match(r"(\d{4}-\d{2}-\d{2})_(.+)", input_path.stem)
+    if m:
+        if date_str is None:
+            date_str = m.group(1)
+        if opponent is None:
+            opponent = m.group(2).replace("_", " ").title()
+    if date_str:
+        click.echo(f"Date: {date_str}  Opponent: {opponent or 'unknown'}")
+
     # ── Path layout ──────────────────────────────────────────────────────────
     # images/
     #   scans/          ← source images (input lives here)

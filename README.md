@@ -42,9 +42,10 @@ All commands run from the `scorecard/` directory.
 uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
   --enhance esrgan --innings 9 --players 9 `
   --players-file ../players.txt `
-  --date YYYY-MM-DD --opponent <NAME> `
   --realign --dry-run
 ```
+
+`--date` and `--opponent` are inferred from the filename automatically. Override with explicit flags if needed.
 
 Read the terminal output. Check:
 
@@ -85,7 +86,6 @@ You only need to edit these if the numbers don't match the physical card.
 uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
   --enhance esrgan --reuse-step1 --innings 9 --players 9 `
   --players-file ../players.txt `
-  --date YYYY-MM-DD --opponent <NAME> `
   --realign --dry-run
 ```
 
@@ -108,7 +108,6 @@ Drop `--dry-run` and add `--export`:
 uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
   --enhance esrgan --reuse-step1 --innings 9 --players 9 `
   --players-file ../players.txt `
-  --date YYYY-MM-DD --opponent <NAME> `
   --realign --export --export-out ../stats.xlsx
 ```
 

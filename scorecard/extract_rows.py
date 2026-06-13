@@ -1239,6 +1239,7 @@ def main(image_or_dir: str, provider: str, model: str | None, step2_model: str |
     step2_preamble_lines = [
         "Parse the descriptions below into JSON.",
         f"This game lasted {innings} innings. DISCARD any PA assigned to inning > {innings} — those are stat columns.",
+        "Keep the notes field to 10 words or fewer. Omit it entirely if there is nothing unusual.",
     ]
     if date_str:
         step2_preamble_lines.append(f"Game date: {date_str}  (use this as game.date in the JSON)")
@@ -1370,6 +1371,25 @@ def main(image_or_dir: str, provider: str, model: str | None, step2_model: str |
         if grid["total"] != extracted_total:
             click.echo(f"  NOTE: grid total {grid['total']} != extracted {extracted_total} — "
                        f"some slots have missing/extra PAs (second-pass candidates)")
+
+        # Flag innings where grid says a PA must exist but none was extracted.
+        # These are likely template-diagonal false negatives from step-1.
+        missing_pa_warnings: list[str] = []
+        slot_innings = grid["slot_innings"]
+        for slot in raw_json.get("lineup", []):
+            bo = slot.get("batting_order")
+            expected_innings = set(slot_innings.get(bo, []))
+            extracted_innings = {
+                int(pa.get("inning", 0))
+                for p in slot.get("players", [])
+                for pa in p.get("plate_appearances", [])
+            }
+            for inn in sorted(expected_innings - extracted_innings):
+                missing_pa_warnings.append(f"  [MISSING PA] slot {bo} inning {inn} — grid expects a PA here; step-1 may have read the cell as blank")
+        if missing_pa_warnings:
+            click.echo("\n-- Missing PAs (grid expects PA, none extracted) --")
+            for w in missing_pa_warnings:
+                click.echo(w)
 
     # ── Second pass: re-read rows with low-confidence cells, with constraints ─
     if second_pass:

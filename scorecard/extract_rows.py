@@ -1164,9 +1164,13 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
         enhanced_files: list[Path] = []
         click.echo(f"Enhancing {len(row_files)} rows with mode={enhance_mode} (cache: {enhanced_dir.name})...")
         cached = made = 0
+        # Use the source image mtime as the cache key — row crops are re-split
+        # every run so their mtime always resets, making them useless as a reference.
+        src_mtime = input_path.stat().st_mtime if input_path.is_file() else None
         for i, rp in enumerate(row_files, 1):
             out_path = enhanced_dir / rp.name
-            if out_path.exists() and out_path.stat().st_mtime >= rp.stat().st_mtime:
+            ref_mtime = src_mtime if src_mtime is not None else rp.stat().st_mtime
+            if out_path.exists() and out_path.stat().st_mtime >= ref_mtime:
                 enhanced_files.append(out_path)
                 cached += 1
                 click.echo(f"  Row {i}/{len(row_files)}: cached")

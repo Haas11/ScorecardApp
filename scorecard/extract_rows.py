@@ -819,7 +819,10 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
               type=click.Choice(["anthropic", "google"]),
               help="LLM provider to use")
 @click.option("--model", default=None,
-              help="Model name (default: claude-opus-4-5 for anthropic, gemini-2.0-flash for google)")
+              help="Model name for step-1 vision (default: claude-opus-4-5 for anthropic, gemini-2.5-flash for google)")
+@click.option("--step2-model", default=None,
+              help="Model for step-2 JSON parsing (default: claude-haiku-4-5-20251001 for anthropic). "
+                   "Step-2 is pure text→JSON so a fast/cheap model works well.")
 @click.option("--players-file", default=None, type=click.Path(exists=True))
 @click.option("--dry-run", is_flag=True)
 @click.option("--out", default=None, help="Path to save the archive JSON")
@@ -831,6 +834,9 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
 @click.option("--reuse-step1", is_flag=True, default=False,
               help="Reuse cached step-1 descriptions (skip the per-row vision call) when available. "
                    "Use when iterating on step-2/enforcement without changing the step-1 approach.")
+@click.option("--reuse-step2", is_flag=True, default=False,
+              help="Reuse cached step-2 JSON output when available (implies no step-2 API call). "
+                   "Combine with --reuse-step1 to iterate on enforcement at zero API cost.")
 @click.option("--realign", is_flag=True, default=False,
               help="Realign PA innings to the reconstructed batting grid (card per-inning counts + "
                    "lineup continuity). Only applies when grid and extracted PA totals agree. Experimental.")
@@ -858,18 +864,25 @@ def _enforce_inning_totals(raw_json: dict, card: dict | None, innings: int,
               help="Pre-process row images before the VLM. "
                    "nodiag=Hough diagonal suppression, "
                    "nodiag+esrgan=suppress then AI-sharpen.")
-def main(image_or_dir: str, provider: str, model: str | None, players_file: str | None,
+def main(image_or_dir: str, provider: str, model: str | None, step2_model: str | None,
+         players_file: str | None,
          dry_run: bool, out: str | None, date_str: str | None, opponent: str | None,
-         innings: int, players: int, reuse_step1: bool, realign: bool, fresh_totals: bool,
-         stats_image: str | None, no_stats: bool, fresh_stats: bool, second_pass: bool,
-         use_red_lines: bool, do_export: bool, export_out: str, enhance_mode: str) -> None:
+         innings: int, players: int, reuse_step1: bool, reuse_step2: bool, realign: bool,
+         fresh_totals: bool, stats_image: str | None, no_stats: bool, fresh_stats: bool,
+         second_pass: bool, use_red_lines: bool, do_export: bool, export_out: str,
+         enhance_mode: str) -> None:
     # Apply default model per provider (env var EXTRACTION_MODEL overrides hardcoded default)
     if model is None:
         if provider == "google":
             model = os.environ.get("EXTRACTION_MODEL_GOOGLE", "gemini-2.5-flash")
         else:
             model = os.environ.get("EXTRACTION_MODEL", "claude-opus-4-5")
-    click.echo(f"Provider: {provider}  Model: {model}")
+    if step2_model is None:
+        if provider == "google":
+            step2_model = model  # flash is already fast; no separate default
+        else:
+            step2_model = os.environ.get("EXTRACTION_MODEL_STEP2", "claude-haiku-4-5-20251001")
+    click.echo(f"Provider: {provider}  Model: {model}  Step-2 model: {step2_model}")
     input_path = Path(image_or_dir)
 
     # ── Auto-detect date + opponent from filename (YYYY-MM-DD_opponent.ext) ──
@@ -1064,7 +1077,7 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
         else:
             aclient = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
             msg = aclient.messages.create(
-                model=model,
+                model=step2_model,
                 max_tokens=8192,
                 temperature=0,
                 system=_STEP2_SYSTEM,
@@ -1223,7 +1236,18 @@ def main(image_or_dir: str, provider: str, model: str | None, players_file: str 
     step2_preamble = "\n".join(step2_preamble_lines) + "\n\n---\n\n"
 
     # ── Step 2: parse combined description into JSON ──────────────────────
-    raw_text = call_step2(step2_preamble + combined)
+    step2_cache_dir = cache_root / "step2"
+    step2_cache_dir.mkdir(exist_ok=True)
+    step2_cache_file = step2_cache_dir / f"{input_path.stem}__{enhance_mode}.txt"
+
+    if reuse_step2 and step2_cache_file.exists():
+        raw_text = step2_cache_file.read_text(encoding="utf-8")
+        click.echo(f"Step 2: using cached output from {step2_cache_file.name} "
+                   f"(pass without --reuse-step2 to re-run)")
+    else:
+        click.echo(f"Step 2: calling {step2_model} ...")
+        raw_text = call_step2(step2_preamble + combined)
+        step2_cache_file.write_text(raw_text, encoding="utf-8")
 
     # Strip optional markdown fences (handles ```json ... ``` or ``` ... ```)
     stripped = raw_text.strip()

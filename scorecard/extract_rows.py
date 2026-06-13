@@ -1075,15 +1075,26 @@ def main(image_or_dir: str, provider: str, model: str | None, step2_model: str |
                     else:
                         raise
         else:
+            import time as _time
             aclient = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-            msg = aclient.messages.create(
+            chunks: list[str] = []
+            token_count = 0
+            t0 = _time.monotonic()
+            with aclient.messages.stream(
                 model=step2_model,
                 max_tokens=8192,
                 temperature=0,
                 system=_STEP2_SYSTEM,
                 messages=[{"role": "user", "content": prompt}],
-            )
-            return msg.content[0].text
+            ) as stream:
+                for text in stream.text_stream:
+                    chunks.append(text)
+                    token_count += 1
+                    if token_count % 100 == 0:
+                        click.echo(f"  ... {token_count} tokens", err=False)
+            elapsed = _time.monotonic() - t0
+            click.echo(f"  Step 2 done: {token_count} tokens in {elapsed:.1f}s")
+            return "".join(chunks)
 
     def call_totals(path: Path) -> str:
         if provider == "google":

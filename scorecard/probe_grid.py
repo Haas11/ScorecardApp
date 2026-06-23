@@ -166,9 +166,11 @@ if __name__ == "__main__":
     n_players = int(sys.argv[2]) if len(sys.argv) > 2 else 10
     n_innings = int(sys.argv[3]) if len(sys.argv) > 3 else 11
     stem = Path(img_path).stem
-    out_dir = Path(img_path).parent
+    scans_dir = Path(img_path).parent
+    debug_dir = scans_dir / "Gridded"
+    debug_dir.mkdir(exist_ok=True)
     detect_grid(
         img_path, n_players, n_innings,
-        debug_out=str(out_dir / f"{stem}_grid_debug.png"),
-        cells_out=str(out_dir / f"{stem}_cells_row1.png"),
+        debug_out=str(debug_dir / f"{stem}_grid_debug.png"),
+        cells_out=str(debug_dir / f"{stem}_cells_row1.png"),
     )

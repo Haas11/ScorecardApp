@@ -540,7 +540,9 @@ def main(
 
     # ── Grid detection ────────────────────────────────────────────────────────
     click.echo("\nDetecting grid...")
-    debug_img = str(img_path.parent / f"{img_path.stem}_grid_debug.png")
+    debug_dir = img_path.parent / "Gridded"
+    debug_dir.mkdir(exist_ok=True)
+    debug_img = str(debug_dir / f"{img_path.stem}_grid_debug.png")
     row_tops, row_bottoms, _et, _eb, col_lefts, cell_size = detect_grid(
         str(img_path),
         n_player_rows=n_player_rows,

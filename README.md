@@ -1,6 +1,6 @@
 # KNBSB Scorecard Pipeline
 
-Digitizes Dutch KNBSB baseball scorecards into a SQLite database and exports a shared Excel workbook.
+Digitizes Dutch KNBSB baseball scorecards into structured JSON, a SQLite database, and an Excel workbook.
 
 ## Setup
 
@@ -9,156 +9,186 @@ cd scorecard
 uv sync
 ```
 
-Requires an Anthropic API key in `scorecard/.env`:
+Create `scorecard/.env` with your API keys:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=AIza...          # for Gemini (recommended)
+EXTRACTION_MODEL=gemini-2.5-flash
 ```
 
 ---
 
-## Image Naming Convention
+## Image naming
 
-Name scan files as `YYYY-MM-DD_<opponent>.png` and place them in `images/scans/`:
+Name scan files as `YYYY-MM-DD_<opponent>.jpg` (or `.png`) and place them in `images/scans/`:
 
 ```
 images/scans/
-  2026-06-07_almere.png
-  2026-04-12_quick.png
-  2026-06-07_almere_g2.png   ← doubleheader game 2
+  2026-06-07_almere.jpg
+  2026-06-14_quick.jpg
 ```
 
-Each scan should include hand-drawn red divider lines between rows **and** the per-player stats column on the right. Add `--no-stats` if a game has no stats column.
+Date and opponent are parsed automatically from the filename.
 
 ---
 
-## Analyzing a New Game
+## Processing a game — step by step
 
 All commands run from the `scorecard/` directory.
 
-### Step 1 — Extract and review
+### Step 1 — Run the extraction
 
 ```powershell
-uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
-  --enhance esrgan --innings 9 --players 9 `
-  --players-file ../players.txt `
-  --realign --dry-run
+uv run python extract_cells.py "../images/scans/YYYY-MM-DD_<opponent>.jpg" `
+  --players ../players.txt `
+  --innings 9
 ```
 
-`--date` and `--opponent` are inferred from the filename automatically. Override with explicit flags if needed.
+The pipeline:
+1. Detects the grid (row/column boundaries)
+2. Classifies each PA cell via VLM (Gemini by default)
+3. Applies structural rules (isolation, 3-out, K-PB)
+4. Cross-checks against ground-truth totals if present
 
-Read the terminal output. Check:
+Output goes to `images/data/raw/{stem}_cells.json`.
 
-- **`[LOW]` plays** — cells the model was uncertain about; compare against the physical card
-- **Reconciliation mismatches** — `MISSED run(s)`, `EXTRA E#`, etc. at the bottom
+### Step 2 — Check the output
 
-If totals were misread (wrong run/hit/error/LOB count), correct the generated ground-truth files and re-run (step 2).
+Read the terminal output. Look for:
 
----
+- `MISMATCH` lines in the per-player or per-inning checks
+- `[isolated]` or `[3-outs]` removals — confirm they look right
+- `Outs:WARNING` in per-inning check is **expected** (runner outs from FC/SB aren't in PA results)
 
-### Step 2 — Correct misread totals (only if needed)
+### Step 3 — Edit ground-truth files if needed
 
-Two files are auto-generated in `images/ground_truth/`. Open in any text editor and fix misread numbers:
+Two files are auto-generated in `images/ground_truth/`. Open and correct any misread totals:
 
-**`../images/ground_truth/YYYY-MM-DD_<opponent>_totals.txt`** — per-inning team totals from the card's bottom strip:
-
+**`{stem}_totals.txt`** — per-inning team totals from the card's bottom strip:
 ```
 # inning  runs  hits  errors  lob
-1    3    1    2    0
-2    0    2    0    2
+1  3  1  2  0
+2  0  2  0  2
 ```
 
-**`../images/ground_truth/YYYY-MM-DD_<opponent>_stats.txt`** — per-player H and AB from the stats column:
-
+**`{stem}_stats.txt`** — per-player H and AB from the stats column:
 ```
 # slot  H  AB
-1    3    4
-2    0    5
+1  3  4
+5  1  4
+5  1  1     ← second row for same slot = substitution
 ```
 
-You only need to edit these if the numbers don't match the physical card.
-
----
-
-### Step 3 — Re-run until clean
+### Step 4 — Re-run with cache
 
 ```powershell
-uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
-  --enhance esrgan --reuse-step1 --innings 9 --players 9 `
-  --players-file ../players.txt `
-  --realign --dry-run
+uv run python extract_cells.py "../images/scans/YYYY-MM-DD_<opponent>.jpg" `
+  --players ../players.txt --innings 9 --reuse-cache
 ```
 
-`--reuse-step1` replays cached vision descriptions — no API calls, instant re-run. Repeat steps 2–3 until the output shows:
+`--reuse-cache` skips API calls for cells already classified. Structural rules always re-run from scratch (removed cells are restored and re-evaluated each run).
 
-```
-Run reconciliation OK
-Hit reconciliation OK
-PA count OK
-Lineup continuity OK
-```
+Repeat steps 2–4 until all cross-checks show OK.
 
----
-
-### Step 4 — Import to database and export workbook
-
-Drop `--dry-run` and add `--export`:
+### Step 5 — Inspect individual cells (optional)
 
 ```powershell
-uv run python extract_rows.py "../images/scans/YYYY-MM-DD_<opponent>.png" `
-  --enhance esrgan --reuse-step1 --innings 9 --players 9 `
-  --players-file ../players.txt `
-  --realign --export --export-out ../stats.xlsx
+uv run python _dump_cells.py > cells.csv
 ```
 
-`stats.xlsx` is updated with a new game tab and refreshed season stats.
-
-> **Re-running a game** to fix a mistake: run the same command again. The pipeline detects the existing game, replaces it, and re-exports. Season totals are never double-counted.
+Writes a CSV with one row per (player, inning): result, run, confidence, notes.
 
 ---
 
-### Step 5 — Mark reviewed
+## Roster file
 
-Once you're satisfied the plays are correct, mark them as reviewed so the team's Low Confidence tab stays clean:
+`players.txt` lists one player per batting slot (name, jersey number):
+
+```
+Max. Gelaudi, 98
+Joey Bradwell, 71
+Victor van Spaandonk, 24
+```
+
+Substitutions share the same batting slot and are NOT added as separate rows.
+
+---
+
+## Players and aliases
+
+After import, confirm fuzzy-matched names:
 
 ```powershell
-uv run python mark_reviewed.py `
-  --date YYYY-MM-DD --opponent <NAME> `
-  --export --export-out ../stats.xlsx
+uv run python manage_players.py aliases
+uv run python manage_players.py list
 ```
 
 ---
 
-## Workbook Structure
+## Export to Excel
+
+```powershell
+uv run python export_season.py --output ../stats.xlsx
+```
 
 | Sheet | Contents |
 |---|---|
 | Season Stats | Cumulative stats for all players, sorted by OPS |
-| Game Log | Per-player per-game line (one row per player per game) |
-| 2026-06-07 Almere | Box score for that game (one tab per game) |
-| Low Confidence | Plays flagged as uncertain; cleared by `mark_reviewed.py` |
+| Game Log | Per-player per-game line |
+| {Date} {Opponent} | Box score for each game |
+| Low Confidence | PAs flagged for review |
 
 ---
 
-## File Layout
+## Review low-confidence PAs
+
+```powershell
+uv run python review.py
+uv run python review.py --game 2026-06-07
+```
+
+After reviewing:
+
+```powershell
+uv run python mark_reviewed.py --date 2026-06-07 --opponent almere
+```
+
+---
+
+## File layout
 
 ```
 images/
-  scans/              ← drop scan images here (YYYY-MM-DD_<opponent>.png)
-  ground_truth/       ← auto-generated; hand-correct after each run
-    YYYY-MM-DD_<opponent>_totals.txt
-    YYYY-MM-DD_<opponent>_stats.txt
-  _cache/             ← fully generated; never edit; gitignored
-    rows/
-    rows_enhanced_esrgan/
-    step1/
-    stats_crop/
+  scans/              ← drop scan images here
+  ground_truth/       ← hand-correct after each run
+    {stem}_totals.txt
+    {stem}_stats.txt
+  _cache/             ← generated; never edit manually; gitignored
+    cells/{stem}/     ← per-cell VLM results (JSON, 1 per cell)
+  data/
+    raw/              ← per-game GameExtraction JSON
 
 scorecard/
-  extract_rows.py     main pipeline
-  export_season.py    Excel export
-  mark_reviewed.py    mark plays as reviewed in DB
+  extract_cells.py    ← main pipeline (new, per-cell)
+  process_game.py     ← old pipeline (full-image VLM, still works)
+  export_season.py    ← Excel export (reads DB)
+  review.py           ← review low-confidence PAs
+  mark_reviewed.py    ← mark PAs as reviewed
+  manage_players.py   ← player alias management
   data/
-    season.db         SQLite database (single source of truth)
-    raw/              per-game JSON archives
+    season.db         ← SQLite database
+    raw/              ← per-game JSON archives
+
+players.txt           ← roster (one player per batting slot)
+stats.xlsx            ← exported workbook
+PIPELINE.md           ← backend architecture reference
 ```
+
+---
+
+## Notes
+
+- **API key safety**: `.env` is gitignored. Never commit API keys.
+- **DB integration**: `extract_cells.py` outputs JSON but does not yet write to `season.db`. Use `process_game.py` for DB/export until that bridge is built. See [PIPELINE.md](PIPELINE.md) for details.
+- **Re-running a game**: run the same command again. The pipeline detects the existing game, replaces it, and re-exports. Season totals are never double-counted.

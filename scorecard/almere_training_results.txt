@@ -33,7 +33,7 @@
 [5] X. Dikkes : 5 PA, 1 R	
        Inn 1: F6     
        Inn 3: BB     1R
-       Inn 5: K    
+       Inn 5: K-PB	reached base due to dropped 3rd strike.     
        Inn 6: 1B     
        Inn 7: E7     
 substitute for C. Lee: 1 PA

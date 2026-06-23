@@ -105,10 +105,7 @@ NOTATION REFERENCE (Dutch KNBSB):
 - #-# = groundout or forceout (e.g. 6-3 = shortstop to first base)
 - SAC / SH = sacrifice bunt
 - SF = sacrifice fly
-- GDP = grounded into double play
-- IO = infield out
-- Li = line drive out (sometimes written L or Li)
-- A circle drawn around a play symbol = run scored on that plate appearance
+- A circle drawn around a play symbol = OUT (the play resulted in an out)
 - Numbers in cell corners = baserunner tracking (which base reached)
 - Diagonal lines in a cell = inning boundary marker
 - A new player name written directly below the original player in the

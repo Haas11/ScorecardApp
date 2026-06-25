@@ -2,9 +2,9 @@
   "game": {
     "teams": {
       "home": "Quick",
-      "away": "Almere"
+      "away": "Thamen"
     },
-    "date": "2026-06-07",
+    "date": "2026-04-12",
     "game_number": null
   },
   "lineup": [
@@ -20,15 +20,25 @@
             {
               "inning": 1,
               "result": "BB",
-              "run_scored": true,
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "WP",
+              "notes": "",
               "confidence": "high"
             },
             {
               "inning": 2,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
@@ -39,7 +49,7 @@
             },
             {
               "inning": 4,
-              "result": "1B",
+              "result": "5-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -48,8 +58,8 @@
               "confidence": "high"
             },
             {
-              "inning": 5,
-              "result": "F4",
+              "inning": 6,
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -58,31 +68,21 @@
               "confidence": "high"
             },
             {
-              "inning": 7,
-              "result": "1B",
-              "run_scored": true,
+              "inning": 8,
+              "result": "4-5",
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "PB",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
-              "result": "1B",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "3",
+              "notes": "",
               "confidence": "high"
             }
           ],
           "summary": {
             "PA": 6,
             "AB": 4,
-            "R": 3,
-            "H": 3,
+            "R": 1,
+            "H": 1,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -102,23 +102,13 @@
       "batting_order": 2,
       "players": [
         {
-          "name": "Joey Bradwell",
+          "name": "Sidney Bakker",
           "position": null,
-          "jersey_number": 71,
+          "jersey_number": null,
           "innings_played": null,
           "plate_appearances": [
             {
               "inning": 1,
-              "result": "E7",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 2,
               "result": "FC",
               "run_scored": false,
               "rbi": 0,
@@ -128,8 +118,18 @@
               "confidence": "high"
             },
             {
-              "inning": 4,
-              "result": "K",
+              "inning": 2,
+              "result": "BB",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "BB",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -138,18 +138,18 @@
               "confidence": "high"
             },
             {
-              "inning": 6,
-              "result": "E6",
+              "inning": 5,
+              "result": "BB",
               "run_scored": true,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "4",
+              "notes": "",
               "confidence": "high"
             },
             {
-              "inning": 7,
-              "result": "K",
+              "inning": 6,
+              "result": "F3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -159,8 +159,8 @@
             },
             {
               "inning": 9,
-              "result": "BB",
-              "run_scored": true,
+              "result": "P3",
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
@@ -170,8 +170,8 @@
           ],
           "summary": {
             "PA": 6,
-            "AB": 5,
-            "R": 3,
+            "AB": 3,
+            "R": 2,
             "H": 0,
             "two_B": null,
             "three_B": null,
@@ -192,23 +192,13 @@
       "batting_order": 3,
       "players": [
         {
-          "name": "Victor van Spaandonk",
+          "name": "Gedeon Suares",
           "position": null,
-          "jersey_number": 24,
+          "jersey_number": 2,
           "innings_played": null,
           "plate_appearances": [
             {
               "inning": 1,
-              "result": "BB",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "63",
-              "confidence": "high"
-            },
-            {
-              "inning": 3,
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
@@ -218,8 +208,28 @@
               "confidence": "high"
             },
             {
-              "inning": 4,
-              "result": "F5",
+              "inning": 2,
+              "result": "BB",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "1B",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -229,7 +239,7 @@
             },
             {
               "inning": 6,
-              "result": "2B",
+              "result": "5-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -238,30 +248,20 @@
               "confidence": "high"
             },
             {
-              "inning": 7,
-              "result": "FC",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "SB",
-              "confidence": "high"
-            },
-            {
               "inning": 9,
-              "result": "3B",
+              "result": "HR",
               "run_scored": true,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "5-",
+              "notes": "",
               "confidence": "high"
             }
           ],
           "summary": {
             "PA": 6,
             "AB": 4,
-            "R": 3,
+            "R": 2,
             "H": 2,
             "two_B": null,
             "three_B": null,
@@ -282,14 +282,14 @@
       "batting_order": 4,
       "players": [
         {
-          "name": "Gedeon Suares",
+          "name": "Victor van Spaandonk",
           "position": null,
-          "jersey_number": 2,
+          "jersey_number": 24,
           "innings_played": null,
           "plate_appearances": [
             {
               "inning": 1,
-              "result": "F5",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -298,9 +298,9 @@
               "confidence": "high"
             },
             {
-              "inning": 3,
-              "result": "FC",
-              "run_scored": true,
+              "inning": 2,
+              "result": "2B",
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
@@ -309,27 +309,7 @@
             },
             {
               "inning": 4,
-              "result": "4-3",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 6,
-              "result": "FC",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 7,
-              "result": "BB",
+              "result": "E5",
               "run_scored": true,
               "rbi": 0,
               "sb": 0,
@@ -338,8 +318,28 @@
               "confidence": "high"
             },
             {
+              "inning": 5,
+              "result": "BB",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "PB in top-right indicates a passed ball, but the PA result is a walk.",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "1-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
               "inning": 9,
-              "result": "F4",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -351,8 +351,8 @@
           "summary": {
             "PA": 6,
             "AB": 5,
-            "R": 2,
-            "H": 0,
+            "R": 1,
+            "H": 1,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -372,14 +372,24 @@
       "batting_order": 5,
       "players": [
         {
-          "name": "Xander Dikkes",
+          "name": "Nichel Specht",
           "position": null,
-          "jersey_number": 17,
+          "jersey_number": null,
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "F6",
+              "inning": 2,
+              "result": "HR",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 2,
+              "result": "E?",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -388,8 +398,8 @@
               "confidence": "high"
             },
             {
-              "inning": 3,
-              "result": "BB",
+              "inning": 4,
+              "result": "2B",
               "run_scored": true,
               "rbi": 0,
               "sb": 0,
@@ -399,27 +409,17 @@
             },
             {
               "inning": 5,
-              "result": "K-PB",
+              "result": "2-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "manual: dropped third strike (K without circle + PB sub-cell)",
-              "confidence": "high"
-            },
-            {
-              "inning": 6,
-              "result": "1B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "manual: user confirmed 1B (was 2B from VLM)",
+              "notes": "",
               "confidence": "high"
             },
             {
               "inning": 7,
-              "result": "E7",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -429,19 +429,19 @@
             },
             {
               "inning": 9,
-              "result": "1B",
-              "run_scored": false,
+              "result": "HBP",
+              "run_scored": true,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "PB",
+              "notes": "",
               "confidence": "high"
             }
           ],
           "summary": {
             "PA": 6,
             "AB": 5,
-            "R": 1,
+            "R": 3,
             "H": 2,
             "two_B": null,
             "three_B": null,
@@ -462,25 +462,15 @@
       "batting_order": 6,
       "players": [
         {
-          "name": "Daiki Mabushi",
+          "name": "Gian-Luca McLeiland",
           "position": null,
-          "jersey_number": 0,
+          "jersey_number": null,
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "1B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 3,
+              "inning": 2,
               "result": "BB",
-              "run_scored": false,
+              "run_scored": true,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
@@ -488,7 +478,7 @@
               "confidence": "high"
             },
             {
-              "inning": 5,
+              "inning": 2,
               "result": "K",
               "run_scored": false,
               "rbi": 0,
@@ -498,7 +488,17 @@
               "confidence": "high"
             },
             {
-              "inning": 6,
+              "inning": 4,
+              "result": "F9",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
@@ -509,7 +509,7 @@
             },
             {
               "inning": 7,
-              "result": "BB",
+              "result": "2B",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -519,7 +519,7 @@
             },
             {
               "inning": 9,
-              "result": "K",
+              "result": "BB",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -531,7 +531,7 @@
           "summary": {
             "PA": 6,
             "AB": 3,
-            "R": 0,
+            "R": 1,
             "H": 1,
             "two_B": null,
             "three_B": null,
@@ -552,14 +552,24 @@
       "batting_order": 7,
       "players": [
         {
-          "name": "Nyam Wisse",
+          "name": "Joey Bradwell",
           "position": null,
-          "jersey_number": 57,
+          "jersey_number": 71,
           "innings_played": null,
           "plate_appearances": [
             {
               "inning": 2,
-              "result": "6-3",
+              "result": "2B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 2,
+              "result": "4-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -568,8 +578,8 @@
               "confidence": "high"
             },
             {
-              "inning": 3,
-              "result": "1B",
+              "inning": 4,
+              "result": "5-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -579,16 +589,6 @@
             },
             {
               "inning": 5,
-              "result": "BB",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 6,
               "result": "K",
               "run_scored": false,
               "rbi": 0,
@@ -598,18 +598,8 @@
               "confidence": "high"
             },
             {
-              "inning": 8,
-              "result": "HP",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
-              "result": "HP",
+              "inning": 7,
+              "result": "1-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -619,9 +609,9 @@
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 3,
-            "R": 0,
+            "PA": 5,
+            "AB": 5,
+            "R": 1,
             "H": 1,
             "two_B": null,
             "three_B": null,
@@ -642,24 +632,34 @@
       "batting_order": 8,
       "players": [
         {
-          "name": "Chris Romick",
+          "name": "Baylor Watts",
           "position": null,
-          "jersey_number": 43,
+          "jersey_number": null,
           "innings_played": null,
           "plate_appearances": [
             {
               "inning": 2,
-              "result": "1B",
-              "run_scored": false,
+              "result": "2B",
+              "run_scored": true,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "run corrected by GT reconcile: inn2 GT=0",
+              "notes": "",
               "confidence": "high"
             },
             {
               "inning": 3,
-              "result": "F3",
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 4,
+              "result": "K-PB",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -676,29 +676,34 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
-            {
-              "inning": 6,
-              "result": "FC",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
+            }
+          ],
+          "summary": {
+            "PA": 4,
+            "AB": 4,
+            "R": 1,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": null,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "Daiki Mabushi",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
             {
               "inning": 8,
-              "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "manual: corrected from OUT(A) — no appeal plays in KNBSB",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
               "result": "K",
               "run_scored": false,
               "rbi": 0,
@@ -709,10 +714,10 @@
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 6,
+            "PA": 1,
+            "AB": 1,
             "R": 0,
-            "H": 1,
+            "H": 0,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -739,7 +744,7 @@
           "plate_appearances": [
             {
               "inning": 2,
-              "result": "2B",
+              "result": "SF",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -749,7 +754,7 @@
             },
             {
               "inning": 3,
-              "result": "F5",
+              "result": "5-3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -758,7 +763,7 @@
               "confidence": "high"
             },
             {
-              "inning": 5,
+              "inning": 4,
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
@@ -766,9 +771,34 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
+            }
+          ],
+          "summary": {
+            "PA": 3,
+            "AB": 1,
+            "R": 0,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": null,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "Kevin Glomb",
+          "position": null,
+          "jersey_number": null,
+          "innings_played": null,
+          "plate_appearances": [
             {
-              "inning": 7,
+              "inning": 6,
               "result": "1B",
               "run_scored": false,
               "rbi": 0,
@@ -789,10 +819,10 @@
             }
           ],
           "summary": {
-            "PA": 5,
-            "AB": 4,
+            "PA": 2,
+            "AB": 2,
             "R": 0,
-            "H": 2,
+            "H": 1,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -812,15 +842,16 @@
   "pitching": [],
   "inning_totals": {
     "runs_per_inning": [
-      3,
+      0,
+      7,
       0,
       2,
-      0,
-      0,
       1,
-      3,
       0,
-      3
+      0,
+      0,
+      2,
+      0
     ],
     "errors_total": null
   },

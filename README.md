@@ -91,13 +91,24 @@ uv run python extract_cells.py "../images/scans/YYYY-MM-DD_<opponent>.jpg" `
 
 Repeat steps 2–4 until all cross-checks show OK.
 
-### Step 5 — Inspect individual cells (optional)
+### Step 5 — Review low-confidence PAs
+
+Before exporting, review any cells the VLM flagged as uncertain:
 
 ```powershell
-uv run python _dump_cells.py > cells.csv
+uv run python review.py --game 2026-06-07
 ```
 
-Writes a CSV with one row per (player, inning): result, run, confidence, notes.
+At each prompt: press Enter to keep as-is, or type a corrected result (`1B`, `K`, `BB`, `F7`, `6-3`…), `y`/`n` to toggle run scored, or `d` to delete the PA. Type `q` to quit and save.
+
+### Step 6 — Inspect individual cells (optional)
+
+```powershell
+uv run python _dump_cells.py              # auto-detect most recent game
+uv run python _dump_cells.py 2026-06-07_almere
+```
+
+Writes `images/_cache/cells/{stem}/{stem}_cells.csv` — one row per (player, inning) with result, run, confidence, notes.
 
 ---
 
@@ -117,10 +128,10 @@ Substitutions share the same batting slot and are NOT added as separate rows.
 
 ## Players and aliases
 
-After import, confirm fuzzy-matched names:
+Fuzzy name matching runs automatically during import — any name scoring ≥ 70 similarity is matched without manual confirmation. You only need `manage_players.py` if you want to audit matches or list the full roster:
 
 ```powershell
-uv run python manage_players.py aliases
+uv run python manage_players.py aliases    # optional: review recent fuzzy matches
 uv run python manage_players.py list
 ```
 
@@ -144,8 +155,9 @@ uv run python export_season.py --output ../stats.xlsx
 ## Review low-confidence PAs
 
 ```powershell
-uv run python review.py
-uv run python review.py --game 2026-06-07
+uv run python review.py                        # all pending
+uv run python review.py --game 2026-06-07      # one game
+uv run python review.py --all                  # re-review already-reviewed PAs
 ```
 
 After reviewing:
@@ -190,5 +202,5 @@ PIPELINE.md           ← backend architecture reference
 ## Notes
 
 - **API key safety**: `.env` is gitignored. Never commit API keys.
-- **DB integration**: `extract_cells.py` outputs JSON but does not yet write to `season.db`. Use `process_game.py` for DB/export until that bridge is built. See [PIPELINE.md](PIPELINE.md) for details.
+- **Re-running a game**: run the same command again — the pipeline replaces any existing DB entry automatically.
 - **Re-running a game**: run the same command again. The pipeline detects the existing game, replaces it, and re-exports. Season totals are never double-counted.

@@ -13,6 +13,11 @@ Scan image (JPG/PNG)
 1. Grid detection        probe_grid.py / detect_grid()
         │                → row + column coordinates
         ▼
+1b. Name detection       extract_cells.py / _detect_row_names()
+        │                → VLM reads left info strip per row; fuzzy-matched to roster
+        │                → sub detection: second name in strip triggers sub_inning prompt
+        │                   cached in images/_cache/cells/{stem}/_names.json
+        ▼
 2. Per-cell VLM          extract_cells.py / classify_cell()
         │                → 81 raw cell dicts (result, run, notes, confidence)
         │                   cached in images/_cache/cells/{stem}/
@@ -32,7 +37,7 @@ Scan image (JPG/PNG)
 7. JSON export           GameExtraction (models.py)
         │                → images/data/raw/{stem}_cells.json
         ▼
-8. DB write              db.py / write_game()        ← NOT YET WIRED
+8. DB write              db.py / write_game()
         │                → scorecard/data/season.db
         ▼
 9. Excel export          export_season.py            ← runs from DB
@@ -107,11 +112,11 @@ These files are used for enforcement and cross-checks only — never for individ
 
 ---
 
-## DB integration status
+## DB integration
 
-`extract_cells.py` outputs a `GameExtraction` JSON (same schema as the old pipeline) to `images/data/raw/{stem}_cells.json`. The `db.py` `write_game()` function accepts a `GameExtraction` object, but **the call is not yet wired** from `extract_cells.py`. The old `process_game.py` → `extract.py` → `db.py` path still works independently.
+After assembling the `GameExtraction`, `extract_cells.py` calls `write_game()` to write to `scorecard/data/season.db` — unless `--dry-run` is passed. Duplicate detection runs first: if a game with the same date and opponent already exists it is deleted before re-inserting, so re-running a game never double-counts. Fuzzy player matching uses `auto_match_threshold: 70` (see `config.yml`); any name scoring ≥ 70 is matched automatically.
 
-To complete the bridge: call `write_game(game, conn)` from the end of `extract_cells.py main()` unless `--dry-run` is passed.
+The old `process_game.py` → `extract.py` → `db.py` path still works independently.
 
 ---
 
@@ -132,5 +137,5 @@ images/
     raw/              ← per-game GameExtraction JSON output
 scorecard/
   data/
-    season.db         ← SQLite (populated by old pipeline only, for now)
+    season.db         ← SQLite (populated by extract_cells.py and old pipeline)
 ```

@@ -51,17 +51,17 @@ from models import (
 _CELL_SYSTEM = """\
 You are reading a single plate appearance (PA) cell from a Dutch KNBSB baseball scorecard.
 
-The cell has a 2x2 quadrant layout:
-  TOP-LEFT / TOP-RIGHT  : X marks tracking baserunner outs — IGNORE for the PA result.
-                          WP/PB/SB notations here only indicate HOW the batter advanced
-                          around the bases AFTER reaching — they are NOT the PA result.
-  BOTTOM-RIGHT          : the plate appearance result (see rules below)
-  BOTTOM-LEFT           : supplementary notations (SB, WP, PB, error codes, etc.)
-                          These also only indicate HOW the batter advanced — NOT the PA result,
-                          EXCEPT in the dropped-third-strike case described below.
+The cell has a 2x2 quadrant layout (mimicking 3 bases & homeplate):
+  BOTTOM-RIGHT (1st base)          : the plate appearance result (see rules below)
+  TOP-LEFT (3rd) / TOP-RIGHT (2nd) : X marks track extra bases in 2B, 3B & HR — IGNORE for the PA result.
+                                     WP/PB/SB notations here only indicate HOW the batter advanced
+                                     around the bases AFTER reaching — they are NOT the PA result.  
+  BOTTOM-LEFT (homeplate)          : supplementary notations (SB, WP, PB, error codes, etc.)
+                                    These also only indicate HOW the batter advanced — NOT the PA result,
+                                    EXCEPT in the dropped-third-strike case described below.
   CENTER (at the crosshair intersection) : a FILLED/SOLID diamond or solid black dot
                           means this batter scored a run this inning. Look carefully —
-                          it may be small or faint. Also check BOTTOM-LEFT for a circle
+                          it may be small or faint. Also check BOTTOM-LEFT for anything,
                           that sometimes marks a run scored.
 
 BOTTOM-RIGHT RESULT RULES:
@@ -73,6 +73,10 @@ BOTTOM-RIGHT RESULT RULES:
     SAC / SH (in circle)      = sacrifice bunt out
     SF (in circle)            = sacrifice fly out
 
+    a smaller circle inside one of the subcells means a runner got out
+    while running the bases, not during its PA. So it does count towards an out that inning, 
+    but it does NOT define its PA. It's PA result is in the BOTTOM-RIGHT.
+
   SPECIAL CASE — dropped third strike (K-PB):
     If you see the letter K (or backwards-K) WITHOUT a circle around it,
     AND there is WP or PB notation anywhere in the sub-cells (indicating the
@@ -83,12 +87,12 @@ BOTTOM-RIGHT RESULT RULES:
   TWO ROUNDED HUMPS (no circle) = walk (BB)
 
   VERTICAL STROKE with crossbar(s) in BOTTOM-RIGHT = HIT:
-    1 crossbar  = single (1B)
+    1 crossbar or "i" written = single (1B)
     2 crossbars = double (2B)
     3 crossbars = triple (3B)
     4 crossbars = home run (HR)
 
-  E# (e.g. E6, E7)             = reached on error
+  E# (e.g. E6, E7)              = reached on error
   FC                            = fielder's choice
   HP or HBP                     = hit by pitch
   SAC / SH (not in circle)      = sacrifice bunt reached
@@ -110,6 +114,47 @@ Return ONLY valid JSON — no prose, no explanation, no markdown fences:
 
 
 # ── VLM cell call ─────────────────────────────────────────────────────────────
+
+def _detect_wrap_from_grid(
+    grid: list[list[dict | None]],
+    n_rows: int,
+    innings: int,
+) -> tuple[list[int], list[int]]:
+    """
+    Detect inning wrapping from raw VLM results (called AFTER cell classification,
+    BEFORE batting rules so no cells have been removed yet).
+
+    A column is "full" (inning wraps into next column) when:
+    - All n_rows cells have a non-null result (every batter in the lineup batted), AND
+    - Fewer than 3 outs in that column (the inning wasn't over yet).
+
+    Returns:
+      col_to_inning  — 1-based inning index for each column (length = innings)
+      overflow_cols  — 1-based column indices that are overflow columns (same inning
+                       as the column immediately to their left)
+    """
+    col_to_inning: list[int] = []
+    overflow_cols: list[int] = []
+    inning_num = 1
+
+    for ci in range(innings):
+        col_to_inning.append(inning_num)
+        non_null = sum(
+            1 for ri in range(n_rows)
+            if (grid[ri][ci] or {}).get("result") is not None
+        )
+        outs = sum(
+            1 for ri in range(n_rows)
+            if _is_out((grid[ri][ci] or {}).get("result"))
+        )
+        if non_null == n_rows and outs < 3 and ci + 1 < innings:
+            # All batters went to plate but < 3 outs → inning continues into next column
+            overflow_cols.append(ci + 2)  # 1-based column index
+        else:
+            inning_num += 1
+
+    return col_to_inning, overflow_cols
+
 
 def _encode_cell(crop: np.ndarray, scale: int = 4) -> tuple[bytes, str]:
     """Upscale cell and return raw JPEG bytes."""
@@ -277,6 +322,7 @@ def _apply_batting_rules(
     n_rows: int,
     innings: int,
     cache_dir: Path,
+    col_to_inning: list[int] | None = None,
 ) -> None:
     """
     Post-process grid in-place enforcing three structural rules:
@@ -333,17 +379,19 @@ def _apply_batting_rules(
     # Each subsequent inning starts at (last batter of previous inning + 1) % n_rows.
     # Only applied when all cells in the inning are confirmed (no api/parse errors),
     # since uncertain cells break start-player tracking.
+    # When a column wraps (overflow), outs carry over from the previous column.
     start_ri = 0
+    outs_by_inning: dict[int, int] = {}  # tracks cumulative outs per inning across overflow cols
     for ci in range(innings):
-        # Skip this inning if any cell is uncertain
+        inn = col_to_inning[ci] if col_to_inning else ci + 1
+        # Skip this column if any cell is uncertain
         if any(_is_uncertain(ri, ci) for ri in range(n_rows)):
-            # Still track start_ri from confirmed last batter to keep subsequent innings right
             for k in range(n_rows):
                 ri = (start_ri + k) % n_rows
                 if _has_pa(ri, ci):
                     start_ri = (ri + 1) % n_rows
             continue
-        outs = 0
+        outs = outs_by_inning.get(inn, 0)  # carry from previous col if same inning (overflow)
         last_batter_ri: int | None = None
         for k in range(n_rows):
             ri = (start_ri + k) % n_rows
@@ -353,11 +401,12 @@ def _apply_batting_rules(
                 old = grid[ri][ci].get("result")
                 grid[ri][ci] = {"result": None, "run": False, "notes": f"removed:after_3_outs ({old})"}
                 _save(ri, ci)
-                click.echo(f"  [3-outs] Player {ri+1} inn {ci+1} was {old}: removed")
+                click.echo(f"  [3-outs] Player {ri+1} inn {inn} col {ci+1} was {old}: removed")
             else:
                 last_batter_ri = ri
                 if _is_out(grid[ri][ci].get("result")):
                     outs += 1
+        outs_by_inning[inn] = outs
         if last_batter_ri is not None:
             start_ri = (last_batter_ri + 1) % n_rows
 
@@ -455,19 +504,27 @@ def _enforce_gt_runs(
     innings: int,
     gt_totals: dict[int, dict],
     cache_dir: Path,
+    col_to_inning: list[int] | None = None,
 ) -> None:
     """Post-process: use GT run totals to enforce impossible runs.
     - GT R=0 for an inning → force all run=True cells to False.
     - GT R < extracted → log a warning; cannot auto-reduce without per-cell GT.
+    Aggregates across overflow columns (multiple cols can map to the same inning).
     """
+    from collections import defaultdict
+    inning_cells: dict[int, list[tuple[int, int]]] = defaultdict(list)
     for ci in range(innings):
-        inn = ci + 1
+        inn = col_to_inning[ci] if col_to_inning else ci + 1
+        for ri in range(n_rows):
+            inning_cells[inn].append((ri, ci))
+
+    for inn, cells in sorted(inning_cells.items()):
         if inn not in gt_totals:
             continue
         gt_r = gt_totals[inn]["R"]
-        extracted = [ri for ri in range(n_rows) if (grid[ri][ci] or {}).get("run")]
+        extracted = [(ri, ci) for ri, ci in cells if (grid[ri][ci] or {}).get("run")]
         if gt_r == 0 and extracted:
-            for ri in extracted:
+            for ri, ci in extracted:
                 grid[ri][ci]["run"] = False
                 cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
                 cf.write_text(json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8")
@@ -476,6 +533,144 @@ def _enforce_gt_runs(
             click.echo(
                 f"  [GT-R] Inn {inn}: {len(extracted)} runs extracted, GT={gt_r} — cannot auto-reduce"
             )
+
+
+# ── Player name detection ─────────────────────────────────────────────────────
+
+_NAME_SYSTEM = """\
+You are reading the player information strip on the left side of a Dutch KNBSB baseball scorecard row.
+The strip contains: a batting order number, the player's fielding position abbreviation, their name, \
+and jersey number.
+Sometimes a substitute player's name is written directly BELOW the starter's name in the same strip.
+IMPORTANT: a block of small printed numbers below a name is pitcher statistics — NOT a substitute name.
+Return ONLY valid JSON (no prose, no markdown):
+{"starter": "<name as written>", "sub": "<name as written or null>"}"""
+
+_SUB_INNING_SYSTEM = """\
+You are looking at the batting-grid row for a single player on a Dutch KNBSB baseball scorecard.
+The row spans inning columns 1 through N.
+When a player was substituted, the scorekeeper drew a squiggly (wavy) vertical line at the LEFT \
+edge of the inning in which the substitute entered.
+Return ONLY valid JSON: {"sub_inning": <1-based column number where the squiggly line appears, or null>}
+If you see no squiggly line, return: {"sub_inning": null}"""
+
+
+def _detect_row_names(
+    img: np.ndarray,
+    row_tops: list[int],
+    row_bottoms: list[int],
+    col_lefts: list[int],
+    n_rows: int,
+    client,
+    model: str,
+    cache_dir: Path,
+) -> list[dict]:
+    """
+    VLM-based player name detection from the left info strip of each row.
+    Returns list of {"starter": str|None, "sub": str|None}.
+    Cached in cache_dir/_names.json; re-uses existing entries.
+    """
+    cache_path = cache_dir / "_names.json"
+    cached: dict = {}
+    if cache_path.exists():
+        try:
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    x_right = col_lefts[0] if col_lefts else img.shape[1]
+    results: list[dict] = []
+
+    for ri in range(n_rows):
+        key = f"r{ri + 1:02d}"
+        if key in cached:
+            results.append(cached[key])
+            continue
+        y1 = max(0, row_tops[ri])
+        y2 = row_bottoms[ri]
+        # Skip the leftmost 8% of the image (ring binder / margin) so the VLM
+        # sees the name text rather than blank/binder noise.
+        x_left = int(img.shape[1] * 0.08)
+        strip = img[y1:y2, x_left:min(x_right, img.shape[1])]
+        if strip.size == 0:
+            entry: dict = {"starter": None, "sub": None}
+        else:
+            img_bytes, media_type = _encode_cell(strip, scale=2)
+            raw = _call_api(
+                client, model, img_bytes, media_type,
+                "Read the player name(s). Return JSON only.",
+                _NAME_SYSTEM, max_tokens=300,
+            )
+            if raw and not raw.startswith("api_error:"):
+                parsed = _parse_json_response(raw)
+                entry = parsed if (parsed and "starter" in parsed) else {"starter": None, "sub": None}
+            else:
+                entry = {"starter": None, "sub": None}
+        results.append(entry)
+        cached[key] = entry
+
+    cache_path.write_text(json.dumps(cached, indent=2, ensure_ascii=False), encoding="utf-8")
+    return results
+
+
+def _fuzzy_match_name(
+    detected: str | None,
+    roster: list[tuple[str, int | None]],
+    threshold: int = 60,
+) -> tuple[str, int | None] | None:
+    """Fuzzy-match a VLM-detected name against the full roster. Returns matched entry or None."""
+    if not detected:
+        return None
+    from rapidfuzz import process, fuzz
+    names = [n for n, _ in roster]
+    result = process.extractOne(detected, names, scorer=fuzz.token_sort_ratio)
+    if result and result[1] >= threshold:
+        idx = names.index(result[0])
+        return roster[idx]
+    return None
+
+
+def _detect_sub_inning_vlm(
+    img: np.ndarray,
+    ri: int,
+    row_tops: list[int],
+    row_bottoms: list[int],
+    col_lefts: list[int],
+    innings: int,
+    client,
+    model: str,
+) -> int | None:
+    """
+    Ask the VLM to identify the inning column where a squiggly substitution line appears.
+    Returns 1-based inning number, or None if not detected.
+    """
+    y1 = max(0, row_tops[ri])
+    y2 = row_bottoms[ri]
+    x1 = col_lefts[0] if col_lefts else 0
+    x2 = col_lefts[innings] if innings < len(col_lefts) else img.shape[1]
+    row_strip = img[y1:y2, x1:min(x2, img.shape[1])]
+    if row_strip.size == 0:
+        return None
+    img_bytes, media_type = _encode_cell(row_strip, scale=3)
+    raw = _call_api(
+        client, model, img_bytes, media_type,
+        f"This row has {innings} inning columns. Find the squiggly sub line. Return JSON only.",
+        _SUB_INNING_SYSTEM, max_tokens=30,
+    )
+    if raw and not raw.startswith("api_error:"):
+        parsed = _parse_json_response(raw)
+        if parsed:
+            inn = parsed.get("sub_inning")
+            if isinstance(inn, int) and 1 <= inn <= innings:
+                return inn
+    return None
+
+
+def _make_summary(pas: list) -> "PASummary":
+    h  = sum(1 for pa in pas if _is_hit(pa.result))
+    ab = sum(1 for pa in pas if _is_ab(pa.result))
+    r  = sum(1 for pa in pas if pa.run_scored)
+    return PASummary(PA=len(pas), AB=ab, H=h, R=r)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -489,8 +684,6 @@ def _enforce_gt_runs(
 @click.option("--innings", default=9, show_default=True, help="Innings played.")
 @click.option("--n-player-rows", default=10, show_default=True,
               help="Physical grid rows for players (template size, usually 10).")
-@click.option("--n-inning-cols", default=11, show_default=True,
-              help="Physical grid columns (innings 1-9 + empty 10 + stats 11).")
 @click.option("--model", default=None,
               help="Anthropic model (default: EXTRACTION_MODEL env or claude-sonnet-4-6).")
 @click.option("--workers", default=8, show_default=True, help="Parallel VLM calls.")
@@ -502,7 +695,7 @@ def _enforce_gt_runs(
               help="Ground-truth directory (default: images/ground_truth next to images/scans).")
 def main(
     image_path, players_file, active_players, innings,
-    n_player_rows, n_inning_cols, model, workers,
+    n_player_rows, model, workers,
     reuse_cache, dry_run, gt_dir,
 ):
     """Cell-based scorecard extraction — inning from column position, not VLM guessing."""
@@ -513,18 +706,38 @@ def main(
     click.echo(f"Model : {model}   Workers: {workers}   Innings: {innings}")
 
     # ── Date / opponent from filename ─────────────────────────────────────────
+    # Handles both formats:
+    #   YYYY-MM-DD_opponent          (old: 2026-06-07_almere)
+    #   YYYY-MM-DD - Opponent (Side) (new: 2026-04-12 - Thamen (Home))
     date_str, opponent = None, None
-    m = re.match(r"(\d{4}-\d{2}-\d{2})_(.+)", img_path.stem)
-    if m:
-        date_str = m.group(1)
-        opponent = m.group(2).replace("_", " ").title()
-        click.echo(f"Date  : {date_str}   Opponent: {opponent}")
+    date_m = re.match(r"(\d{4}-\d{2}-\d{2})", img_path.stem)
+    if date_m:
+        date_str = date_m.group(1)
+        rest = img_path.stem[len(date_str):].strip()
+        rest = re.sub(r"^[\s_\-–]+", "", rest).strip()          # strip leading separators
+        rest = re.sub(r"\s*\((Home|Away)\)\s*$", "", rest, flags=re.IGNORECASE).strip()
+        if rest:
+            opponent = rest.replace("_", " ")
+    if date_str:
+        click.echo(f"Date  : {date_str}   Opponent: {opponent or 'Unknown'}")
 
     # ── Roster (batting-order slots 1..active_players) ────────────────────────
     # One line per batting slot in order; subs share a slot and are noted
     # in supplementary data — they do NOT get their own grid row.
+    # Per-game roster auto-discovery: look for {stem}.txt in the scan dir or a
+    # rosters/ subfolder, falling back to the --players option.
     roster: list[tuple[str, int | None]] = []  # (name, jersey)
-    players_path = Path(players_file)
+    _per_game_candidates = [
+        img_path.parent / f"{img_path.stem}.txt",
+        img_path.parent / "rosters" / f"{img_path.stem}.txt",
+    ]
+    # Resolve --players relative to the image directory if not found from CWD
+    _players_abs = Path(players_file)
+    if not _players_abs.exists():
+        _players_abs = img_path.parent.parent.parent / players_file  # project root
+    if not _players_abs.exists():
+        _players_abs = Path(__file__).parent.parent / players_file   # repo root
+    players_path = next((p for p in _per_game_candidates if p.exists()), _players_abs)
     if players_path.exists():
         for line in players_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -536,28 +749,94 @@ def main(
             roster.append((name, jersey))
     # Use only the first active_players entries for row→slot mapping
     active_roster = roster[:active_players]
-    click.echo(f"Roster: {', '.join(n for n, _ in active_roster)}")
+    click.echo(f"Roster: [{players_path.name}] {', '.join(n for n, _ in active_roster)}")
 
     # ── Grid detection ────────────────────────────────────────────────────────
     click.echo("\nDetecting grid...")
     debug_dir = img_path.parent / "Gridded"
     debug_dir.mkdir(exist_ok=True)
     debug_img = str(debug_dir / f"{img_path.stem}_grid_debug.png")
-    row_tops, row_bottoms, _et, _eb, col_lefts, cell_size = detect_grid(
+    row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size = detect_grid(
         str(img_path),
         n_player_rows=n_player_rows,
-        n_inning_cols=n_inning_cols,
         debug_out=debug_img,
     )
     img = cv2.imread(str(img_path))
     n_active_rows = min(active_players, len(row_tops))
+    # Physical columns to read: all detected scoring columns, capped at
+    # game innings + 2 (enough buffer for any wrap columns).
+    n_phys_cols = min(len(col_lefts) - 1, innings + 2)
     click.echo(f"Grid  : {len(row_tops)} player rows x {len(col_lefts)-1} cols, cell={cell_size}px")
-    click.echo(f"Active: first {n_active_rows} rows ({innings} innings)")
+    click.echo(f"Active: first {n_active_rows} rows ({innings} game innings, {n_phys_cols} cols to read)")
     click.echo(f"Debug : {debug_img}")
+
+    # col_to_inning is built after VLM classification; default to 1:1 for now
+    col_to_inning: list[int] = list(range(1, n_phys_cols + 1))
 
     # ── Cache directory ───────────────────────────────────────────────────────
     cache_dir = img_path.parent.parent / "_cache" / "cells" / img_path.stem
     cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── API client (needed for both name detection and cell classification) ───
+    if model.startswith("gemini"):
+        from google import genai as google_genai
+        client = google_genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+    else:
+        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    # ── Player name detection from scan ──────────────────────────────────────
+    click.echo("\nDetecting player names from scan...")
+    row_names = _detect_row_names(
+        img, row_tops, row_bottoms, col_lefts, n_active_rows, client, model, cache_dir
+    )
+
+    # Build slot_info: for each row, resolved (starter, sub, sub_inning)
+    # sub_inning = None means no sub; int = 1-based inning where sub took effect.
+    slot_info: list[dict] = []
+    for ri, names in enumerate(row_names):
+        starter_detected = names.get("starter")
+        sub_detected = names.get("sub")
+
+        matched_starter = _fuzzy_match_name(starter_detected, roster)
+        if matched_starter:
+            starter = matched_starter
+            click.echo(f"  Row {ri+1}: '{starter_detected}' → {starter[0]} (#{starter[1]})")
+        else:
+            starter = active_roster[ri] if ri < len(active_roster) else (f"P{ri+1}", None)
+            if starter_detected:
+                click.echo(f"  Row {ri+1}: '{starter_detected}' → no match, fallback {starter[0]}")
+            else:
+                click.echo(f"  Row {ri+1}: name unreadable, fallback {starter[0]}")
+
+        sub: tuple[str, int | None] | None = None
+        sub_inning: int | None = None
+
+        if sub_detected:
+            matched_sub = _fuzzy_match_name(sub_detected, roster)
+            if matched_sub:
+                sub = matched_sub
+                click.echo(f"  Row {ri+1}: sub '{sub_detected}' → {sub[0]} (#{sub[1]})")
+                # Try VLM squiggly detection first
+                sub_inning = _detect_sub_inning_vlm(
+                    img, ri, row_tops, row_bottoms, col_lefts, n_phys_cols, client, model
+                )
+                if sub_inning:
+                    click.echo(f"  Row {ri+1}: sub inning auto-detected: {sub_inning}")
+                else:
+                    click.echo(f"  Row {ri+1}: sub inning not auto-detected")
+                    sub_inning_str = click.prompt(
+                        f"  Enter inning sub {sub[0]} replaced {starter[0]} (1-{innings})",
+                        default="",
+                    )
+                    if sub_inning_str.strip().isdigit():
+                        sub_inning = int(sub_inning_str.strip())
+            else:
+                click.echo(f"  Row {ri+1}: sub '{sub_detected}' → no match in roster, skipping")
+
+        slot_info.append({"starter": starter, "sub": sub, "sub_inning": sub_inning})
+
+    # Update active_roster to use detected names (used by VLM hints and checks)
+    active_roster = [info["starter"] for info in slot_info]
 
     # ── Ground truth ──────────────────────────────────────────────────────────
     if gt_dir:
@@ -578,12 +857,12 @@ def main(
     # ── Build work list ───────────────────────────────────────────────────────
     # grid[ri][ci] = cell result dict or None
     grid: list[list[dict | None]] = [
-        [None] * innings for _ in range(n_active_rows)
+        [None] * n_phys_cols for _ in range(n_active_rows)
     ]
     to_process: list[tuple[int, int, Path]] = []
     cached_count = 0
     for ri in range(n_active_rows):
-        for ci in range(innings):
+        for ci in range(n_phys_cols):
             cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
             if reuse_cache and cf.exists():
                 cell = json.loads(cf.read_text(encoding="utf-8"))
@@ -616,22 +895,16 @@ def main(
             else:
                 to_process.append((ri, ci, cf))
 
-    total_cells = n_active_rows * innings
+    total_cells = n_active_rows * n_phys_cols
     click.echo(f"\nCells : {total_cells} total | {cached_count} cached | {len(to_process)} to classify")
 
     # ── Classify ──────────────────────────────────────────────────────────────
-    if model.startswith("gemini"):
-        from google import genai as google_genai
-        client = google_genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
-    else:
-        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
     if to_process:
         t0 = time.monotonic()
 
         def _process(args: tuple[int, int, Path]) -> tuple[int, int, dict]:
             ri, ci, cf = args
-            inning = ci + 1
+            inning = col_to_inning[ci]
             name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
             y1 = max(0, row_tops[ri])
             y2 = row_bottoms[ri]
@@ -657,43 +930,64 @@ def main(
                     pct = 100 * done // len(to_process)
                     click.echo(f"  {done:3d}/{len(to_process)} ({pct}%)  {elapsed:.0f}s")
 
+    # ── Inning wrap detection (post-VLM, pre-rules) ──────────────────────────
+    col_to_inning, overflow_cols = _detect_wrap_from_grid(grid, n_active_rows, n_phys_cols)
+    if overflow_cols:
+        for oc in overflow_cols:
+            inn = col_to_inning[oc - 2]  # 0-based index of overflow col = oc-1; prev col = oc-2
+            click.echo(f"WRAP  : inning {inn} continues into column {oc} (overflow)")
+    else:
+        click.echo("Wrap  : none detected")
+
     # ── Batting rules (structural post-processing) ───────────────────────────
     click.echo("\n-- Batting rules " + "-" * 48)
-    _apply_batting_rules(grid, n_active_rows, innings, cache_dir)
+    _apply_batting_rules(grid, n_active_rows, n_phys_cols, cache_dir, col_to_inning)
 
     # ── GT run enforcement (must come after batting rules) ───────────────────
     if gt_totals:
         click.echo("\n-- GT run enforcement " + "-" * 43)
-        _enforce_gt_runs(grid, n_active_rows, innings, gt_totals, cache_dir)
+        _enforce_gt_runs(grid, n_active_rows, n_phys_cols, gt_totals, cache_dir, col_to_inning)
 
     # ── Integrity checks ──────────────────────────────────────────────────────
     click.echo("\n-- Per-player (row) check " + "-" * 40)
     for ri in range(n_active_rows):
         name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
-        cells = [grid[ri][ci] or {} for ci in range(innings)]
+        cells = [grid[ri][ci] or {} for ci in range(n_phys_cols)]
         _check_row(ri + 1, name, cells, gt_stats)
 
     click.echo("\n-- PA sequence check " + "-" * 45)
-    _check_pa_sequence(grid, n_active_rows, innings, active_roster)
+    _check_pa_sequence(grid, n_active_rows, n_phys_cols, active_roster)
 
     click.echo("\n-- Per-inning (column) check " + "-" * 37)
-    for ci in range(innings):
-        col = [grid[ri][ci] or {} for ri in range(n_active_rows)]
-        _check_col(ci + 1, col, gt_totals)
+    from collections import defaultdict as _dd
+    _inning_cells_check: dict[int, list[dict]] = _dd(list)
+    for ci in range(n_phys_cols):
+        inn = col_to_inning[ci]
+        for ri in range(n_active_rows):
+            _inning_cells_check[inn].append(grid[ri][ci] or {})
+    for inn in sorted(_inning_cells_check):
+        _check_col(inn, _inning_cells_check[inn], gt_totals)
 
     # ── Run reconciliation against GT inning totals ───────────────────────────
     # Only runs a focused re-check when we extracted FEWER runs than GT expects.
     # Over-counted innings are already handled by _enforce_gt_runs above.
+    # Aggregates across overflow columns (multiple cols may map to same inning).
     if gt_totals:
         click.echo("\n-- Run reconciliation " + "-" * 43)
+        from collections import defaultdict as _dd2
+        _inning_col_map: dict[int, list[int]] = _dd2(list)
+        for ci in range(n_phys_cols):
+            _inning_col_map[col_to_inning[ci]].append(ci)
+
         any_recheck = False
-        for ci in range(innings):
-            inn = ci + 1
+        for inn in sorted(_inning_col_map):
             if inn not in gt_totals:
                 continue
             gt_r = gt_totals[inn]["R"]
+            cols = _inning_col_map[inn]
             extracted_r = sum(
-                1 for ri in range(n_active_rows) if (grid[ri][ci] or {}).get("run")
+                1 for ci in cols for ri in range(n_active_rows)
+                if (grid[ri][ci] or {}).get("run")
             )
             if extracted_r == gt_r:
                 click.echo(f"  Inn {inn}: R={extracted_r} OK")
@@ -701,74 +995,94 @@ def main(
             if extracted_r > gt_r:
                 click.echo(f"  Inn {inn}: R={extracted_r} > GT={gt_r} — should have been handled by GT enforcement")
                 continue
-            # extracted_r < gt_r: re-examine cells without run markers
+            # extracted_r < gt_r: re-examine non-run cells across all columns of this inning
             click.echo(
                 f"  Inn {inn}: extracted {extracted_r} run(s), GT={gt_r} — rechecking {gt_r - extracted_r} missing..."
             )
             any_recheck = True
             found = 0
-            for ri in range(n_active_rows):
-                if found >= gt_r - extracted_r:
-                    break
-                cell = grid[ri][ci] or {}
-                if cell.get("result") is None or cell.get("run") or _is_out(cell.get("result")):
-                    continue
-                name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
-                y1 = max(0, row_tops[ri])
-                y2 = row_bottoms[ri]
-                x1 = max(0, col_lefts[ci])
-                x2 = col_lefts[ci + 1]
-                crop = img[y1:y2, x1:x2]
-                if crop.size == 0:
-                    continue
-                run = _recheck_run(crop, name, inn, client, model)
-                if run:
-                    grid[ri][ci]["run"] = True
-                    cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
-                    cf.write_text(
-                        json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8"
-                    )
-                    click.echo(f"    -> Player {ri+1} {name} inn {inn}: run corrected True")
-                    found += 1
+            for ci in cols:
+                for ri in range(n_active_rows):
+                    if found >= gt_r - extracted_r:
+                        break
+                    cell = grid[ri][ci] or {}
+                    if cell.get("result") is None or cell.get("run") or _is_out(cell.get("result")):
+                        continue
+                    name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
+                    y1 = max(0, row_tops[ri])
+                    y2 = row_bottoms[ri]
+                    x1 = max(0, col_lefts[ci])
+                    x2 = col_lefts[ci + 1]
+                    crop = img[y1:y2, x1:x2]
+                    if crop.size == 0:
+                        continue
+                    run = _recheck_run(crop, name, inn, client, model)
+                    if run:
+                        grid[ri][ci]["run"] = True
+                        cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+                        cf.write_text(
+                            json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8"
+                        )
+                        click.echo(f"    -> Player {ri+1} {name} inn {inn} col {ci+1}: run corrected True")
+                        found += 1
         if not any_recheck:
             click.echo("  All innings match GT.")
 
     # ── Assemble GameExtraction ───────────────────────────────────────────────
     lineup: list[LineupSlot] = []
     for ri in range(n_active_rows):
-        name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
-        jersey = active_roster[ri][1] if ri < len(active_roster) else None
-        pas: list[PlateAppearance] = []
-        for ci in range(innings):
+        info = slot_info[ri]
+        starter_name, starter_jersey = info["starter"]
+        sub_entry: tuple[str, int | None] | None = info["sub"]
+        sub_inning: int | None = info["sub_inning"]
+
+        starter_pas: list[PlateAppearance] = []
+        sub_pas: list[PlateAppearance] = []
+        for ci in range(n_phys_cols):
             cell = grid[ri][ci] or {}
             r = cell.get("result")
-            if r is not None:
-                pas.append(PlateAppearance(
-                    inning=ci + 1,
-                    result=r,
-                    run_scored=bool(cell.get("run")),
-                    notes=cell.get("notes") or "",
-                    rbi=0, sb=0, cs=0,
-                    confidence="high",
-                ))
-        h  = sum(1 for pa in pas if _is_hit(pa.result))
-        ab = sum(1 for pa in pas if _is_ab(pa.result))
-        r  = sum(1 for pa in pas if pa.run_scored)
-        lineup.append(LineupSlot(
-            batting_order=ri + 1,
-            players=[PlayerEntry(
-                name=name,
-                jersey_number=jersey,
-                plate_appearances=pas,
-                summary=PASummary(PA=len(pas), AB=ab, H=h, R=r),
-            )],
-        ))
+            if r is None:
+                continue
+            pa = PlateAppearance(
+                inning=col_to_inning[ci],
+                result=r,
+                run_scored=bool(cell.get("run")),
+                notes=cell.get("notes") or "",
+                rbi=0, sb=0, cs=0,
+                confidence=cell.get("confidence", "high"),
+            )
+            if sub_entry and sub_inning and col_to_inning[ci] >= sub_inning:
+                sub_pas.append(pa)
+            else:
+                starter_pas.append(pa)
 
-    # Inning totals from grid
-    runs_per_inning = [
-        sum(1 for ri in range(n_active_rows) if (grid[ri][ci] or {}).get("run"))
-        for ci in range(innings)
-    ]
+        players_in_slot: list[PlayerEntry] = [
+            PlayerEntry(
+                name=starter_name,
+                jersey_number=starter_jersey,
+                plate_appearances=starter_pas,
+                summary=_make_summary(starter_pas),
+            )
+        ]
+        if sub_entry:
+            sub_name, sub_jersey = sub_entry
+            players_in_slot.append(PlayerEntry(
+                name=sub_name,
+                jersey_number=sub_jersey,
+                plate_appearances=sub_pas,
+                summary=_make_summary(sub_pas),
+            ))
+
+        lineup.append(LineupSlot(batting_order=ri + 1, players=players_in_slot))
+
+    # Inning totals from grid — aggregate across overflow columns
+    _n_unique_innings = len(set(col_to_inning))
+    runs_per_inning = [0] * _n_unique_innings
+    for ci in range(n_phys_cols):
+        inn_idx = col_to_inning[ci] - 1  # 0-based
+        runs_per_inning[inn_idx] += sum(
+            1 for ri in range(n_active_rows) if (grid[ri][ci] or {}).get("run")
+        )
     game = GameExtraction(
         game=GameInfo(
             teams={"home": "Quick", "away": opponent or "Unknown"},
@@ -788,15 +1102,41 @@ def main(
     )
     click.echo(f"\nSaved : {out_path.name}")
 
-    total_pa = sum(len(s.players[0].plate_appearances) for s in lineup if s.players)
+    total_pa = sum(len(p.plate_appearances) for s in lineup for p in s.players)
     total_r  = sum(
-        sum(1 for pa in s.players[0].plate_appearances if pa.run_scored)
-        for s in lineup if s.players
+        sum(1 for pa in p.plate_appearances if pa.run_scored)
+        for s in lineup for p in s.players
     )
     click.echo(f"Total : {total_pa} PA extracted   {total_r} runs")
     if gt_totals:
         gt_r = sum(v["R"] for v in gt_totals.values())
         click.echo(f"GT    : {gt_r} runs expected")
+
+    # ── HTML widget ───────────────────────────────────────────────────────────
+    try:
+        from render_widget import render_widget_for_game
+        widget_dir  = out_path.parent.parent / "widgets"
+        widget_path = widget_dir / f"{img_path.stem}.html"
+        render_widget_for_game(game.model_dump(), widget_path)
+        click.echo(f"Widget: {widget_path.name}")
+    except Exception as exc:
+        click.echo(f"Widget: skipped ({exc})")
+
+    # ── DB write ──────────────────────────────────────────────────────────────
+    if dry_run:
+        click.echo("\nDB    : Dry-run — skipping DB write.")
+    else:
+        from db import get_connection, init_db, find_duplicate_game, delete_game, write_game
+        db_path = Path(__file__).parent / "data" / "season.db"
+        init_db(db_path)
+        conn_db = get_connection(db_path)
+        existing = find_duplicate_game(conn_db, date_str, opponent, None)
+        if existing is not None:
+            click.echo(f"\nDB    : Replacing existing game (id={existing})...")
+            delete_game(conn_db, existing)
+        game_id = write_game(conn_db, game, str(out_path))
+        conn_db.close()
+        click.echo(f"DB    : Written as game id={game_id}")
 
 
 if __name__ == "__main__":

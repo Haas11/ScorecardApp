@@ -2,9 +2,9 @@
   "game": {
     "teams": {
       "home": "Quick",
-      "away": "Almere"
+      "away": "Thamen"
     },
-    "date": "2026-06-07",
+    "date": "2026-04-12",
     "game_number": null
   },
   "lineup": [
@@ -18,28 +18,8 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "BB",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "WP",
-              "confidence": "high"
-            },
-            {
-              "inning": 2,
-              "result": "BB",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 4,
-              "result": "1B",
+              "inning": 3,
+              "result": "2B",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -49,7 +29,7 @@
             },
             {
               "inning": 5,
-              "result": "F4",
+              "result": "BB",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -58,31 +38,41 @@
               "confidence": "high"
             },
             {
-              "inning": 7,
-              "result": "1B",
-              "run_scored": true,
+              "inning": 6,
+              "result": "5-3",
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "PB",
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
               "confidence": "high"
             },
             {
               "inning": 9,
-              "result": "1B",
-              "run_scored": true,
+              "result": "K",
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "3",
+              "notes": "",
               "confidence": "high"
             }
           ],
           "summary": {
-            "PA": 6,
+            "PA": 5,
             "AB": 4,
-            "R": 3,
-            "H": 3,
+            "R": 0,
+            "H": 1,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -108,16 +98,6 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "E7",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
               "inning": 2,
               "result": "FC",
               "run_scored": false,
@@ -128,39 +108,29 @@
               "confidence": "high"
             },
             {
-              "inning": 4,
-              "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 6,
-              "result": "E6",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "4",
-              "confidence": "high"
-            },
-            {
-              "inning": 7,
-              "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
+              "inning": 3,
               "result": "BB",
-              "run_scored": true,
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "BB",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "SB in top-right",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "K",
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
@@ -169,9 +139,9 @@
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 5,
-            "R": 3,
+            "PA": 4,
+            "AB": 2,
+            "R": 0,
             "H": 0,
             "two_B": null,
             "three_B": null,
@@ -198,13 +168,13 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
+              "inning": 2,
               "result": "BB",
-              "run_scored": true,
+              "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "63",
+              "notes": "",
               "confidence": "high"
             },
             {
@@ -218,7 +188,17 @@
               "confidence": "high"
             },
             {
-              "inning": 4,
+              "inning": 5,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
               "result": "F5",
               "run_scored": false,
               "rbi": 0,
@@ -226,43 +206,13 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
-            {
-              "inning": 6,
-              "result": "2B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 7,
-              "result": "FC",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "SB",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
-              "result": "3B",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "5-",
-              "confidence": "high"
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 4,
-            "R": 3,
-            "H": 2,
+            "PA": 4,
+            "AB": 2,
+            "R": 0,
+            "H": 0,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -288,28 +238,8 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "F5",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
               "inning": 3,
-              "result": "FC",
-              "run_scored": true,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 4,
-              "result": "4-3",
+              "result": "2B",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -319,17 +249,7 @@
             },
             {
               "inning": 6,
-              "result": "FC",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 7,
-              "result": "BB",
+              "result": "E",
               "run_scored": true,
               "rbi": 0,
               "sb": 0,
@@ -339,7 +259,7 @@
             },
             {
               "inning": 9,
-              "result": "F4",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -349,10 +269,10 @@
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 5,
-            "R": 2,
-            "H": 0,
+            "PA": 3,
+            "AB": 3,
+            "R": 1,
+            "H": 1,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -378,8 +298,8 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "F6",
+              "inning": 3,
+              "result": "HR",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -388,8 +308,18 @@
               "confidence": "high"
             },
             {
-              "inning": 3,
-              "result": "BB",
+              "inning": 4,
+              "result": "E",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
+              "result": "1B",
               "run_scored": true,
               "rbi": 0,
               "sb": 0,
@@ -398,28 +328,8 @@
               "confidence": "high"
             },
             {
-              "inning": 5,
-              "result": "K-PB",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "manual: dropped third strike (K without circle + PB sub-cell)",
-              "confidence": "high"
-            },
-            {
-              "inning": 6,
-              "result": "1B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "manual: user confirmed 1B (was 2B from VLM)",
-              "confidence": "high"
-            },
-            {
               "inning": 7,
-              "result": "E7",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -429,17 +339,17 @@
             },
             {
               "inning": 9,
-              "result": "1B",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "PB",
+              "notes": "",
               "confidence": "high"
             }
           ],
           "summary": {
-            "PA": 6,
+            "PA": 5,
             "AB": 5,
             "R": 1,
             "H": 2,
@@ -468,19 +378,9 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "1B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
               "inning": 3,
               "result": "BB",
-              "run_scored": false,
+              "run_scored": true,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
@@ -488,7 +388,7 @@
               "confidence": "high"
             },
             {
-              "inning": 5,
+              "inning": 4,
               "result": "K",
               "run_scored": false,
               "rbi": 0,
@@ -499,7 +399,7 @@
             },
             {
               "inning": 6,
-              "result": "BB",
+              "result": "F9",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -509,17 +409,7 @@
             },
             {
               "inning": 7,
-              "result": "BB",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
-              "result": "K",
+              "result": "F3",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -529,10 +419,10 @@
             }
           ],
           "summary": {
-            "PA": 6,
+            "PA": 4,
             "AB": 3,
-            "R": 0,
-            "H": 1,
+            "R": 1,
+            "H": 0,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -559,26 +449,6 @@
           "plate_appearances": [
             {
               "inning": 2,
-              "result": "6-3",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 3,
-              "result": "1B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 5,
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
@@ -588,28 +458,38 @@
               "confidence": "high"
             },
             {
+              "inning": 3,
+              "result": "BB",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 4,
+              "result": "4-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
               "inning": 6,
+              "result": "5-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
               "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 8,
-              "result": "HP",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
-              "result": "HP",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -619,10 +499,10 @@
             }
           ],
           "summary": {
-            "PA": 6,
+            "PA": 5,
             "AB": 3,
-            "R": 0,
-            "H": 1,
+            "R": 1,
+            "H": 0,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -649,17 +529,17 @@
           "plate_appearances": [
             {
               "inning": 2,
-              "result": "1B",
+              "result": "null",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
               "cs": 0,
-              "notes": "run corrected by GT reconcile: inn2 GT=0",
+              "notes": "",
               "confidence": "high"
             },
             {
               "inning": 3,
-              "result": "F3",
+              "result": "2B",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -679,27 +559,7 @@
             },
             {
               "inning": 6,
-              "result": "FC",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 8,
-              "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "manual: corrected from OUT(A) — no appeal plays in KNBSB",
-              "confidence": "high"
-            },
-            {
-              "inning": 9,
-              "result": "K",
+              "result": "1B",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -709,10 +569,10 @@
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 6,
+            "PA": 4,
+            "AB": 4,
             "R": 0,
-            "H": 1,
+            "H": 2,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -739,7 +599,7 @@
           "plate_appearances": [
             {
               "inning": 2,
-              "result": "2B",
+              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -749,7 +609,7 @@
             },
             {
               "inning": 3,
-              "result": "F5",
+              "result": "F7",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -759,6 +619,16 @@
             },
             {
               "inning": 5,
+              "result": "5-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
@@ -768,18 +638,8 @@
               "confidence": "high"
             },
             {
-              "inning": 7,
+              "inning": 9,
               "result": "1B",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
-            },
-            {
-              "inning": 8,
-              "result": "K",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -792,7 +652,7 @@
             "PA": 5,
             "AB": 4,
             "R": 0,
-            "H": 2,
+            "H": 1,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -812,15 +672,15 @@
   "pitching": [],
   "inning_totals": {
     "runs_per_inning": [
-      3,
+      0,
       0,
       2,
       0,
       0,
+      2,
       1,
-      3,
       0,
-      3
+      0
     ],
     "errors_total": null
   },

@@ -13,5 +13,5 @@ league:
 stats:
   small_sample_threshold: 10
 fuzzy:
-  auto_match_threshold: 90
-  warn_threshold: 70
+  auto_match_threshold: 70
+  warn_threshold: 50

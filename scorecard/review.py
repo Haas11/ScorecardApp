@@ -6,6 +6,7 @@ For each unreviewed PA, shows the current reading and lets you correct it.
 
 Usage:
   uv run python review.py
+  uv run python review.py --game 2026-06-07
   uv run python review.py --game-id 1
   uv run python review.py --all          (re-review already-reviewed PAs)
 
@@ -77,10 +78,11 @@ def _fmt_run(val: int) -> str:
 
 
 @click.command()
-@click.option("--game-id", default=None, type=int, help="Limit to a specific game id")
+@click.option("--game-id", default=None, type=int, help="Limit to a specific game id (integer)")
+@click.option("--game", "game_date", default=None, help="Limit to a game date (YYYY-MM-DD)")
 @click.option("--all", "show_all", is_flag=True, help="Re-review already-reviewed PAs too")
 @click.option("--db", "db_path", default="data/season.db", show_default=True)
-def main(game_id: int | None, show_all: bool, db_path: str) -> None:
+def main(game_id: int | None, game_date: str | None, show_all: bool, db_path: str) -> None:
     path = Path(db_path)
     init_db(path)
     conn = get_connection(path)
@@ -92,6 +94,9 @@ def main(game_id: int | None, show_all: bool, db_path: str) -> None:
     if game_id is not None:
         where_clauses.append("pa.game_id = ?")
         params.append(game_id)
+    if game_date is not None:
+        where_clauses.append("g.date = ?")
+        params.append(game_date)
 
     where = " AND ".join(where_clauses)
     rows = conn.execute(

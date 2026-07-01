@@ -629,16 +629,19 @@ def _detect_row_names(
         # Detect one name per sub-row — far more reliable than one call for all three.
         h = full_strip.shape[0]
         sub_h = max(1, h // 3)
+        # Add vertical padding so text near sub-row boundaries isn't clipped.
+        pad = max(4, h // 12)
         sub_crops = [
-            full_strip[0      : sub_h,     :],
-            full_strip[sub_h  : 2 * sub_h, :],
-            full_strip[2*sub_h:            :],
+            full_strip[0                      : min(h, sub_h     + pad), :],
+            full_strip[max(0, sub_h   - pad)  : min(h, 2*sub_h  + pad), :],
+            full_strip[max(0, 2*sub_h - pad)  :,                         :],
         ]
         players: list[str] = []
         for sub_crop in sub_crops:
             if sub_crop.size == 0:
                 continue
-            img_bytes, media_type = _encode_cell(sub_crop, scale=4)
+            # scale=8 so name text (≈20-30px in source) reaches ≈160-240px — clearly legible
+            img_bytes, media_type = _encode_cell(sub_crop, scale=8)
             raw = _call_api(
                 client, model, img_bytes, media_type,
                 f"Read the player name in this strip.{roster_hint}",

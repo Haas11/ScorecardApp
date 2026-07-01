@@ -608,7 +608,9 @@ def _detect_row_names(
                 parsed = _parse_json_response(raw)
                 entry = parsed if (parsed and "starter" in parsed) else {"starter": None, "sub": None}
             else:
-                entry = {"starter": None, "sub": None}
+                # API error: don't cache so the next run retries
+                results.append({"starter": None, "sub": None})
+                continue
         results.append(entry)
         cached[key] = entry
 

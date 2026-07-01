@@ -1,3 +1,6 @@
+paths:
+  data_root: "../Quick 2026 data"
+
 league:
   avg_ops: 0.720
   avg_obp: 0.320

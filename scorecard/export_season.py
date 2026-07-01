@@ -13,11 +13,8 @@ from openpyxl.utils import get_column_letter
 
 import yaml
 
-from db import get_connection, init_db
+from db import get_connection, init_db, _DB_PATH, _CONFIG_PATH
 from stats import compute_all_stats, PlayerStats
-
-_CONFIG_PATH = Path("config.yml")
-_DB_PATH = Path("data/season.db")
 
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
 HEADER_FONT = Font(bold=True, color="FFFFFF")
@@ -367,10 +364,11 @@ def export_season(
 
 
 @click.command()
-@click.option("--output", default="stats.xlsx", help="Output Excel file path")
+@click.option("--output", default=None, help="Output Excel path (default: <data_root>/season_stats.xlsx)")
 @click.option("--min-pa", default=0, type=int, help="Minimum PA to include player")
-def main(output: str, min_pa: int) -> None:
-    export_season(output, min_pa)
+def main(output: str | None, min_pa: int) -> None:
+    out = output or str(_DB_PATH.parent / "season_stats.xlsx")
+    export_season(out, min_pa)
 
 
 if __name__ == "__main__":

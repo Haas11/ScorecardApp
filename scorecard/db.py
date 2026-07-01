@@ -10,14 +10,26 @@ from rapidfuzz import fuzz
 
 from models import GameExtraction, PlateAppearance, PitchingLine
 
-_DB_PATH = Path("data/season.db")
-_CONFIG_PATH = Path("config.yml")
+_CONFIG_PATH = Path(__file__).parent / "config.yml"
+
+
+def _load_config() -> dict:
+    with open(_CONFIG_PATH) as f:
+        return yaml.safe_load(f)
+
+
+def _get_data_root() -> Path:
+    cfg = _load_config()
+    rel = cfg.get("paths", {}).get("data_root", "../Quick 2026 data")
+    return (Path(__file__).parent / rel).resolve()
+
+
+# Resolved once at import time; all scripts share this path regardless of CWD.
+_DB_PATH: Path = _get_data_root() / "season.db"
 
 
 def _load_thresholds() -> tuple[int, int]:
-    with open(_CONFIG_PATH) as f:
-        cfg = yaml.safe_load(f)
-    fuzzy = cfg.get("fuzzy", {})
+    fuzzy = _load_config().get("fuzzy", {})
     return fuzzy.get("auto_match_threshold", 90), fuzzy.get("warn_threshold", 70)
 
 

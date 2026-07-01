@@ -21,7 +21,7 @@ __pycache__/
 *.xlsx
 
 # Generated pipeline cache (fully regenerable — never edit anything in here)
-images/_cache/
+Quick 2026 data/games/*/cells/
 **/step2_debug.txt
 
 # OS / editor

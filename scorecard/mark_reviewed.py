@@ -10,13 +10,9 @@ Usage:
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
-from db import get_connection, find_duplicate_game, mark_reviewed
-
-_DB_PATH = Path("data/season.db")
+from db import get_connection, find_duplicate_game, mark_reviewed, _DB_PATH
 
 
 @click.command()

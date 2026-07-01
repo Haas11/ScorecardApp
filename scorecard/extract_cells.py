@@ -14,8 +14,7 @@ Pipeline:
   6. Assemble into GameExtraction JSON
 
 Usage:
-  uv run python scorecard/extract_cells.py images/scans/2026-06-07_almere.jpg \\
-      --players players.txt --innings 9 --active-players 9
+  uv run python extract_cells.py "Quick 2026 data/scans/2026-06-07 - Almere (Away).jpg"
 """
 from __future__ import annotations
 
@@ -173,8 +172,10 @@ def _call_api(
     client, model: str, img_bytes: bytes, media_type: str,
     user_text: str, system: str, max_tokens: int,
 ) -> str | None:
-    """Make one API call with up to 3 retries on transient errors. Returns raw text or 'api_error:...'."""
-    for attempt in range(3):
+    """Make one API call with up to 5 retries on transient errors. Returns raw text or 'api_error:...'."""
+    import random
+    delays = [2, 8, 30, 90]  # seconds between attempts 1→2, 2→3, 3→4, 4→5
+    for attempt in range(5):
         try:
             if model.startswith("gemini"):
                 from google.genai import types
@@ -206,8 +207,10 @@ def _call_api(
                 return msg.content[0].text.strip()
         except Exception as exc:
             msg_str = str(exc)
-            if any(t in msg_str for t in _TRANSIENT) and attempt < 2:
-                time.sleep(2 ** attempt)  # 1s, 2s
+            if any(t in msg_str for t in _TRANSIENT) and attempt < 4:
+                delay = delays[attempt] * (0.8 + 0.4 * random.random())  # ±20% jitter
+                click.echo(f"  [API] transient error (attempt {attempt+1}/5), retrying in {delay:.0f}s…")
+                time.sleep(delay)
                 continue
             return f"api_error: {exc}"
     return None
@@ -692,7 +695,7 @@ def _make_summary(pas: list) -> "PASummary":
 @click.option("--dry-run", is_flag=True, default=False,
               help="Classify cells and check integrity but do not write to DB.")
 @click.option("--gt-dir", default=None,
-              help="Ground-truth directory (default: images/ground_truth next to images/scans).")
+              help="Ground-truth directory (default: the game folder inside data_root/games/).")
 def main(
     image_path, players_file, active_players, innings,
     n_player_rows, model, workers,
@@ -700,6 +703,9 @@ def main(
 ):
     """Cell-based scorecard extraction — inning from column position, not VLM guessing."""
     img_path = Path(image_path).resolve()
+    data_root = img_path.parent.parent   # Quick 2026 data/ (image lives in data_root/scans/)
+    game_dir = data_root / "games" / img_path.stem
+    game_dir.mkdir(parents=True, exist_ok=True)
     if model is None:
         model = os.environ.get("EXTRACTION_MODEL", "claude-sonnet-4-6")
     click.echo(f"Image : {img_path.name}")
@@ -731,12 +737,12 @@ def main(
         img_path.parent / f"{img_path.stem}.txt",
         img_path.parent / "rosters" / f"{img_path.stem}.txt",
     ]
-    # Resolve --players relative to the image directory if not found from CWD
+    # Resolve --players: check per-game candidates first, then data_root, then CWD/repo root.
     _players_abs = Path(players_file)
     if not _players_abs.exists():
-        _players_abs = img_path.parent.parent.parent / players_file  # project root
+        _players_abs = data_root / players_file
     if not _players_abs.exists():
-        _players_abs = Path(__file__).parent.parent / players_file   # repo root
+        _players_abs = data_root / "players.txt"
     players_path = next((p for p in _per_game_candidates if p.exists()), _players_abs)
     if players_path.exists():
         for line in players_path.read_text(encoding="utf-8").splitlines():
@@ -753,9 +759,7 @@ def main(
 
     # ── Grid detection ────────────────────────────────────────────────────────
     click.echo("\nDetecting grid...")
-    debug_dir = img_path.parent / "Gridded"
-    debug_dir.mkdir(exist_ok=True)
-    debug_img = str(debug_dir / f"{img_path.stem}_grid_debug.png")
+    debug_img = str(game_dir / f"{img_path.stem}_grid_debug.png")
     row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size = detect_grid(
         str(img_path),
         n_player_rows=n_player_rows,
@@ -774,7 +778,7 @@ def main(
     col_to_inning: list[int] = list(range(1, n_phys_cols + 1))
 
     # ── Cache directory ───────────────────────────────────────────────────────
-    cache_dir = img_path.parent.parent / "_cache" / "cells" / img_path.stem
+    cache_dir = game_dir / "cells"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     # ── API client (needed for both name detection and cell classification) ───
@@ -842,7 +846,7 @@ def main(
     if gt_dir:
         gt_root = Path(gt_dir)
     else:
-        gt_root = img_path.parent.parent / "ground_truth"
+        gt_root = game_dir
     gt_totals: dict | None = None
     gt_stats: dict | None = None
     tp = gt_root / f"{img_path.stem}_totals.txt"
@@ -929,6 +933,52 @@ def main(
                     elapsed = time.monotonic() - t0
                     pct = 100 * done // len(to_process)
                     click.echo(f"  {done:3d}/{len(to_process)} ({pct}%)  {elapsed:.0f}s")
+
+    # ── Serial retry sweep for any remaining api_error cells ─────────────────
+    # Parallel requests can amplify load and cause 503 bursts. Retry errors one
+    # at a time with a longer pause so the API has time to recover.
+    error_cells = [
+        (ri, ci)
+        for ri in range(n_active_rows)
+        for ci in range(n_phys_cols)
+        if (grid[ri][ci] or {}).get("result") is None
+        and ((grid[ri][ci] or {}).get("notes") or "").startswith("api_error:")
+    ]
+    if error_cells:
+        click.echo(f"\n-- Retry sweep: {len(error_cells)} api_error cell(s) " + "-" * 30)
+        for ri, ci in error_cells:
+            inning = col_to_inning[ci]
+            name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
+            click.echo(f"  Retrying P{ri+1} ({name}) inn{inning}…")
+            y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
+            x1, x2 = max(0, col_lefts[ci]), col_lefts[ci + 1]
+            crop = img[y1:y2, x1:x2]
+            result = classify_cell(crop, name, inning, client, model)
+            cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+            cf.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+            grid[ri][ci] = result
+            notes = (result.get("notes") or "")
+            if result.get("result") is None and notes.startswith("api_error:"):
+                click.echo(f"  STILL FAILED: {notes}")
+            else:
+                click.echo(f"  -> {result.get('result')} (run={result.get('run')})")
+
+        # Abort if any cells are still unresolved after the retry sweep
+        still_broken = [
+            (ri, ci)
+            for ri, ci in error_cells
+            if (grid[ri][ci] or {}).get("result") is None
+            and ((grid[ri][ci] or {}).get("notes") or "").startswith("api_error:")
+        ]
+        if still_broken:
+            names = [
+                f"P{ri+1} inn{col_to_inning[ci]}"
+                for ri, ci in still_broken
+            ]
+            raise click.ClickException(
+                f"API errors not resolved after retry: {', '.join(names)}. "
+                "Re-run to retry (cached cells will be skipped)."
+            )
 
     # ── Inning wrap detection (post-VLM, pre-rules) ──────────────────────────
     col_to_inning, overflow_cols = _detect_wrap_from_grid(grid, n_active_rows, n_phys_cols)
@@ -1093,9 +1143,7 @@ def main(
     )
 
     # ── Save JSON ─────────────────────────────────────────────────────────────
-    out_dir = img_path.parent.parent / "data" / "raw"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"{img_path.stem}_cells.json"
+    out_path = game_dir / f"{img_path.stem}_cells.json"
     out_path.write_text(
         json.dumps(game.model_dump(), indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -1115,8 +1163,7 @@ def main(
     # ── HTML widget ───────────────────────────────────────────────────────────
     try:
         from render_widget import render_widget_for_game
-        widget_dir  = out_path.parent.parent / "widgets"
-        widget_path = widget_dir / f"{img_path.stem}.html"
+        widget_path = game_dir / f"{img_path.stem}.html"
         render_widget_for_game(game.model_dump(), widget_path)
         click.echo(f"Widget: {widget_path.name}")
     except Exception as exc:
@@ -1126,10 +1173,9 @@ def main(
     if dry_run:
         click.echo("\nDB    : Dry-run — skipping DB write.")
     else:
-        from db import get_connection, init_db, find_duplicate_game, delete_game, write_game
-        db_path = Path(__file__).parent / "data" / "season.db"
-        init_db(db_path)
-        conn_db = get_connection(db_path)
+        from db import get_connection, init_db, find_duplicate_game, delete_game, write_game, _DB_PATH
+        init_db(_DB_PATH)
+        conn_db = get_connection(_DB_PATH)
         existing = find_duplicate_game(conn_db, date_str, opponent, None)
         if existing is not None:
             click.echo(f"\nDB    : Replacing existing game (id={existing})...")

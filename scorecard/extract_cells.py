@@ -170,7 +170,7 @@ _TRANSIENT = ("503", "429", "UNAVAILABLE", "RATE", "overloaded", "Try again")
 
 def _call_api(
     client, model: str, img_bytes: bytes, media_type: str,
-    user_text: str, system: str, max_tokens: int,
+    user_text: str, system: str, max_tokens: int, temperature: float = 0.0,
 ) -> str | None:
     """Make one API call with up to 5 retries on transient errors. Returns raw text or 'api_error:...'."""
     import random
@@ -187,7 +187,7 @@ def _call_api(
                     ],
                     config=types.GenerateContentConfig(
                         system_instruction=system,
-                        temperature=0.0,
+                        temperature=temperature,
                         max_output_tokens=max_tokens,
                     ),
                 )
@@ -602,7 +602,7 @@ def _detect_row_names(
             raw = _call_api(
                 client, model, img_bytes, media_type,
                 "Read the player name(s). Return JSON only.",
-                _NAME_SYSTEM, max_tokens=300,
+                _NAME_SYSTEM, max_tokens=300, temperature=1.0,
             )
             if raw and not raw.startswith("api_error:"):
                 parsed = _parse_json_response(raw)

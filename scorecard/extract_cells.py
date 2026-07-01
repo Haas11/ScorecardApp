@@ -633,6 +633,74 @@ def _fuzzy_match_name(
     return None
 
 
+def _prompt_player_selection(
+    detected: str | None,
+    roster: list[tuple[str, int | None]],
+    row_label: str,
+    context: str = "starter",
+) -> tuple[str, int | None]:
+    """
+    Show the full roster and ask the user to pick the correct player (or add a new one).
+    Updates players.txt if a new player is entered.
+    """
+    click.echo()
+    if detected:
+        click.echo(f"  Row {row_label} {context}: VLM read '{detected}' but it didn't match any roster player.")
+    else:
+        click.echo(f"  Row {row_label} {context}: VLM could not read the name.")
+    click.echo()
+    click.echo("  Select player:")
+    for i, (pname, jersey) in enumerate(roster, 1):
+        tag = f"  #{jersey}" if jersey else ""
+        click.echo(f"    {i:>2}.  {pname}{tag}")
+    new_idx = len(roster) + 1
+    click.echo(f"    {new_idx:>2}.  Enter new player name")
+    click.echo()
+
+    while True:
+        raw = click.prompt("  Choice", default="", show_default=False, prompt_suffix=" ").strip()
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(roster):
+                chosen = roster[idx - 1]
+                click.echo(f"  Assigned: {chosen[0]}")
+                return chosen
+            if idx == new_idx:
+                break
+        click.echo(f"  Enter a number between 1 and {new_idx}.")
+
+    # New player
+    new_name = click.prompt("  New player name").strip()
+    jersey_raw = click.prompt("  Jersey number (leave blank to skip)", default="").strip()
+    jersey_int = int(jersey_raw) if jersey_raw.isdigit() else None
+
+    from db import _get_data_root
+    players_txt = _get_data_root() / "players.txt"
+    jersey_suffix = f", {jersey_int}" if jersey_int is not None else ""
+    with open(players_txt, "a", encoding="utf-8") as f:
+        f.write(f"{new_name}{jersey_suffix}\n")
+    click.echo(f"  Created '{new_name}' and added to {players_txt.name}")
+
+    roster.append((new_name, jersey_int))
+    return (new_name, jersey_int)
+
+
+def _update_names_cache(cache_dir: Path, ri: int, field: str, value: str) -> None:
+    """Persist a manual name correction into the names cache so re-runs skip the prompt."""
+    cache_path = cache_dir / "_names.json"
+    cached: dict = {}
+    if cache_path.exists():
+        try:
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    key = f"r{ri + 1:02d}"
+    entry = cached.get(key, {"starter": None, "sub": None})
+    entry[field] = value
+    cached[key] = entry
+    cache_path.write_text(json.dumps(cached, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def _detect_sub_inning_vlm(
     img: np.ndarray,
     ri: int,
@@ -806,11 +874,8 @@ def main(
             starter = matched_starter
             click.echo(f"  Row {ri+1}: '{starter_detected}' → {starter[0]} (#{starter[1]})")
         else:
-            starter = active_roster[ri] if ri < len(active_roster) else (f"P{ri+1}", None)
-            if starter_detected:
-                click.echo(f"  Row {ri+1}: '{starter_detected}' → no match, fallback {starter[0]}")
-            else:
-                click.echo(f"  Row {ri+1}: name unreadable, fallback {starter[0]}")
+            starter = _prompt_player_selection(starter_detected, roster, str(ri + 1))
+            _update_names_cache(cache_dir, ri, "starter", starter[0])
 
         sub: tuple[str, int | None] | None = None
         sub_inning: int | None = None
@@ -820,22 +885,24 @@ def main(
             if matched_sub:
                 sub = matched_sub
                 click.echo(f"  Row {ri+1}: sub '{sub_detected}' → {sub[0]} (#{sub[1]})")
-                # Try VLM squiggly detection first
-                sub_inning = _detect_sub_inning_vlm(
-                    img, ri, row_tops, row_bottoms, col_lefts, n_phys_cols, client, model
-                )
-                if sub_inning:
-                    click.echo(f"  Row {ri+1}: sub inning auto-detected: {sub_inning}")
-                else:
-                    click.echo(f"  Row {ri+1}: sub inning not auto-detected")
-                    sub_inning_str = click.prompt(
-                        f"  Enter inning sub {sub[0]} replaced {starter[0]} (1-{innings})",
-                        default="",
-                    )
-                    if sub_inning_str.strip().isdigit():
-                        sub_inning = int(sub_inning_str.strip())
             else:
-                click.echo(f"  Row {ri+1}: sub '{sub_detected}' → no match in roster, skipping")
+                sub = _prompt_player_selection(sub_detected, roster, str(ri + 1), context="sub")
+                _update_names_cache(cache_dir, ri, "sub", sub[0])
+
+            # Try VLM squiggly detection first; fall back to manual prompt
+            sub_inning = _detect_sub_inning_vlm(
+                img, ri, row_tops, row_bottoms, col_lefts, n_phys_cols, client, model
+            )
+            if sub_inning:
+                click.echo(f"  Row {ri+1}: sub inning auto-detected: {sub_inning}")
+            else:
+                click.echo(f"  Row {ri+1}: sub inning not auto-detected")
+                sub_inning_str = click.prompt(
+                    f"  Enter inning sub {sub[0]} replaced {starter[0]} (1-{innings})",
+                    default="",
+                )
+                if sub_inning_str.strip().isdigit():
+                    sub_inning = int(sub_inning_str.strip())
 
         slot_info.append({"starter": starter, "sub": sub, "sub_inning": sub_inning})
 

@@ -606,11 +606,13 @@ def _detect_row_names(
             )
             if raw and not raw.startswith("api_error:"):
                 parsed = _parse_json_response(raw)
-                entry = parsed if (parsed and "starter" in parsed) else {"starter": None, "sub": None}
+                entry = parsed if (parsed and "starter" in parsed) else None
             else:
-                # API error: don't cache so the next run retries
-                results.append({"starter": None, "sub": None})
-                continue
+                entry = None  # API error
+        if entry is None or entry.get("starter") is None:
+            # No usable result — don't cache so the next run retries the VLM call
+            results.append({"starter": None, "sub": None})
+            continue
         results.append(entry)
         cached[key] = entry
 

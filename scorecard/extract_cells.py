@@ -165,6 +165,22 @@ def _encode_cell(crop: np.ndarray, scale: int = 4) -> tuple[bytes, str]:
     return buf.tobytes(), "image/jpeg"
 
 
+def _encode_name_strip(crop: np.ndarray, target_h: int = 200) -> tuple[bytes, str]:
+    """Encode a name-strip sub-row for VLM reading.
+
+    Scales height to target_h while keeping the original width — the strip is
+    already wide enough; only the height needs upscaling so text is legible.
+    Uses PNG (lossless) to avoid JPEG block artifacts on thin handwritten strokes.
+    """
+    h, w = crop.shape[:2]
+    new_h = max(target_h, h)
+    big = cv2.resize(crop, (w, new_h), interpolation=cv2.INTER_CUBIC)
+    ok, buf = cv2.imencode(".png", big)
+    if not ok:
+        raise RuntimeError("cv2.imencode failed")
+    return buf.tobytes(), "image/png"
+
+
 _TRANSIENT = ("503", "429", "UNAVAILABLE", "RATE", "overloaded", "Try again")
 
 
@@ -642,8 +658,8 @@ def _detect_row_names(
         for sub_crop in sub_crops:
             if sub_crop.size == 0:
                 continue
-            # scale=8 so name text (≈20-30px in source) reaches ≈160-240px — clearly legible
-            img_bytes, media_type = _encode_cell(sub_crop, scale=8)
+            # Scale height to 200px, keep original width — strip is already wide enough
+            img_bytes, media_type = _encode_name_strip(sub_crop, target_h=200)
             raw = _call_api(
                 client, model, img_bytes, media_type,
                 f"What player name is written here? If only a partial name or initial is visible, "

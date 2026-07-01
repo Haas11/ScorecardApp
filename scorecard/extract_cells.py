@@ -554,6 +554,14 @@ Return ONLY valid JSON (no prose, no markdown):
 {"players": ["<starter name>", "<sub1 name or null>", "<sub2 name or null>"]}
 Always include exactly 3 elements. Use null for missing positions."""
 
+_SINGLE_NAME_SYSTEM = """\
+You are reading ONE sub-row from the player name strip of a Dutch KNBSB baseball scorecard.
+This sub-row may contain: a player name (sometimes with a jersey number beside it).
+IMPORTANT: a block of small printed numbers (like '3 1 2') is pitcher statistics — NOT a name.
+Jersey numbers (like '15' or '2/5') beside a name are NOT separate players.
+If you can read a name, return it exactly as written.
+If the sub-row is blank, contains only numbers, or is otherwise unreadable, return the word null."""
+
 _SUB_INNING_SYSTEM = """\
 You are looking at the batting-grid row for a single player on a Dutch KNBSB baseball scorecard.
 The row spans inning columns 1 through N.
@@ -588,6 +596,12 @@ def _detect_row_names(
             pass
 
     x_right = col_lefts[0] if col_lefts else img.shape[1]
+    x_left = int(img.shape[1] * 0.03)  # skip ring-binder margin
+
+    roster_hint = ""
+    if roster:
+        roster_hint = "  Known players: " + ", ".join(n for n, _ in roster) + "."
+
     results: list[dict] = []
 
     for ri in range(n_rows):
@@ -602,37 +616,42 @@ def _detect_row_names(
                 results.append(raw_cached)
                 continue
             # Null/empty cached entry — retry VLM
+
         y1 = max(0, row_tops[ri])
         y2 = row_bottoms[ri]
-        # Skip the leftmost 3% of the image (ring binder / margin).
-        x_left = int(img.shape[1] * 0.03)
-        strip = img[y1:y2, x_left:min(x_right, img.shape[1])]
-        if strip.size == 0:
-            entry: dict = {"players": []}
-        else:
-            img_bytes, media_type = _encode_cell(strip, scale=3)
-            roster_hint = ""
-            if roster:
-                roster_hint = "\nKnown players on this team: " + ", ".join(n for n, _ in roster) + "."
+        full_strip = img[y1:y2, x_left:min(x_right, img.shape[1])]
+
+        if full_strip.size == 0:
+            results.append({"players": []})
+            continue
+
+        # Each lineup row has 3 name sub-rows (starter + up to 2 subs).
+        # Detect one name per sub-row — far more reliable than one call for all three.
+        h = full_strip.shape[0]
+        sub_h = max(1, h // 3)
+        sub_crops = [
+            full_strip[0      : sub_h,     :],
+            full_strip[sub_h  : 2 * sub_h, :],
+            full_strip[2*sub_h:            :],
+        ]
+        players: list[str] = []
+        for sub_crop in sub_crops:
+            if sub_crop.size == 0:
+                continue
+            img_bytes, media_type = _encode_cell(sub_crop, scale=4)
             raw = _call_api(
                 client, model, img_bytes, media_type,
-                f"Read ALL player names in this strip (top to bottom). Return JSON only.{roster_hint}",
-                _NAME_SYSTEM, max_tokens=300, temperature=1.0,
+                f"Read the player name in this strip.{roster_hint}",
+                _SINGLE_NAME_SYSTEM, max_tokens=60, temperature=1.0,
             )
             if raw and not raw.startswith("api_error:"):
-                parsed = _parse_json_response(raw)
-                if parsed and "players" in parsed:
-                    plist = parsed["players"]
-                    entry = {"players": [p for p in (plist or []) if p]}
-                elif parsed and "starter" in parsed:
-                    ps = [p for p in [parsed.get("starter"), parsed.get("sub")] if p]
-                    entry = {"players": ps}
-                else:
-                    entry = None
-            else:
-                entry = None  # API error
-        if not entry or not entry.get("players"):
-            # No usable result — don't cache so the next run retries
+                name = raw.strip()
+                if name.lower() not in ("null", "none", "", "n/a") and not re.match(r'^[\d\s/.\-]+$', name):
+                    players.append(name)
+
+        entry: dict = {"players": players}
+        if not players:
+            # No usable result — don't cache, retry on next run
             results.append({"players": []})
             continue
         results.append(entry)

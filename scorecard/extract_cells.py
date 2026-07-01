@@ -643,36 +643,30 @@ def _detect_row_names(
             results.append({"players": []})
             continue
 
-        # Each lineup row has 3 name sub-rows (starter + up to 2 subs).
-        # Detect one name per sub-row — far more reliable than one call for all three.
-        h = full_strip.shape[0]
-        sub_h = max(1, h // 3)
-        # Add vertical padding so text near sub-row boundaries isn't clipped.
-        pad = max(4, h // 12)
-        sub_crops = [
-            full_strip[0                      : min(h, sub_h     + pad), :],
-            full_strip[max(0, sub_h   - pad)  : min(h, 2*sub_h  + pad), :],
-            full_strip[max(0, 2*sub_h - pad)  :,                         :],
-        ]
-        players: list[str] = []
-        for sub_crop in sub_crops:
-            if sub_crop.size == 0:
-                continue
-            # Scale height to 200px, keep original width — strip is already wide enough
-            img_bytes, media_type = _encode_name_strip(sub_crop, target_h=200)
-            raw = _call_api(
-                client, model, img_bytes, media_type,
-                f"What player name is written here? If only a partial name or initial is visible, "
-                f"match it against the known players list and return the full name.{roster_hint}",
-                _SINGLE_NAME_SYSTEM, max_tokens=60, temperature=1.0,
-            )
-            if raw and not raw.startswith("api_error:"):
-                name = raw.strip()
-                if name.lower() not in ("null", "none", "", "n/a") and not re.match(r'^[\d\s/.\-]+$', name):
-                    players.append(name)
+        # Clip to the name area: the strip is ~944px wide but names only occupy
+        # the first ~500px (slot number + position + name); the rest is jersey
+        # number and whitespace.  Clipping keeps the aspect ratio sane for VLM.
+        name_strip = full_strip[:, : min(500, full_strip.shape[1])]
 
-        entry: dict = {"players": players}
-        if not players:
+        img_bytes, media_type = _encode_cell(name_strip, scale=3)
+        raw = _call_api(
+            client, model, img_bytes, media_type,
+            f"Read ALL player names in this strip (top to bottom). Return JSON only.{roster_hint}",
+            _NAME_SYSTEM, max_tokens=300, temperature=1.0,
+        )
+        if raw and not raw.startswith("api_error:"):
+            parsed = _parse_json_response(raw)
+            if parsed and "players" in parsed:
+                plist = parsed["players"]
+                entry: dict = {"players": [p for p in (plist or []) if p]}
+            elif parsed and "starter" in parsed:
+                ps = [p for p in [parsed.get("starter"), parsed.get("sub")] if p]
+                entry = {"players": ps}
+            else:
+                entry = None
+        else:
+            entry = None
+        if not entry or not entry.get("players"):
             # No usable result — don't cache, retry on next run
             results.append({"players": []})
             continue

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -28,9 +29,8 @@ def _get_data_root() -> Path:
 _DB_PATH: Path = _get_data_root() / "season.db"
 
 
-def _load_thresholds() -> tuple[int, int]:
-    fuzzy = _load_config().get("fuzzy", {})
-    return fuzzy.get("auto_match_threshold", 90), fuzzy.get("warn_threshold", 70)
+def _load_thresholds() -> int:
+    return _load_config().get("fuzzy", {}).get("auto_match_threshold", 70)
 
 
 def normalize_name(name: str) -> str:
@@ -123,12 +123,146 @@ def init_db(db_path: Path | None = None) -> None:
     conn.close()
 
 
+def _read_roster() -> list[tuple[str, str | None]]:
+    """Return [(name, jersey_str_or_None), ...] from players.txt."""
+    players_txt = _get_data_root() / "players.txt"
+    roster: list[tuple[str, str | None]] = []
+    if not players_txt.exists():
+        return roster
+    for line in players_txt.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split(",", 1)
+        name = parts[0].strip()
+        jersey = parts[1].strip() if len(parts) > 1 else None
+        if name:
+            roster.append((name, jersey))
+    return roster
+
+
+def _interactive_resolve(
+    conn: sqlite3.Connection,
+    detected_name: str,
+    best_player,
+    best_score: int,
+) -> int:
+    """
+    Prompt the user to pick the correct player from players.txt, or create a
+    new one.  Falls back to silent new-player creation when stdin is not a TTY
+    (non-interactive pipelines).
+    """
+    if not sys.stdin.isatty():
+        print(
+            f"WARNING: cannot interactively resolve '{detected_name}' "
+            f"(non-interactive). Creating as new player.",
+            file=sys.stderr,
+        )
+        norm = normalize_name(detected_name)
+        cur = conn.execute(
+            "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
+            (detected_name, norm, None),
+        )
+        return cur.lastrowid
+
+    roster = _read_roster()
+    players_txt = _get_data_root() / "players.txt"
+
+    print()
+    print(f"  Unrecognized name from scorecard: '{detected_name}'")
+    if best_player:
+        print(f"  Best fuzzy match: '{best_player['name']}' (score: {best_score}/100)")
+    print()
+    print("  Select the correct player:")
+    for i, (pname, jersey) in enumerate(roster, 1):
+        tag = f"  #{jersey}" if jersey else ""
+        print(f"    {i:>2}.  {pname}{tag}")
+    new_idx = len(roster) + 1
+    print(f"    {new_idx:>2}.  Enter new player name")
+    print()
+
+    while True:
+        try:
+            raw = input("  Choice: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(roster):
+                chosen_name, chosen_jersey = roster[idx - 1]
+                # look up (or create) in DB
+                norm_chosen = normalize_name(chosen_name)
+                row = conn.execute(
+                    "SELECT player_id FROM players WHERE normalized_name=?",
+                    (norm_chosen,),
+                ).fetchone()
+                if row:
+                    player_id = row["player_id"]
+                else:
+                    jersey_int = (
+                        int(chosen_jersey)
+                        if chosen_jersey and chosen_jersey.isdigit()
+                        else None
+                    )
+                    cur = conn.execute(
+                        "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
+                        (chosen_name, norm_chosen, jersey_int),
+                    )
+                    player_id = cur.lastrowid
+                conn.execute(
+                    "INSERT OR IGNORE INTO pending_aliases "
+                    "(incoming, stored, player_id, score, match_type) VALUES (?,?,?,?,?)",
+                    (detected_name, chosen_name, player_id, best_score, "manual"),
+                )
+                print(f"  Mapped '{detected_name}' → '{chosen_name}'")
+                return player_id
+
+            if idx == new_idx:
+                break  # fall through to new-player entry
+
+        print(f"  Enter a number between 1 and {new_idx}.")
+
+    # ── New player ────────────────────────────────────────────────────────────
+    while True:
+        try:
+            new_name = input("  New player name: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            new_name = detected_name
+            break
+        if new_name:
+            break
+        print("  Name cannot be empty.")
+
+    jersey_raw = ""
+    try:
+        jersey_raw = input("  Jersey number (leave blank to skip): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        pass
+    jersey_int = int(jersey_raw) if jersey_raw.isdigit() else None
+
+    norm_new = normalize_name(new_name)
+    cur = conn.execute(
+        "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
+        (new_name, norm_new, jersey_int),
+    )
+    player_id = cur.lastrowid
+
+    # Append to players.txt
+    jersey_suffix = f", {jersey_int}" if jersey_int is not None else ""
+    with open(players_txt, "a", encoding="utf-8") as f:
+        f.write(f"{new_name}{jersey_suffix}\n")
+
+    print(f"  Created '{new_name}' and added to {players_txt.name}")
+    return player_id
+
+
 def _resolve_player(
     conn: sqlite3.Connection,
     name: str,
     jersey_number: Optional[int],
     auto_thresh: int,
-    warn_thresh: int,
 ) -> int:
     norm = normalize_name(name)
 
@@ -159,32 +293,15 @@ def _resolve_player(
             best_player = p
 
     if best_player and best_score >= auto_thresh:
-        print(
-            f"Auto-matched '{name}' → '{best_player['name']}' ({best_score})"
-        )
+        print(f"Auto-matched '{name}' → '{best_player['name']}' ({best_score})")
         conn.execute(
             "INSERT INTO pending_aliases (incoming, stored, player_id, score, match_type) VALUES (?,?,?,?,?)",
             (name, best_player["name"], best_player["player_id"], best_score, "auto"),
         )
         return best_player["player_id"]
 
-    if best_player and best_score >= warn_thresh:
-        print(
-            f"Fuzzy match: '{name}' matched to '{best_player['name']}' (score: {best_score})"
-            " — run 'python manage_players.py --aliases' to review"
-        )
-        conn.execute(
-            "INSERT INTO pending_aliases (incoming, stored, player_id, score, match_type) VALUES (?,?,?,?,?)",
-            (name, best_player["name"], best_player["player_id"], best_score, "warn"),
-        )
-        return best_player["player_id"]
-
-    # Insert new player
-    cur = conn.execute(
-        "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
-        (name, norm, jersey_number),
-    )
-    return cur.lastrowid
+    # Below auto-threshold: ask the user instead of silently guessing
+    return _interactive_resolve(conn, name, best_player, best_score)
 
 
 def find_duplicate_game(
@@ -232,7 +349,7 @@ def write_game(
 ) -> int:
     from datetime import datetime
 
-    auto_thresh, warn_thresh = _load_thresholds()
+    auto_thresh = _load_thresholds()
 
     game = extraction.game
     date_val = date_override or game.date
@@ -263,7 +380,6 @@ def write_game(
                 player_entry.name,
                 player_entry.jersey_number,
                 auto_thresh,
-                warn_thresh,
             )
             for pa in player_entry.plate_appearances:
                 result = pa.result.upper().strip()
@@ -290,7 +406,7 @@ def write_game(
 
     for pitch in extraction.pitching:
         pitcher_id = _resolve_player(
-            conn, pitch.name, None, auto_thresh, warn_thresh
+            conn, pitch.name, None, auto_thresh
         )
         needs_review = 1 if pitch.confidence == "low" else 0
         conn.execute(

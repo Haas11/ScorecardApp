@@ -16,5 +16,4 @@ league:
 stats:
   small_sample_threshold: 10
 fuzzy:
-  auto_match_threshold: 70
-  warn_threshold: 50
+  auto_match_threshold: 70   # scores >= this auto-match silently; below = interactive prompt

@@ -542,12 +542,14 @@ def _enforce_gt_runs(
 
 _NAME_SYSTEM = """\
 You are reading the player information strip on the left side of a Dutch KNBSB baseball scorecard row.
-The strip contains: a batting order number, the player's fielding position abbreviation, their name, \
-and jersey number.
-Sometimes a substitute player's name is written directly BELOW the starter's name in the same strip.
-IMPORTANT: a block of small printed numbers below a name is pitcher statistics — NOT a substitute name.
+Each row has one or two sub-rows. The first sub-row contains the starter's name. \
+If a player was substituted, the substitute's name is written in the second sub-row. \
+A second substitute (if any) appears in a third line.
+IMPORTANT: a block of small printed numbers (like '3 1 2') below a name is pitcher statistics \
+— NOT a player name. Jersey numbers like '15' or '2/5' next to a name are NOT separate players.
 Return ONLY valid JSON (no prose, no markdown):
-{"starter": "<name as written>", "sub": "<name as written or null>"}"""
+{"players": ["<starter name>", "<sub name or null>", "<second sub name or null>"]}
+Always include exactly 3 elements. Use null for missing positions."""
 
 _SUB_INNING_SYSTEM = """\
 You are looking at the batting-grid row for a single player on a Dutch KNBSB baseball scorecard.
@@ -570,7 +572,7 @@ def _detect_row_names(
 ) -> list[dict]:
     """
     VLM-based player name detection from the left info strip of each row.
-    Returns list of {"starter": str|None, "sub": str|None}.
+    Returns list of {"players": [name, ...]}, 1–3 names per row.
     Cached in cache_dir/_names.json; re-uses existing entries.
     """
     cache_path = cache_dir / "_names.json"
@@ -587,18 +589,24 @@ def _detect_row_names(
     for ri in range(n_rows):
         key = f"r{ri + 1:02d}"
         if key in cached:
-            results.append(cached[key])
-            continue
+            raw_cached = cached[key]
+            # Normalise legacy {starter, sub} entries on the fly
+            if "starter" in raw_cached:
+                ps = [p for p in [raw_cached.get("starter"), raw_cached.get("sub")] if p]
+                raw_cached = {"players": ps}
+            if raw_cached.get("players"):
+                results.append(raw_cached)
+                continue
+            # Null/empty cached entry — retry VLM
         y1 = max(0, row_tops[ri])
         y2 = row_bottoms[ri]
-        # Skip the leftmost 8% of the image (ring binder / margin) so the VLM
-        # sees the name text rather than blank/binder noise.
-        x_left = int(img.shape[1] * 0.08)
+        # Skip the leftmost 3% of the image (ring binder / margin).
+        x_left = int(img.shape[1] * 0.03)
         strip = img[y1:y2, x_left:min(x_right, img.shape[1])]
         if strip.size == 0:
-            entry: dict = {"starter": None, "sub": None}
+            entry: dict = {"players": []}
         else:
-            img_bytes, media_type = _encode_cell(strip, scale=2)
+            img_bytes, media_type = _encode_cell(strip, scale=3)
             raw = _call_api(
                 client, model, img_bytes, media_type,
                 "Read the player name(s). Return JSON only.",
@@ -606,12 +614,19 @@ def _detect_row_names(
             )
             if raw and not raw.startswith("api_error:"):
                 parsed = _parse_json_response(raw)
-                entry = parsed if (parsed and "starter" in parsed) else None
+                if parsed and "players" in parsed:
+                    plist = parsed["players"]
+                    entry = {"players": [p for p in (plist or []) if p]}
+                elif parsed and "starter" in parsed:
+                    ps = [p for p in [parsed.get("starter"), parsed.get("sub")] if p]
+                    entry = {"players": ps}
+                else:
+                    entry = None
             else:
                 entry = None  # API error
-        if entry is None or entry.get("starter") is None:
-            # No usable result — don't cache so the next run retries the VLM call
-            results.append({"starter": None, "sub": None})
+        if not entry or not entry.get("players"):
+            # No usable result — don't cache so the next run retries
+            results.append({"players": []})
             continue
         results.append(entry)
         cached[key] = entry
@@ -689,7 +704,7 @@ def _prompt_player_selection(
     return (new_name, jersey_int)
 
 
-def _update_names_cache(cache_dir: Path, ri: int, field: str, value: str) -> None:
+def _update_names_cache(cache_dir: Path, ri: int, player_index: int, name: str) -> None:
     """Persist a manual name correction into the names cache so re-runs skip the prompt."""
     cache_path = cache_dir / "_names.json"
     cached: dict = {}
@@ -699,9 +714,15 @@ def _update_names_cache(cache_dir: Path, ri: int, field: str, value: str) -> Non
         except Exception:
             pass
     key = f"r{ri + 1:02d}"
-    entry = cached.get(key, {"starter": None, "sub": None})
-    entry[field] = value
-    cached[key] = entry
+    entry = cached.get(key, {})
+    if "starter" in entry:
+        ps = [p for p in [entry.get("starter"), entry.get("sub")] if p]
+        entry = {"players": ps}
+    players = list(entry.get("players") or [])
+    while len(players) <= player_index:
+        players.append(None)
+    players[player_index] = name
+    cached[key] = {"players": [p for p in players if p]}
     cache_path.write_text(json.dumps(cached, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
@@ -866,52 +887,61 @@ def main(
         img, row_tops, row_bottoms, col_lefts, n_active_rows, client, model, cache_dir
     )
 
-    # Build slot_info: for each row, resolved (starter, sub, sub_inning)
-    # sub_inning = None means no sub; int = 1-based inning where sub took effect.
+    # Build slot_info: for each row, resolved starter + subs with entry innings.
+    # subs = [(player_tuple, entry_inning), ...]  (empty list if no substitutions)
     slot_info: list[dict] = []
     for ri, names in enumerate(row_names):
-        starter_detected = names.get("starter")
-        sub_detected = names.get("sub")
+        detected_players: list[str] = names.get("players") or []
+        # Normalise legacy {starter, sub} format
+        if not detected_players:
+            if names.get("starter"):
+                detected_players = [names["starter"]]
+                if names.get("sub"):
+                    detected_players.append(names["sub"])
 
-        matched_starter = _fuzzy_match_name(starter_detected, roster)
-        if matched_starter:
-            starter = matched_starter
-            click.echo(f"  Row {ri+1}: '{starter_detected}' → {starter[0]} (#{starter[1]})")
-        else:
-            starter = _prompt_player_selection(starter_detected, roster, str(ri + 1))
-            _update_names_cache(cache_dir, ri, "starter", starter[0])
-
-        sub: tuple[str, int | None] | None = None
-        sub_inning: int | None = None
-
-        if sub_detected:
-            matched_sub = _fuzzy_match_name(sub_detected, roster)
-            if matched_sub:
-                sub = matched_sub
-                click.echo(f"  Row {ri+1}: sub '{sub_detected}' → {sub[0]} (#{sub[1]})")
+        resolved: list[tuple[str, int | None]] = []
+        for pi, detected in enumerate(detected_players):
+            matched = _fuzzy_match_name(detected, roster)
+            if matched:
+                resolved.append(matched)
+                label = "starter" if pi == 0 else f"sub{pi}"
+                click.echo(f"  Row {ri+1} {label}: '{detected}' → {matched[0]} (#{matched[1]})")
             else:
-                sub = _prompt_player_selection(sub_detected, roster, str(ri + 1), context="sub")
-                _update_names_cache(cache_dir, ri, "sub", sub[0])
+                context = "sub" if pi > 0 else None
+                chosen = _prompt_player_selection(detected, roster, str(ri + 1), context=context)
+                _update_names_cache(cache_dir, ri, pi, chosen[0])
+                resolved.append(chosen)
 
-            # Try VLM squiggly detection first; fall back to manual prompt
-            sub_inning = _detect_sub_inning_vlm(
-                img, ri, row_tops, row_bottoms, col_lefts, n_phys_cols, client, model
-            )
+        if not resolved:
+            chosen = _prompt_player_selection(None, roster, str(ri + 1))
+            resolved.append(chosen)
+
+        starter = resolved[0]
+        subs_with_innings: list[tuple[tuple[str, int | None], int]] = []
+
+        for pi, sub in enumerate(resolved[1:], 1):
+            prev_player = resolved[pi - 1]
+            sub_inning: int | None = None
+            if pi == 1:
+                sub_inning = _detect_sub_inning_vlm(
+                    img, ri, row_tops, row_bottoms, col_lefts, n_phys_cols, client, model
+                )
             if sub_inning:
-                click.echo(f"  Row {ri+1}: sub inning auto-detected: {sub_inning}")
+                click.echo(f"  Row {ri+1}: sub{pi} inning auto-detected: {sub_inning}")
             else:
-                click.echo(f"  Row {ri+1}: sub inning not auto-detected")
+                if pi == 1:
+                    click.echo(f"  Row {ri+1}: sub inning not auto-detected")
                 sub_inning_str = click.prompt(
-                    f"  Enter inning sub {sub[0]} replaced {starter[0]} (1-{innings})",
+                    f"  First inning {sub[0]} batted (replaced {prev_player[0]}, 1-{innings})",
                     default="",
                 )
-                if sub_inning_str.strip().isdigit():
-                    sub_inning = int(sub_inning_str.strip())
+                sub_inning = int(sub_inning_str.strip()) if sub_inning_str.strip().isdigit() else 1
+            subs_with_innings.append((sub, sub_inning))
 
-        slot_info.append({"starter": starter, "sub": sub, "sub_inning": sub_inning})
+        slot_info.append({"starter": starter, "subs": subs_with_innings})
 
     # Update active_roster to use detected names (used by VLM hints and checks)
-    active_roster = [info["starter"] for info in slot_info]
+    active_roster = [info["starter"] for info in slot_info]  # list of (name, jersey) tuples
 
     # ── Ground truth ──────────────────────────────────────────────────────────
     if gt_dir:
@@ -1153,12 +1183,13 @@ def main(
     lineup: list[LineupSlot] = []
     for ri in range(n_active_rows):
         info = slot_info[ri]
-        starter_name, starter_jersey = info["starter"]
-        sub_entry: tuple[str, int | None] | None = info["sub"]
-        sub_inning: int | None = info["sub_inning"]
+        # all_slots: [(player_tuple, entry_inning), ...]; starter entry_inning=0
+        all_slots: list[tuple[tuple[str, int | None], int]] = [
+            (info["starter"], 0)
+        ] + [(p, inn) for p, inn in info["subs"]]
 
-        starter_pas: list[PlateAppearance] = []
-        sub_pas: list[PlateAppearance] = []
+        pa_lists: list[list[PlateAppearance]] = [[] for _ in all_slots]
+
         for ci in range(n_phys_cols):
             cell = grid[ri][ci] or {}
             r = cell.get("result")
@@ -1172,27 +1203,23 @@ def main(
                 rbi=0, sb=0, cs=0,
                 confidence=cell.get("confidence", "high"),
             )
-            if sub_entry and sub_inning and col_to_inning[ci] >= sub_inning:
-                sub_pas.append(pa)
-            else:
-                starter_pas.append(pa)
+            # Assign to last player whose entry_inning <= this inning
+            inning = col_to_inning[ci]
+            owner_idx = 0
+            for idx, (_, entry_inn) in enumerate(all_slots):
+                if entry_inn <= inning:
+                    owner_idx = idx
+            pa_lists[owner_idx].append(pa)
 
         players_in_slot: list[PlayerEntry] = [
             PlayerEntry(
-                name=starter_name,
-                jersey_number=starter_jersey,
-                plate_appearances=starter_pas,
-                summary=_make_summary(starter_pas),
+                name=p_name,
+                jersey_number=p_jersey,
+                plate_appearances=pas,
+                summary=_make_summary(pas),
             )
+            for (p_name, p_jersey), pas in zip([p for p, _ in all_slots], pa_lists)
         ]
-        if sub_entry:
-            sub_name, sub_jersey = sub_entry
-            players_in_slot.append(PlayerEntry(
-                name=sub_name,
-                jersey_number=sub_jersey,
-                plate_appearances=sub_pas,
-                summary=_make_summary(sub_pas),
-            ))
 
         lineup.append(LineupSlot(batting_order=ri + 1, players=players_in_slot))
 

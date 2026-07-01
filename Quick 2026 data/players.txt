@@ -1,16 +1,17 @@
-Max Gelaudi, 98
-Joey Bradwell, 71
-Victor van Spaandonk, 24
-Gedeon Suares, 2
-Xander Dikkes, 17
-Daiki Mabushi, 0
-Nyam Wisse, 57
-Chris Romick, 43
-Chris Trehy, 6
-Takato Kryston, 
-Sidney Bakker, 
-Nichel Specht, 
-Gian-Luca McLeiland, 
-Baylor Watts, 
-Kevin Glomb, 
-Marvin Evangelista, 25
+M. Gelaudi, 98
+J. Bradwell, 71
+V. van Spaandonk, 24
+G. Suares, 2
+X. Dikkes, 17
+D. Mabushi, 0
+N. Wisse, 57
+C. Romick, 43
+C. Trehy, 6
+T. Kryston, 0
+S. Bakker, 0
+N. Specht, 0
+G.L. McLelland, 0
+B. Watts, 0
+K. Glomb, 0
+M. Evangelista, 25
+P. Chang, 0

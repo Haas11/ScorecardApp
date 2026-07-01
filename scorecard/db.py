@@ -152,6 +152,16 @@ def _interactive_resolve(
     new one.  Falls back to silent new-player creation when stdin is not a TTY
     (non-interactive pipelines).
     """
+    # Score so low that the name bears no resemblance to any existing player
+    if best_score < 30:
+        norm = normalize_name(detected_name)
+        cur = conn.execute(
+            "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
+            (detected_name, norm, None),
+        )
+        print(f"  Auto-created new player '{detected_name}' (no close match in DB)")
+        return cur.lastrowid
+
     if not sys.stdin.isatty():
         print(
             f"WARNING: cannot interactively resolve '{detected_name}' "

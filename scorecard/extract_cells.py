@@ -556,11 +556,13 @@ Always include exactly 3 elements. Use null for missing positions."""
 
 _SINGLE_NAME_SYSTEM = """\
 You are reading ONE sub-row from the player name strip of a Dutch KNBSB baseball scorecard.
-This sub-row may contain: a player name (sometimes with a jersey number beside it).
+This sub-row may contain a handwritten player name (sometimes with a jersey number beside it).
 IMPORTANT: a block of small printed numbers (like '3 1 2') is pitcher statistics — NOT a name.
 Jersey numbers (like '15' or '2/5') beside a name are NOT separate players.
-If you can read a name, return it exactly as written.
-If the sub-row is blank, contains only numbers, or is otherwise unreadable, return the word null."""
+The user message may include a list of known players on this team.
+If the handwriting is partial or hard to read, match what you can see against that list and return the full name of the best match.
+If no name is visible and nothing in the list matches, return the word null.
+Return ONLY the player name — no explanation, no JSON."""
 
 _SUB_INNING_SYSTEM = """\
 You are looking at the batting-grid row for a single player on a Dutch KNBSB baseball scorecard.
@@ -644,7 +646,8 @@ def _detect_row_names(
             img_bytes, media_type = _encode_cell(sub_crop, scale=8)
             raw = _call_api(
                 client, model, img_bytes, media_type,
-                f"Read the player name in this strip.{roster_hint}",
+                f"What player name is written here? If only a partial name or initial is visible, "
+                f"match it against the known players list and return the full name.{roster_hint}",
                 _SINGLE_NAME_SYSTEM, max_tokens=60, temperature=1.0,
             )
             if raw and not raw.startswith("api_error:"):

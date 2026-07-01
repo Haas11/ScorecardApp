@@ -542,13 +542,16 @@ def _enforce_gt_runs(
 
 _NAME_SYSTEM = """\
 You are reading the player information strip on the left side of a Dutch KNBSB baseball scorecard row.
-Each row has one or two sub-rows. The first sub-row contains the starter's name. \
-If a player was substituted, the substitute's name is written in the second sub-row. \
-A second substitute (if any) appears in a third line.
+The strip is divided into up to THREE horizontal sub-rows (top to bottom):
+  1. Starter — always present
+  2. First substitute — present if a sub entered during the game
+  3. Second substitute — present if a second sub entered later
+Read ALL sub-rows from top to bottom and report each name you see.
 IMPORTANT: a block of small printed numbers (like '3 1 2') below a name is pitcher statistics \
 — NOT a player name. Jersey numbers like '15' or '2/5' next to a name are NOT separate players.
+If you see only 1 or 2 names, leave the remaining positions null.
 Return ONLY valid JSON (no prose, no markdown):
-{"players": ["<starter name>", "<sub name or null>", "<second sub name or null>"]}
+{"players": ["<starter name>", "<sub1 name or null>", "<sub2 name or null>"]}
 Always include exactly 3 elements. Use null for missing positions."""
 
 _SUB_INNING_SYSTEM = """\
@@ -569,6 +572,7 @@ def _detect_row_names(
     client,
     model: str,
     cache_dir: Path,
+    roster: list[tuple[str, int | None]] | None = None,
 ) -> list[dict]:
     """
     VLM-based player name detection from the left info strip of each row.
@@ -607,9 +611,12 @@ def _detect_row_names(
             entry: dict = {"players": []}
         else:
             img_bytes, media_type = _encode_cell(strip, scale=3)
+            roster_hint = ""
+            if roster:
+                roster_hint = "\nKnown players on this team: " + ", ".join(n for n, _ in roster) + "."
             raw = _call_api(
                 client, model, img_bytes, media_type,
-                "Read the player name(s). Return JSON only.",
+                f"Read ALL player names in this strip (top to bottom). Return JSON only.{roster_hint}",
                 _NAME_SYSTEM, max_tokens=300, temperature=1.0,
             )
             if raw and not raw.startswith("api_error:"):
@@ -633,6 +640,67 @@ def _detect_row_names(
 
     cache_path.write_text(json.dumps(cached, indent=2, ensure_ascii=False), encoding="utf-8")
     return results
+
+
+def _interactive_review_names(row_names: list[dict], cache_dir: Path) -> list[dict]:
+    """
+    Show a table of all detected player names and let the user correct any row
+    before name resolution proceeds.  Corrections are written back to the cache.
+    """
+    def _display(rn: list[dict]) -> None:
+        click.echo("\n  Slot  Names detected (starter  |  sub1  |  sub2)")
+        click.echo("  " + "-" * 60)
+        for ri2, e in enumerate(rn):
+            ps = list(e.get("players") or [])
+            row_str = "  |  ".join(ps) if ps else "(not detected)"
+            click.echo(f"  {ri2 + 1:>4}.  {row_str}")
+        click.echo()
+
+    _display(row_names)
+    click.echo("  Enter a slot number to edit it, or press Enter to continue.")
+
+    while True:
+        raw = click.prompt("  Edit slot", default="").strip()
+        if not raw:
+            break
+        if not raw.isdigit() or not (1 <= int(raw) <= len(row_names)):
+            click.echo(f"  Please enter a number between 1 and {len(row_names)}.")
+            continue
+        ri = int(raw) - 1
+        current = list(row_names[ri].get("players") or [])
+        new_players: list[str] = []
+        labels = ["Starter", "Sub 1 ", "Sub 2 "]
+        for pi in range(3):
+            default_val = current[pi] if pi < len(current) else ""
+            val = click.prompt(
+                f"    {labels[pi]} [{default_val or 'none'}]",
+                default=default_val,
+            ).strip()
+            if val:
+                new_players.append(val)
+            else:
+                break  # no more players in this slot
+
+        row_names[ri] = {"players": new_players}
+
+        # Persist correction to cache so --reuse-cache picks it up next time
+        cache_path = cache_dir / "_names.json"
+        cached: dict = {}
+        if cache_path.exists():
+            try:
+                cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        key = f"r{ri + 1:02d}"
+        if new_players:
+            cached[key] = {"players": new_players}
+        elif key in cached:
+            del cached[key]
+        cache_path.write_text(json.dumps(cached, indent=2, ensure_ascii=False), encoding="utf-8")
+        click.echo(f"  Slot {ri + 1} updated: {new_players}")
+        _display(row_names)
+
+    return row_names
 
 
 def _fuzzy_match_name(
@@ -884,8 +952,10 @@ def main(
     # ── Player name detection from scan ──────────────────────────────────────
     click.echo("\nDetecting player names from scan...")
     row_names = _detect_row_names(
-        img, row_tops, row_bottoms, col_lefts, n_active_rows, client, model, cache_dir
+        img, row_tops, row_bottoms, col_lefts, n_active_rows, client, model, cache_dir,
+        roster=roster,
     )
+    row_names = _interactive_review_names(row_names, cache_dir)
 
     # Build slot_info: for each row, resolved starter + subs with entry innings.
     # subs = [(player_tuple, entry_inning), ...]  (empty list if no substitutions)

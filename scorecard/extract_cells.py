@@ -1926,7 +1926,8 @@ def main(
                 result=r,
                 run_scored=bool(cell.get("run")),
                 notes=cell.get("notes") or "",
-                rbi=0, sb=0, cs=0,
+                rbi=1 if (r or "").upper() == "HR" else 0,
+                sb=0, cs=0,
                 confidence=cell.get("confidence", "high"),
             )
             # Assign to last player whose entry_inning <= this inning

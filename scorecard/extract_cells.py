@@ -202,6 +202,7 @@ _TRANSIENT = ("503", "429", "UNAVAILABLE", "RATE", "overloaded", "Try again", "R
 def _call_api(
     client, model: str, img_bytes: bytes, media_type: str,
     user_text: str, system: str, max_tokens: int, temperature: float = 0.0,
+    thinking_budget: int | None = None,
 ) -> str | None:
     """Make one API call with up to 5 retries on transient errors. Returns raw text or 'api_error:...'."""
     import random
@@ -210,17 +211,22 @@ def _call_api(
         try:
             if model.startswith("gemini"):
                 from google.genai import types
+                cfg_kwargs: dict = dict(
+                    system_instruction=system,
+                    temperature=temperature,
+                    max_output_tokens=max_tokens,
+                )
+                if thinking_budget is not None:
+                    cfg_kwargs["thinking_config"] = types.ThinkingConfig(
+                        thinking_budget=thinking_budget
+                    )
                 resp = client.models.generate_content(
                     model=model,
                     contents=[
                         types.Part.from_bytes(data=img_bytes, mime_type=media_type),
                         user_text,
                     ],
-                    config=types.GenerateContentConfig(
-                        system_instruction=system,
-                        temperature=temperature,
-                        max_output_tokens=max_tokens,
-                    ),
+                    config=types.GenerateContentConfig(**cfg_kwargs),
                 )
                 resp_text = resp.text
                 return resp_text.strip() if resp_text else None
@@ -338,19 +344,32 @@ def _read_rbi_slot(
     bl = crop[h // 2:, :w // 2]
     if bl.size == 0:
         return None
-    img_bytes, media_type = _encode_cell(bl, scale=8)
+    img_bytes, media_type = _encode_cell(bl, scale=12)
     system = (
-        "You are reading the BOTTOM-LEFT (home plate) quadrant of a Dutch KNBSB baseball scorecard cell. "
-        "Look for a SINGLE handwritten digit 1–9. "
-        "This digit is the batting-order slot of the player who drove in the run. "
-        "If you see exactly one digit 1–9 (possibly with a circle or mark around it, but clearly a digit): "
-        'return {"rbi_slot": <digit>} '
-        "If you see E#, WP, PB, SB, a letter, multiple digits, or nothing: "
-        'return {"rbi_slot": null} '
+        "You are reading the BOTTOM-LEFT quadrant of a Dutch KNBSB baseball scorecard cell. "
+        "This quadrant may contain ONE of the following: "
+        "  (A) a single batting-order digit 1–9 → the batter who drove in the run; "
+        "  (B) a multi-character notation: SB (stolen base), WP (wild pitch), PB (passed ball), "
+        "      CS (caught stealing), or E followed by digits (e.g. E13) → no RBI; "
+        "  (C) nothing / blank → no RBI. "
+        "Dutch handwritten digits can look unusual: "
+        "  • 8 often looks like two overlapping loops or a cursive figure-eight "
+        "  • 6 and 9 have a large loop with a tail "
+        "  • 1 may look like a simple downstroke or tick "
+        "KEY RULE: if you see exactly ONE mark and it could plausibly be a digit 1–9 "
+        "(even with cursive/unusual strokes), return that digit. "
+        "Return null only when the mark is clearly a multi-character abbreviation (two or more "
+        "distinct letters/symbols) or the quadrant is blank. "
+        'Examples: {"rbi_slot": 8}  {"rbi_slot": 4}  {"rbi_slot": null} '
         "Return ONLY valid JSON — no prose."
     )
-    user_text = f"Player: {player_name}  Inning: {inning}\nSingle digit 1-9 in this quadrant?"
-    raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=30)
+    user_text = (
+        f"Player: {player_name}  Inning: {inning}\n"
+        "Is there a single digit 1-9, a multi-character notation (SB/WP/PB/E#), or nothing? "
+        "Return the digit as an integer, or null."
+    )
+    raw = _call_api(client, model, img_bytes, media_type, user_text, system,
+                    max_tokens=100, thinking_budget=0)
     if not raw or raw.startswith("api_error:"):
         return None
     parsed = _parse_json_response(raw)
@@ -359,6 +378,10 @@ def _read_rbi_slot(
     val = parsed.get("rbi_slot")
     if isinstance(val, int) and 1 <= val <= 9:
         return val
+    if isinstance(val, str) and val.strip().isdigit():
+        n = int(val.strip())
+        if 1 <= n <= 9:
+            return n
     return None
 
 
@@ -572,8 +595,13 @@ def _reread_run_no_result_cells(
             if not cell.get("run"):
                 continue
             inn = col_to_inning[ci]
-            names = row_names[ri].get("players") or [] if ri < len(row_names) else []
+            _slot = row_names[ri] if ri < len(row_names) else {}
+            names = _slot.get("players") or []
+            _subs = _slot.get("sub_innings") or []
             player_name = names[0] if names else f"P{ri+1}"
+            for _k, _si in enumerate(_subs, 1):
+                if inn >= _si and _k < len(names):
+                    player_name = names[_k]
             y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
             x1 = max(0, col_lefts[ci])
             x2 = min(img.shape[1], col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1])
@@ -644,6 +672,10 @@ def _reread_hole_cells(
             1 for r in range(n_rows) if _is_out((grid[r][ci] or {}).get("result"))
         )
         use_linear = is_overflow or n_col_outs >= 3
+        # Find the first and last non-null row so we can suppress false cyclic holes.
+        nonnull_rows = [r for r in range(n_rows) if _has_result(r, ci)]
+        min_nonnull = min(nonnull_rows) if nonnull_rows else None
+        max_nonnull = max(nonnull_rows) if nonnull_rows else None
         for ri in range(n_rows):
             if _has_result(ri, ci):
                 continue
@@ -655,10 +687,24 @@ def _reread_hole_cells(
             else:
                 prev_ri = (ri - 1) % n_rows
                 next_ri = (ri + 1) % n_rows
+                # Suppress cyclic boundary false positives:
+                # If the inning started at P1 (min_nonnull=0), a null at P9
+                # wrapping to P1 is just end-of-inning, not a hole.
+                if min_nonnull == 0 and ri == n_rows - 1 and next_ri == 0:
+                    continue
+                # If the inning ended at P9 (max_nonnull=n_rows-1), a null at P1
+                # wrapping back from P9 is just before-inning, not a hole.
+                if max_nonnull == n_rows - 1 and ri == 0 and prev_ri == n_rows - 1:
+                    continue
             if not (_has_result(prev_ri, ci) and _has_result(next_ri, ci)):
                 continue
-            names = row_names[ri].get("players") or [] if ri < len(row_names) else []
+            _slot = row_names[ri] if ri < len(row_names) else {}
+            names = _slot.get("players") or []
+            _subs = _slot.get("sub_innings") or []
             player_name = names[0] if names else f"P{ri+1}"
+            for _k, _si in enumerate(_subs, 1):
+                if inn >= _si and _k < len(names):
+                    player_name = names[_k]
             y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
             x1 = max(0, col_lefts[ci])
             x2 = min(img.shape[1], col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1])
@@ -689,17 +735,7 @@ def _reread_hole_cells(
                 click.echo(f"    → result: {result['result']}  run: {result.get('run', False)}")
                 reread += 1
             else:
-                click.echo(f"    → still no result after re-read ({(raw or 'None')[:80]})")
-                # The hole is confirmed (both neighbours have PAs) but VLM cannot
-                # read the cell.  Assign BB as the safest fallback — it adds a PA
-                # without distorting batting averages or run totals.
-                fallback = {
-                    "result": "BB", "run": False, "rbi_slot": None,
-                    "confidence": "low", "notes": "hole-fallback:BB",
-                }
-                grid[ri][ci] = fallback
-                cf.write_text(json.dumps(fallback, ensure_ascii=False), encoding="utf-8")
-                click.echo(f"    → assigned BB fallback (hole confirmed, cell unreadable)")
+                click.echo(f"    → still unreadable after re-read — leaving null (fix in review)")
                 reread += 1
     return reread
 
@@ -910,13 +946,18 @@ def _backfill_rbi_cells(
         return 0
 
     click.echo(
-        f"\n\n-- RBI backfill: {len(to_backfill)} run cell(s) missing rbi_slot " + "-" * 20
+        f"\n\n-- RBI backfill: {len(to_backfill)} run cell(s) missing rbi_slot key " + "-" * 20
     )
     updated = 0
     for ri, ci in to_backfill:
         inn = col_to_inning[ci]
-        names = row_names[ri].get("players") or [] if ri < len(row_names) else []
+        slot_info = row_names[ri] if ri < len(row_names) else {}
+        names = slot_info.get("players") or []
+        sub_innings = slot_info.get("sub_innings") or []
         player_name = names[0] if names else f"P{ri+1}"
+        for k, si in enumerate(sub_innings, 1):
+            if inn >= si and k < len(names):
+                player_name = names[k]
         y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
         x1 = max(0, col_lefts[ci])
         x2 = col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1]
@@ -934,6 +975,58 @@ def _backfill_rbi_cells(
         click.echo(f"    → rbi_slot={rbi_slot}")
         updated += 1
     return updated
+
+
+def _enforce_constraints(
+    grid: list[list[dict | None]],
+    n_rows: int,
+    n_cols: int,
+    cache_dir: Path,
+) -> int:
+    """Enforce logical consistency rules on classified cells.
+
+    Applied in order:
+      1. E (error) → never an out. If VLM somehow returned an out-looking result
+         alongside run=True and notes suggest error, the run is preserved.
+         More concretely: any result matching ^E\\d* is safe (not an out).
+      2. Out → run must be False. A retired batter cannot have scored.
+    """
+    changed = 0
+    for ri in range(n_rows):
+        for ci in range(n_cols):
+            cell = grid[ri][ci]
+            if not cell:
+                continue
+            result = (cell.get("result") or "").upper().strip()
+            run = bool(cell.get("run"))
+            dirty = False
+
+            # Rule 1: E# (error) is never an out. _is_out already returns False
+            # for errors, but if the result was mis-read as an out result yet the
+            # cell also has run=True (contradictory), clear the out interpretation
+            # by keeping run as-is and leaving result untouched.
+            # This rule is a no-op when result correctly says "E" — it only matters
+            # as a guard before rule 2.
+            is_error = bool(re.match(r"^E\d*$", result))
+
+            # Rule 2: out → run=False (skip if this cell is an error — rule 1 takes precedence)
+            if not is_error and _is_out(result) and run:
+                cell = dict(cell)
+                cell["run"] = False
+                cell["confidence"] = "low"
+                notes = (cell.get("notes") or "").strip()
+                cell["notes"] = (notes + " [constraint: out→run=False]").strip()
+                grid[ri][ci] = cell
+                dirty = True
+                click.echo(
+                    f"  [constraint] P{ri+1} c{ci+1} ({result}+run=True) → run forced False"
+                )
+                changed += 1
+
+            if dirty:
+                cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+                cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
+    return changed
 
 
 # ── Player name detection ─────────────────────────────────────────────────────
@@ -1731,6 +1824,11 @@ def main(
                     cell["result"] = None
                     cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
                 notes = cell.get("notes") or ""
+                # Clear stale hole-fallback:BB cells — the hole detection is now
+                # more accurate, so these should be re-evaluated as true nulls.
+                if "hole-fallback:BB" in notes:
+                    cell = {"result": None, "run": False, "rbi_slot": None, "notes": None}
+                    cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
                 # api_error cells are never "done" — always retry them
                 if cell.get("result") is None and notes.startswith("api_error:"):
                     to_process.append((ri, ci, cf))
@@ -1929,6 +2027,11 @@ def main(
     )
     if n_holes:
         click.echo(f"  Re-read {n_holes} hole cell(s)")
+
+    # ── Logical constraint enforcement ────────────────────────────────────────
+    n_constraints = _enforce_constraints(grid, n_active_rows, n_phys_cols, cache_dir)
+    if n_constraints:
+        click.echo(f"  Enforced {n_constraints} constraint violation(s)")
 
     # ── Batting rules (structural post-processing) ───────────────────────────
     click.echo("\n\n-- Batting rules " + "-" * 48)

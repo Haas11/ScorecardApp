@@ -176,9 +176,9 @@ def _add_color_scale(
     low_color  = "C0392B" if invert else "4472C4"
     high_color = "4472C4" if invert else "C0392B"
     rule = ColorScaleRule(
-        start_type="num", start_value=min_val, start_color=low_color,
+        start_type="min", start_value=None,    start_color=low_color,
         mid_type="num",   mid_value=mid_val,   mid_color="FFFFFF",
-        end_type="num",   end_value=max_val,   end_color=high_color,
+        end_type="max",   end_value=None,       end_color=high_color,
     )
     # Build sqref as grouped contiguous ranges (e.g. "A3:A7 A9:A11")
     ranges, start, prev = [], row_indices[0], row_indices[0]

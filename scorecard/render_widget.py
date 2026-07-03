@@ -296,7 +296,7 @@ function ctype(r) {
   const u = r.toUpperCase();
   if (['1B','2B','3B','HR'].includes(u)) return 'hit';
   if (['BB','HP','HBP'].includes(u)) return 'reach';
-  if (/^E\d/i.test(r) || ['FC','K-PB'].includes(u)) return 'warn';
+  if (/^E\d*/i.test(r) || ['FC','K-PB'].includes(u)) return 'warn';
   return 'out';
 }
 

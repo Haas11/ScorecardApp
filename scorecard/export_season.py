@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 from pathlib import Path
@@ -451,6 +452,7 @@ def export_season(
 def main(output: str | None, min_pa: int) -> None:
     out = output or str(_DB_PATH.parent / f"{_DB_PATH.parent.name} stats.xlsx")
     export_season(out, min_pa)
+    os.startfile(out)
 
 
 if __name__ == "__main__":

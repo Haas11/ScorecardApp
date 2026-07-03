@@ -57,8 +57,12 @@ The cell has a 2x2 quadrant layout (mimicking 3 bases & homeplate):
                                      around the bases AFTER reaching — they are NOT the PA result.  
   BOTTOM-LEFT (homeplate)          : supplementary notations (SB, WP, PB, error codes, etc.)
                                     These also only indicate HOW the batter advanced — NOT the PA result,
-                                    if anything, record a run!                                    
+                                    if anything, record a run!
                                     EXCEPT in the dropped-third-strike case described below.
+                                    RBI RULE (only when run=true): look for a SINGLE DIGIT 1-9 written
+                                    here. If present, set rbi_slot to that integer — it is the batting-
+                                    order number of the batter who drove the run in. If you see E#, PB,
+                                    WP, SB, or anything other than a lone digit, set rbi_slot to null.
                                     
   CENTER (at or near the crosshair intersection) : a FILLED/SOLID diamond or solid black dot
                           means this batter scored a run this inning. Look carefully —
@@ -122,8 +126,10 @@ Set "confidence" to "high" if the cell is clear and unambiguous.
 
 Return ONLY valid JSON — no prose, no explanation, no markdown fences.
 For a PA result use the string code. For no PA use JSON null (NOT the string "null").
-PA cell:    {"result": "K", "run": false, "confidence": "high", "notes": null}
-Empty cell: {"result": null, "run": false, "confidence": "high", "notes": null}"""
+rbi_slot is only meaningful when run=true; always null when run=false or no PA.
+PA no run:  {"result": "K",  "run": false, "rbi_slot": null, "confidence": "high", "notes": null}
+PA + run:   {"result": "1B", "run": true,  "rbi_slot": 5,    "confidence": "high", "notes": null}
+Empty cell: {"result": null, "run": false, "rbi_slot": null, "confidence": "high", "notes": null}"""
 
 
 # ── VLM cell call ─────────────────────────────────────────────────────────────
@@ -1298,10 +1304,11 @@ def _detect_sub_inning_vlm(
 
 
 def _make_summary(pas: list) -> "PASummary":
-    h  = sum(1 for pa in pas if _is_hit(pa.result))
-    ab = sum(1 for pa in pas if _is_ab(pa.result))
-    r  = sum(1 for pa in pas if pa.run_scored)
-    return PASummary(PA=len(pas), AB=ab, H=h, R=r)
+    h   = sum(1 for pa in pas if _is_hit(pa.result))
+    ab  = sum(1 for pa in pas if _is_ab(pa.result))
+    r   = sum(1 for pa in pas if pa.run_scored)
+    rbi = sum(pa.rbi for pa in pas)
+    return PASummary(PA=len(pas), AB=ab, H=h, R=r, RBI=rbi)
 
 
 # ── Log tee ───────────────────────────────────────────────────────────────────
@@ -1895,7 +1902,9 @@ def main(
             click.echo("  Run totals: all match GT.")
 
     # ── Assemble GameExtraction ───────────────────────────────────────────────
-    lineup: list[LineupSlot] = []
+    # Phase 1: build PA lists for every slot (no RBIs yet).
+    SlotData = tuple  # (all_slots, pa_lists)
+    slot_data: list[tuple] = []
     for ri in range(n_active_rows):
         info = slot_info[ri]
         # all_slots: [(player_tuple, entry_inning), ...]; starter entry_inning=0
@@ -1928,6 +1937,41 @@ def main(
                     owner_idx = idx
             pa_lists[owner_idx].append(pa)
 
+        slot_data.append((all_slots, pa_lists))
+
+    # Phase 2: attribute RBIs.
+    # For each run cell that carries an rbi_slot digit, find the batter in that
+    # slot at that inning and increment rbi on their matching PA.
+    for ri_runner in range(n_active_rows):
+        for ci in range(n_phys_cols):
+            cell = grid[ri_runner][ci] or {}
+            if not cell.get("run"):
+                continue
+            rbi_slot = cell.get("rbi_slot")
+            if not isinstance(rbi_slot, int) or not 1 <= rbi_slot <= n_active_rows:
+                continue
+            ri_batter = rbi_slot - 1
+            inning = col_to_inning[ci]
+            all_slots_b, pa_lists_b = slot_data[ri_batter]
+            # Find which player (starter / sub) is active at this inning
+            owner_idx_b = 0
+            for idx, (_, entry_inn) in enumerate(all_slots_b):
+                if entry_inn <= inning:
+                    owner_idx_b = idx
+            # Credit the PA in that inning; fall back to the last PA if not found
+            target_pas = pa_lists_b[owner_idx_b]
+            credited = False
+            for pa in target_pas:
+                if pa.inning == inning:
+                    pa.rbi += 1
+                    credited = True
+                    break
+            if not credited and target_pas:
+                target_pas[-1].rbi += 1
+
+    # Phase 3: build LineupSlots from the completed PA lists.
+    lineup: list[LineupSlot] = []
+    for ri, (all_slots, pa_lists) in enumerate(slot_data):
         players_in_slot: list[PlayerEntry] = [
             PlayerEntry(
                 name=p_name,

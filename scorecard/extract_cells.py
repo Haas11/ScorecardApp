@@ -59,11 +59,7 @@ The cell has a 2x2 quadrant layout (mimicking 3 bases & homeplate):
                                     These also only indicate HOW the batter advanced — NOT the PA result,
                                     if anything, record a run!
                                     EXCEPT in the dropped-third-strike case described below.
-                                    RBI RULE (only when run=true): look for a SINGLE DIGIT 1-9 written
-                                    here. If present, set rbi_slot to that integer — it is the batting-
-                                    order number of the batter who drove the run in. If you see E#, PB,
-                                    WP, SB, or anything other than a lone digit, set rbi_slot to null.
-                                    
+
   CENTER (at or near the crosshair intersection) : a FILLED/SOLID diamond or solid black dot
                           means this batter scored a run this inning. Look carefully —
                           it may be small or faint or slightly off center. 
@@ -126,10 +122,9 @@ Set "confidence" to "high" if the cell is clear and unambiguous.
 
 Return ONLY valid JSON — no prose, no explanation, no markdown fences.
 For a PA result use the string code. For no PA use JSON null (NOT the string "null").
-rbi_slot is only meaningful when run=true; always null when run=false or no PA.
-PA no run:  {"result": "K",  "run": false, "rbi_slot": null, "confidence": "high", "notes": null}
-PA + run:   {"result": "1B", "run": true,  "rbi_slot": 5,    "confidence": "high", "notes": null}
-Empty cell: {"result": null, "run": false, "rbi_slot": null, "confidence": "high", "notes": null}"""
+PA no run:  {"result": "K",  "run": false, "confidence": "high", "notes": null}
+PA + run:   {"result": "1B", "run": true,  "confidence": "high", "notes": null}
+Empty cell: {"result": null, "run": false, "confidence": "high", "notes": null}"""
 
 
 # ── VLM cell call ─────────────────────────────────────────────────────────────
@@ -300,7 +295,7 @@ def classify_cell(
     client,
     model: str,
 ) -> dict:
-    """Classify one PA cell. Returns {"result": str|None, "run": bool, "notes": str|None}."""
+    """Classify one PA cell. Returns {"result": str|None, "run": bool, "rbi_slot": int|None, "notes": str|None}."""
     img_bytes, media_type = _encode_cell(crop)
     user_text = f"Player: {player_name}  Inning: {inning}\nReturn JSON only."
 
@@ -309,16 +304,62 @@ def classify_cell(
         system = _CELL_SYSTEM + extra
         raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=400)
         if raw is None:
-            return {"result": None, "run": False, "notes": "api_error: max retries exceeded"}
+            return {"result": None, "run": False, "rbi_slot": None, "notes": "api_error: max retries exceeded"}
         if raw.startswith("api_error:"):
-            return {"result": None, "run": False, "notes": raw}
+            return {"result": None, "run": False, "rbi_slot": None, "notes": raw}
 
         parsed = _parse_json_response(raw)
         if parsed is not None:
+            # Focused bottom-left crop for rbi_slot — more reliable than the general prompt
+            if parsed.get("run"):
+                parsed["rbi_slot"] = _read_rbi_slot(crop, player_name, inning, client, model)
+            else:
+                parsed["rbi_slot"] = None
             return parsed
         if attempt == 0:
             continue
-    return {"result": None, "run": False, "notes": f"parse_error: {raw[:120]}"}
+    return {"result": None, "run": False, "rbi_slot": None, "notes": f"parse_error: {raw[:120]}"}
+
+
+def _read_rbi_slot(
+    crop: np.ndarray,
+    player_name: str,
+    inning: int,
+    client,
+    model: str,
+) -> int | None:
+    """Focused read of the bottom-left (home plate) quadrant for an RBI digit.
+
+    Crops to the bottom-left quarter of the cell and asks the VLM whether a
+    single handwritten digit 1–9 is present (the batting-slot of the batter
+    who drove the run in).  Returns the integer or None.
+    """
+    h, w = crop.shape[:2]
+    bl = crop[h // 2:, :w // 2]
+    if bl.size == 0:
+        return None
+    img_bytes, media_type = _encode_cell(bl, scale=8)
+    system = (
+        "You are reading the BOTTOM-LEFT (home plate) quadrant of a Dutch KNBSB baseball scorecard cell. "
+        "Look for a SINGLE handwritten digit 1–9. "
+        "This digit is the batting-order slot of the player who drove in the run. "
+        "If you see exactly one digit 1–9 (possibly with a circle or mark around it, but clearly a digit): "
+        'return {"rbi_slot": <digit>} '
+        "If you see E#, WP, PB, SB, a letter, multiple digits, or nothing: "
+        'return {"rbi_slot": null} '
+        "Return ONLY valid JSON — no prose."
+    )
+    user_text = f"Player: {player_name}  Inning: {inning}\nSingle digit 1-9 in this quadrant?"
+    raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=30)
+    if not raw or raw.startswith("api_error:"):
+        return None
+    parsed = _parse_json_response(raw)
+    if not isinstance(parsed, dict):
+        return None
+    val = parsed.get("rbi_slot")
+    if isinstance(val, int) and 1 <= val <= 9:
+        return val
+    return None
 
 
 def _recheck_run(
@@ -882,23 +923,16 @@ def _backfill_rbi_cells(
         crop = img[y1:y2, x1:x2]
         if crop.size == 0:
             continue
-        click.echo(f"  P{ri+1} ({player_name}) inn {inn}: re-reading for rbi_slot…")
-        result = classify_cell(crop, player_name, inn, client, model)
-        if result and result.get("result") is not None:
-            result["run"] = True  # preserve confirmed run marker
-            grid[ri][ci] = result
-            cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
-            cf.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
-            click.echo(f"    → result={result.get('result')}  rbi_slot={result.get('rbi_slot')}")
-            updated += 1
-        else:
-            # VLM failed — stamp rbi_slot=null so this cell is not retried next run
-            existing = dict(grid[ri][ci] or {})
-            existing["rbi_slot"] = None
-            grid[ri][ci] = existing
-            cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
-            cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
-            click.echo(f"    → VLM failed; rbi_slot=null stamped to cache")
+        click.echo(f"  P{ri+1} ({player_name}) inn {inn}: reading bottom-left for rbi_slot…")
+        # Keep existing result/run — only add rbi_slot via focused bottom-left read
+        existing = dict(grid[ri][ci] or {})
+        rbi_slot = _read_rbi_slot(crop, player_name, inn, client, model)
+        existing["rbi_slot"] = rbi_slot
+        grid[ri][ci] = existing
+        cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+        cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
+        click.echo(f"    → rbi_slot={rbi_slot}")
+        updated += 1
     return updated
 
 

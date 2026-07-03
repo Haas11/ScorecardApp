@@ -594,19 +594,23 @@ def _reread_hole_cells(
     reread = 0
     for ci in range(n_cols):
         inn = col_to_inning[ci] if col_to_inning else ci + 1
-        # In overflow columns (same inning as previous column) the batting order
-        # does NOT wrap — the inning simply ended mid-lineup.  Use linear bounds
-        # so the last batter before 3-outs is never treated as sandwiching the
-        # first batter of the overflow via cyclic wrap.
+        # Cyclic wrap is only valid when the inning hasn't ended yet (< 3 outs).
+        # Once 3 outs are recorded the inning is complete: nulls at the edge of
+        # the batting sequence are legitimate non-batters, not holes.  Similarly,
+        # overflow columns (same inning as the previous column) never wrap.
         is_overflow = ci > 0 and col_to_inning and col_to_inning[ci] == col_to_inning[ci - 1]
+        n_col_outs = sum(
+            1 for r in range(n_rows) if _is_out((grid[r][ci] or {}).get("result"))
+        )
+        use_linear = is_overflow or n_col_outs >= 3
         for ri in range(n_rows):
             if _has_result(ri, ci):
                 continue
-            if is_overflow:
+            if use_linear:
                 prev_ri = ri - 1
                 next_ri = ri + 1
                 if prev_ri < 0 or next_ri >= n_rows:
-                    continue  # edge of overflow block — not a hole
+                    continue  # at the edge — legitimate end-of-inning null
             else:
                 prev_ri = (ri - 1) % n_rows
                 next_ri = (ri + 1) % n_rows

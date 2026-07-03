@@ -67,6 +67,7 @@ def compute_stats(game: dict) -> dict:
                 cells_by_inning.setdefault(key, []).append({
                     "r":   pa.get("result"),
                     "run": bool(pa.get("run_scored")),
+                    "rbi": int(pa.get("rbi") or 0),
                 })
             summary = player.get("summary") or {}
             pa_count = len(pas)
@@ -243,6 +244,7 @@ thead th { background: var(--hdr); color: #fff; }
 .etx  { color: var(--tx3);  font-size: 13px; }
 .btx  { color: var(--tx3);  font-size: 13px; text-decoration: line-through; }
 .run  { color: var(--s-tx); font-size: 10px; }
+.rbi  { color: var(--w-tx); font-size: 10px; }
 .blk  { border-radius: 2px; padding: 1px 2px; margin-bottom: 1px; }
 .fcel { font-size: 12px; color: var(--tx2); line-height: 1.65; }
 .wbdg { font-size: 10px; background: var(--w-bg); color: var(--w-tx);
@@ -277,6 +279,7 @@ thead th { background: var(--hdr); color: #fff; }
   <span><span class="sw" style="background:var(--bg2);border:0.5px solid var(--brd)"></span>No PA</span>
   <span><span class="sw" style="background:var(--bg-bench);border:0.5px solid var(--brd)"></span>Inactive (sub not entered / starter exited)</span>
   <span class="rok">&#x25CF; run scored</span>
+  <span style="color:var(--w-tx)">&#x25C6; RBI</span>
 </div>
 <p id="bugnote" style="display:none" class="note">
   &#x26A0; One or more cells show <s>null</s> — VLM returned string "null" instead of JSON null.
@@ -309,14 +312,16 @@ function paCell(pas, isSub, entryInning, inning, extraStyle, exitInning) {
   if (pas.length === 1) {
     const p = pas[0], ct = ctype(p.r);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
+    const rdot = p.rbi ? ` <span class="rbi">${p.rbi > 1 ? p.rbi : ''}&#x25C6;</span>` : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<td class="${BGCLS[ct]}"${s}><span class="${TXCLS[ct]}">${txt}${dot}</span></td>`;
+    return `<td class="${BGCLS[ct]}"${s}><span class="${TXCLS[ct]}">${txt}${dot}${rdot}</span></td>`;
   }
   const items = pas.map(p => {
     const ct = ctype(p.r);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
+    const rdot = p.rbi ? ` <span class="rbi">${p.rbi > 1 ? p.rbi : ''}&#x25C6;</span>` : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<div class="blk ${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}</span></div>`;
+    return `<div class="blk ${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}${rdot}</span></div>`;
   }).join('');
   const baseStyle = extraStyle ? `padding:2px;${extraStyle}` : 'padding:2px';
   return `<td style="${baseStyle}"><div style="display:flex;flex-direction:column">${items}</div></td>`;

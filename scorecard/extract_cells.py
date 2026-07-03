@@ -594,11 +594,22 @@ def _reread_hole_cells(
     reread = 0
     for ci in range(n_cols):
         inn = col_to_inning[ci] if col_to_inning else ci + 1
+        # In overflow columns (same inning as previous column) the batting order
+        # does NOT wrap — the inning simply ended mid-lineup.  Use linear bounds
+        # so the last batter before 3-outs is never treated as sandwiching the
+        # first batter of the overflow via cyclic wrap.
+        is_overflow = ci > 0 and col_to_inning and col_to_inning[ci] == col_to_inning[ci - 1]
         for ri in range(n_rows):
             if _has_result(ri, ci):
                 continue
-            prev_ri = (ri - 1) % n_rows
-            next_ri = (ri + 1) % n_rows
+            if is_overflow:
+                prev_ri = ri - 1
+                next_ri = ri + 1
+                if prev_ri < 0 or next_ri >= n_rows:
+                    continue  # edge of overflow block — not a hole
+            else:
+                prev_ri = (ri - 1) % n_rows
+                next_ri = (ri + 1) % n_rows
             if not (_has_result(prev_ri, ci) and _has_result(next_ri, ci)):
                 continue
             names = row_names[ri].get("players") or [] if ri < len(row_names) else []
@@ -634,6 +645,17 @@ def _reread_hole_cells(
                 reread += 1
             else:
                 click.echo(f"    → still no result after re-read ({(raw or 'None')[:80]})")
+                # The hole is confirmed (both neighbours have PAs) but VLM cannot
+                # read the cell.  Assign BB as the safest fallback — it adds a PA
+                # without distorting batting averages or run totals.
+                fallback = {
+                    "result": "BB", "run": False, "rbi_slot": None,
+                    "confidence": "low", "notes": "hole-fallback:BB",
+                }
+                grid[ri][ci] = fallback
+                cf.write_text(json.dumps(fallback, ensure_ascii=False), encoding="utf-8")
+                click.echo(f"    → assigned BB fallback (hole confirmed, cell unreadable)")
+                reread += 1
     return reread
 
 

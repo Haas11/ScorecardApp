@@ -2059,7 +2059,8 @@ def main(
     try:
         from render_widget import render_widget_for_game
         widget_path = game_dir / f"{img_path.stem}.html"
-        render_widget_for_game(out_data, widget_path)
+        debug_img_path = game_dir / f"{img_path.stem}_grid_debug.png"
+        render_widget_for_game(out_data, widget_path, debug_img_path=debug_img_path)
         click.echo(f"Widget: {widget_path.name}")
     except Exception as exc:
         click.echo(f"Widget: skipped ({exc})")

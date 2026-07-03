@@ -47,7 +47,8 @@ def main(json_path: str) -> None:
     # ── HTML widget ───────────────────────────────────────────────────────────
     game_stem = p.stem[:-len("_cells")] if p.stem.endswith("_cells") else p.stem
     widget_path = p.parent / f"{game_stem}.html"
-    render_widget_for_game(data, widget_path)
+    debug_img_path = p.parent / f"{game_stem}_grid_debug.png"
+    render_widget_for_game(data, widget_path, debug_img_path=debug_img_path)
     click.echo(f"HTML  : {widget_path.name}")
 
     click.echo("\nRun 'uv run python export_season.py' to refresh the season xlsx.")

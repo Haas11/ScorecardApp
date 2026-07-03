@@ -10,6 +10,7 @@ Called automatically by extract_cells.py at the end of each run.
 """
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sys
@@ -185,10 +186,11 @@ _HTML = r"""<!DOCTYPE html>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
 :root {
-  --bg:  #ffffff; --bg2: #f8fafc; --bg3: #f1f5f9;
+  --bg:  #ffffff; --bg2: #f8fafc; --bg3: #f1f5f9; --bg-bench: #d8dfe8;
   --tx:  #0f172a; --tx2: #64748b; --tx3: #94a3b8;
   --brd: rgba(15,23,42,0.12);
   --rad: 8px;
+  --hdr: rgb(31,95,160);
   --s-bg: #dcfce7; --s-tx: #15803d;
   --i-bg: #dbeafe; --i-tx: #1d4ed8;
   --d-bg: #fee2e2; --d-tx: #b91c1c;
@@ -197,9 +199,10 @@ _HTML = r"""<!DOCTYPE html>
   font-size: 14px; color: var(--tx); background: var(--bg);
 }
 @media (prefers-color-scheme: dark) { :root {
-  --bg:  #0f172a; --bg2: #1e293b; --bg3: #334155;
+  --bg:  #0f172a; --bg2: #1e293b; --bg3: #334155; --bg-bench: #475569;
   --tx:  #f1f5f9; --tx2: #94a3b8; --tx3: #64748b;
   --brd: rgba(241,245,249,0.12);
+  --hdr: rgb(31,95,160);
   --s-bg: #14532d; --s-tx: #86efac;
   --i-bg: #1e3a5f; --i-tx: #93c5fd;
   --d-bg: #450a0a; --d-tx: #fca5a5;
@@ -209,15 +212,16 @@ _HTML = r"""<!DOCTYPE html>
 body { padding: 1.25rem; max-width: 960px; margin: 0 auto; }
 h1 { font-size: 15px; font-weight: 500; color: var(--tx2); margin-bottom: 1.25rem; }
 .cards { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
-.card { background: var(--bg2); border-radius: var(--rad); padding: 0.75rem 1rem; }
-.card-lbl { font-size: 11px; color: var(--tx2); margin-bottom: 3px; }
+.card { background: var(--hdr); border-radius: var(--rad); padding: 0.75rem 1rem; color: #fff; }
+.card-lbl { font-size: 11px; color: rgba(255,255,255,0.75); margin-bottom: 3px; }
 .card-val { font-size: 22px; font-weight: 500; }
-.card-sub { font-size: 10px; color: var(--tx3); }
+.card-sub { font-size: 10px; color: rgba(255,255,255,0.65); }
 .banner { background: var(--w-bg); color: var(--w-tx); border-radius: var(--rad);
   padding: 7px 12px; margin-bottom: 1rem; font-size: 12px; display: flex; align-items: center; gap: 8px; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th, td { border: 0.5px solid var(--brd); padding: 3px; text-align: center; vertical-align: middle; }
 th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2); padding: 4px 3px; }
+thead th { background: var(--hdr); color: #fff; }
 .pl-th { text-align: left; padding-left: 8px; width: 120px; }
 .pl-td { text-align: left; padding: 3px 4px 3px 8px; font-size: 12px; white-space: nowrap; }
 .sm-td { text-align: left; padding: 3px 6px; font-size: 11px; white-space: nowrap; width: 90px; }
@@ -228,7 +232,7 @@ th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2
 .rch  { background: var(--i-bg); }
 .wrn  { background: var(--w-bg); }
 .mpt  { background: var(--bg2); }
-.bench{ background: var(--bg3); }
+.bench{ background: var(--bg-bench); }
 .bug  { background: var(--bg2); }
 .htx  { color: var(--s-tx); font-size: 11px; font-weight: 500; }
 .otx  { color: var(--d-tx); font-size: 11px; font-weight: 500; }
@@ -263,6 +267,7 @@ th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2
   <tfoot id="sfoot"></tfoot>
 </table>
 </div>
+<div id="dbgimg" style="margin-top:1.5rem"></div>
 <p id="bugnote" style="display:none" class="note">
   &#x26A0; One or more cells show <s>null</s> — VLM returned string "null" instead of JSON null.
 </p>
@@ -272,7 +277,7 @@ th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2
   <span><span class="sw" style="background:var(--d-bg)"></span>Out</span>
   <span><span class="sw" style="background:var(--w-bg)"></span>FC / E / SF</span>
   <span><span class="sw" style="background:var(--bg2);border:0.5px solid var(--brd)"></span>No PA</span>
-  <span><span class="sw" style="background:var(--bg3);border:0.5px solid var(--brd)"></span>Sub (not yet entered)</span>
+  <span><span class="sw" style="background:var(--bg-bench);border:0.5px solid var(--brd)"></span>Inactive (sub not entered / starter exited)</span>
   <span class="rok">&#x25CF; run scored</span>
 </div>
 <script>
@@ -290,10 +295,12 @@ function ctype(r) {
   return 'out';
 }
 
-function paCell(pas, isSub, entryInning, inning, extraStyle) {
+function paCell(pas, isSub, entryInning, inning, extraStyle, exitInning) {
   const s = extraStyle ? ` style="${extraStyle}"` : '';
   if (!pas || pas.length === 0) {
     if (isSub && entryInning != null && inning < entryInning)
+      return `<td class="bench"${s}></td>`;
+    if (!isSub && exitInning != null && inning >= exitInning)
       return `<td class="bench"${s}></td>`;
     return `<td class="mpt"${s}><span class="etx">&#x2014;</span></td>`;
   }
@@ -337,12 +344,12 @@ if (wraps.length) {
 
 // Header
 const inns = D.innings.map(s => s.inn);
-let hdr = '<tr><th style="width:20px;font-size:10px;color:var(--tx3);padding:2px">#</th><th class="pl-th">Player</th>';
+let hdr = '<tr><th style="width:20px;font-size:10px;padding:2px">#</th><th class="pl-th">Player</th>';
 D.innings.forEach(s => {
   const badge = s.wrap ? `<div class="wbdg">wrap</div>` : '';
   hdr += `<th style="width:44px">${s.inn}${badge}</th>`;
 });
-const stH = 'style="width:30px;font-size:11px;text-align:center;color:var(--tx2)"';
+const stH = 'style="width:30px;font-size:11px;text-align:center"';
 hdr += `<th ${stH}>PA</th><th ${stH}>H</th><th ${stH}>AB</th><th ${stH}>R</th>`;
 hdr += `<th ${stH}>AVG</th><th ${stH}>OBP</th><th ${stH}>SLG</th></tr>`;
 document.getElementById('shead').innerHTML = hdr;
@@ -354,6 +361,15 @@ const lastBatterByInning = D.last_batter_by_inning || {};
 const lastPlayerInSlot = {};
 D.players.forEach((p, pi) => { lastPlayerInSlot[p.batting_order] = pi; });
 
+// subEntryInning: batting_order -> inning the first sub enters (for greying out starter cells)
+const subEntryInning = {};
+D.players.forEach(p => {
+  if (p.is_sub && p.entry_inning != null) {
+    if (subEntryInning[p.batting_order] == null || p.entry_inning < subEntryInning[p.batting_order])
+      subEntryInning[p.batting_order] = p.entry_inning;
+  }
+});
+
 let hasBug = false, body = '';
 D.players.forEach((p, pi) => {
   const tag = p.is_sub
@@ -363,6 +379,7 @@ D.players.forEach((p, pi) => {
     ? `<td style="padding:2px"></td>`
     : `<td style="text-align:center;font-size:11px;font-weight:500;color:var(--tx3);padding:2px">${p.batting_order}</td>`;
   const slotBorder = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd)' : '';
+  const exitInning = (!p.is_sub) ? (subEntryInning[p.batting_order] ?? null) : null;
   let row = `<tr style="${slotBorder}">${slotCell}<td class="pl-td">${tag}</td>`;
   inns.forEach(i => {
     const pas = p.cells[String(i)] || null;
@@ -371,7 +388,7 @@ D.players.forEach((p, pi) => {
     const botBorder = isLastBatter ? 'border-bottom:2px solid var(--tx2);' : '';
     const slotTop   = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd);' : '';
     const cellStyle = slotTop + botBorder;
-    row += paCell(pas, p.is_sub, p.entry_inning, i, cellStyle);
+    row += paCell(pas, p.is_sub, p.entry_inning, i, cellStyle, exitInning);
     if (pas && pas.some(x => x.r === 'null')) hasBug = true;
   });
   const rc = p.R > 0 ? 'rok' : 'rzr';
@@ -406,6 +423,12 @@ foot += `<td style="${ftd};color:var(--tx2)">${t.SLG}</td></tr>`;
 document.getElementById('sfoot').innerHTML = foot;
 
 if (hasBug) document.getElementById('bugnote').style.display = 'block';
+
+if (D.debug_img_b64) {
+  document.getElementById('dbgimg').innerHTML =
+    '<p style="font-size:11px;color:var(--tx3);margin-bottom:6px">Grid detection debug</p>' +
+    `<img src="data:image/png;base64,${D.debug_img_b64}" style="max-width:100%;border-radius:var(--rad);border:0.5px solid var(--brd)">`;
+}
 </script>
 </body>
 </html>
@@ -424,12 +447,15 @@ def render_html(stats: dict) -> str:
     )
 
 
-def render_widget_for_game(game: dict, out_path: Path) -> Path:
+def render_widget_for_game(game: dict, out_path: Path, debug_img_path: Path | None = None) -> Path:
     """
     Compute stats from a parsed _cells.json dict and write the HTML widget.
     Returns the output path.
     """
     stats = compute_stats(game)
+    stats["debug_img_b64"] = None
+    if debug_img_path and debug_img_path.exists():
+        stats["debug_img_b64"] = base64.b64encode(debug_img_path.read_bytes()).decode()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(render_html(stats), encoding="utf-8")
     return out_path
@@ -451,8 +477,9 @@ def main() -> None:
     out_dir  = json_path.parent.parent / "widgets"
     stem     = json_path.stem.removesuffix("_cells")
     out_path = out_dir / f"{stem}.html"
+    debug_img = json_path.parent / f"{stem}_grid_debug.png"
 
-    render_widget_for_game(game, out_path)
+    render_widget_for_game(game, out_path, debug_img_path=debug_img)
     print(f"Widget: {out_path}")
 
     if "--no-open" not in sys.argv:

@@ -117,7 +117,8 @@ def _regenerate_html(json_path: Path) -> None:
         # stem is e.g. "2026-04-12 - Thamen (Home)_cells" → strip "_cells"
         game_stem = json_path.stem[:-len("_cells")] if json_path.stem.endswith("_cells") else json_path.stem
         widget_path = json_path.parent / f"{game_stem}.html"
-        render_widget_for_game(data, widget_path)
+        debug_img_path = json_path.parent / f"{game_stem}_grid_debug.png"
+        render_widget_for_game(data, widget_path, debug_img_path=debug_img_path)
         click.echo(f"  HTML regenerated: {widget_path.name}")
     except Exception as exc:
         click.echo(f"  (Could not regenerate HTML: {exc})")

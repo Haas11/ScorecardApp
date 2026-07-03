@@ -191,6 +191,7 @@ _HTML = r"""<!DOCTYPE html>
   --brd: rgba(15,23,42,0.12);
   --rad: 8px;
   --hdr: rgb(31,95,160);
+  --card-bg: rgba(31,95,160,0.12);
   --s-bg: #dcfce7; --s-tx: #15803d;
   --i-bg: #dbeafe; --i-tx: #1d4ed8;
   --d-bg: #fee2e2; --d-tx: #b91c1c;
@@ -203,6 +204,7 @@ _HTML = r"""<!DOCTYPE html>
   --tx:  #f1f5f9; --tx2: #94a3b8; --tx3: #64748b;
   --brd: rgba(241,245,249,0.12);
   --hdr: rgb(31,95,160);
+  --card-bg: rgba(31,95,160,0.30);
   --s-bg: #14532d; --s-tx: #86efac;
   --i-bg: #1e3a5f; --i-tx: #93c5fd;
   --d-bg: #450a0a; --d-tx: #fca5a5;
@@ -210,23 +212,23 @@ _HTML = r"""<!DOCTYPE html>
 } }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { padding: 1.25rem; max-width: 960px; margin: 0 auto; }
-h1 { font-size: 15px; font-weight: 500; color: var(--tx2); margin-bottom: 1.25rem; }
+h1 { font-size: 20px; font-weight: 700; color: var(--tx); margin-bottom: 1.25rem; }
 .cards { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
-.card { background: var(--hdr); border-radius: var(--rad); padding: 0.75rem 1rem; color: #fff; }
-.card-lbl { font-size: 11px; color: rgba(255,255,255,0.75); margin-bottom: 3px; }
-.card-val { font-size: 22px; font-weight: 500; }
-.card-sub { font-size: 10px; color: rgba(255,255,255,0.65); }
+.card { background: var(--card-bg); border-radius: var(--rad); padding: 0.75rem 1rem; color: var(--tx); }
+.card-lbl { font-size: 13px; color: var(--hdr); margin-bottom: 3px; font-weight: 500; }
+.card-val { font-size: 26px; font-weight: 600; }
+.card-sub { font-size: 12px; color: var(--tx2); }
 .banner { background: var(--w-bg); color: var(--w-tx); border-radius: var(--rad);
   padding: 7px 12px; margin-bottom: 1rem; font-size: 12px; display: flex; align-items: center; gap: 8px; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th, td { border: 0.5px solid var(--brd); padding: 3px; text-align: center; vertical-align: middle; }
-th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2); padding: 4px 3px; }
+th { font-size: 13px; font-weight: 500; color: var(--tx2); background: var(--bg2); padding: 4px 3px; }
 thead th { background: var(--hdr); color: #fff; }
 .pl-th { text-align: left; padding-left: 8px; width: 120px; }
-.pl-td { text-align: left; padding: 3px 4px 3px 8px; font-size: 12px; white-space: nowrap; }
-.sm-td { text-align: left; padding: 3px 6px; font-size: 11px; white-space: nowrap; width: 90px; }
-.num  { font-size: 10px; color: var(--tx3); margin-right: 3px; }
-.sub  { font-size: 10px; color: var(--i-tx); margin-right: 3px; }
+.pl-td { text-align: left; padding: 3px 4px 3px 8px; font-size: 14px; white-space: nowrap; }
+.sm-td { text-align: left; padding: 3px 6px; font-size: 13px; white-space: nowrap; width: 90px; }
+.num  { font-size: 12px; color: var(--tx3); margin-right: 3px; }
+.sub  { font-size: 12px; color: var(--i-tx); margin-right: 3px; }
 .hit  { background: var(--s-bg); }
 .out  { background: var(--d-bg); }
 .rch  { background: var(--i-bg); }
@@ -234,16 +236,16 @@ thead th { background: var(--hdr); color: #fff; }
 .mpt  { background: var(--bg2); }
 .bench{ background: var(--bg-bench); }
 .bug  { background: var(--bg2); }
-.htx  { color: var(--s-tx); font-size: 11px; font-weight: 500; }
-.otx  { color: var(--d-tx); font-size: 11px; font-weight: 500; }
-.rtx  { color: var(--i-tx); font-size: 11px; font-weight: 500; }
-.wtx  { color: var(--w-tx); font-size: 11px; font-weight: 500; }
-.etx  { color: var(--tx3);  font-size: 11px; }
-.btx  { color: var(--tx3);  font-size: 11px; text-decoration: line-through; }
-.run  { color: var(--s-tx); font-size: 8px; }
+.htx  { color: var(--s-tx); font-size: 13px; font-weight: 500; }
+.otx  { color: var(--d-tx); font-size: 13px; font-weight: 500; }
+.rtx  { color: var(--i-tx); font-size: 13px; font-weight: 500; }
+.wtx  { color: var(--w-tx); font-size: 13px; font-weight: 500; }
+.etx  { color: var(--tx3);  font-size: 13px; }
+.btx  { color: var(--tx3);  font-size: 13px; text-decoration: line-through; }
+.run  { color: var(--s-tx); font-size: 10px; }
 .blk  { border-radius: 2px; padding: 1px 2px; margin-bottom: 1px; }
-.fcel { font-size: 10px; color: var(--tx2); line-height: 1.65; }
-.wbdg { font-size: 8px; background: var(--w-bg); color: var(--w-tx);
+.fcel { font-size: 12px; color: var(--tx2); line-height: 1.65; }
+.wbdg { font-size: 10px; background: var(--w-bg); color: var(--w-tx);
   border-radius: 2px; padding: 0 3px; display: inline-block; }
 .rok  { color: var(--s-tx); font-weight: 500; }
 .rzr  { color: var(--tx3); }
@@ -344,12 +346,12 @@ if (wraps.length) {
 
 // Header
 const inns = D.innings.map(s => s.inn);
-let hdr = '<tr><th style="width:20px;font-size:10px;padding:2px">#</th><th class="pl-th">Player</th>';
+let hdr = '<tr><th style="width:20px;font-size:12px;padding:2px">#</th><th class="pl-th">Player</th>';
 D.innings.forEach(s => {
   const badge = s.wrap ? `<div class="wbdg">wrap</div>` : '';
   hdr += `<th style="width:44px">${s.inn}${badge}</th>`;
 });
-const stH = 'style="width:30px;font-size:11px;text-align:center"';
+const stH = 'style="width:30px;font-size:13px;text-align:center"';
 hdr += `<th ${stH}>PA</th><th ${stH}>H</th><th ${stH}>AB</th><th ${stH}>R</th>`;
 hdr += `<th ${stH}>AVG</th><th ${stH}>OBP</th><th ${stH}>SLG</th></tr>`;
 document.getElementById('shead').innerHTML = hdr;
@@ -377,7 +379,7 @@ D.players.forEach((p, pi) => {
     : `<span class="num">#${p.num ?? '?'}</span>${p.name}`;
   const slotCell = p.is_sub
     ? `<td style="padding:2px"></td>`
-    : `<td style="text-align:center;font-size:11px;font-weight:500;color:var(--tx3);padding:2px">${p.batting_order}</td>`;
+    : `<td style="text-align:center;font-size:13px;font-weight:500;color:var(--tx3);padding:2px">${p.batting_order}</td>`;
   const slotBorder = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd)' : '';
   const exitInning = (!p.is_sub) ? (subEntryInning[p.batting_order] ?? null) : null;
   let row = `<tr style="${slotBorder}">${slotCell}<td class="pl-td">${tag}</td>`;
@@ -393,7 +395,7 @@ D.players.forEach((p, pi) => {
   });
   const rc = p.R > 0 ? 'rok' : 'rzr';
   const sb = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd);' : '';
-  const stc = `${sb}width:30px;font-size:11px;text-align:center;padding:2px 3px`;
+  const stc = `${sb}width:30px;font-size:13px;text-align:center;padding:2px 3px`;
   row += `<td style="${stc};color:var(--tx2)">${p.PA}</td>`;
   row += `<td style="${stc};color:var(--tx2)">${p.H}</td>`;
   row += `<td style="${stc};color:var(--tx2)">${p.AB}</td>`;
@@ -412,7 +414,7 @@ D.innings.forEach(s => {
   foot += `<td class="fcel"><div>PA${s.PA}</div><div class="${rc}">R${s.R}</div><div>H${s.H}</div></td>`;
 });
 const t = D.totals;
-const ftd = 'width:30px;font-size:11px;text-align:center;padding:2px 3px;font-weight:500';
+const ftd = 'width:30px;font-size:13px;text-align:center;padding:2px 3px;font-weight:500';
 foot += `<td style="${ftd};color:var(--tx2)">${t.PA}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.H}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.AB}</td>`;

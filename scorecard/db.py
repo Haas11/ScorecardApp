@@ -21,12 +21,13 @@ def _load_config() -> dict:
 
 def _get_data_root() -> Path:
     cfg = _load_config()
-    rel = cfg.get("paths", {}).get("data_root", "../Quick 2026 data")
+    rel = cfg.get("paths", {}).get("data_root", "../Quick 2026")
     return (Path(__file__).parent / rel).resolve()
 
 
-# Resolved once at import time; all scripts share this path regardless of CWD.
-_DB_PATH: Path = _get_data_root() / "season.db"
+# DB filename mirrors the data-root folder name (e.g. "Quick 2026.db").
+_data_root: Path = _get_data_root()
+_DB_PATH: Path = _data_root / f"{_data_root.name}.db"
 
 
 def _load_thresholds() -> int:
@@ -181,7 +182,7 @@ def _interactive_resolve(
     print()
     print(f"  Unrecognized name from scorecard: '{detected_name}'")
     if best_player:
-        print(f"  Best fuzzy match: '{best_player['name']}' (score: {best_score}/100)")
+        print(f"  Best fuzzy match: '{best_player['name']}' ({round(best_score)}%)")
     print()
     print("  Select the correct player:")
     for i, (pname, jersey) in enumerate(roster, 1):
@@ -290,7 +291,18 @@ def _resolve_player(
     if row:
         return row["player_id"]
 
-    # 3. Fuzzy match
+    # 3. Exact match against players.txt (handles fresh DB where player not yet inserted)
+    for pname, pjersey in _read_roster():
+        if normalize_name(pname) == norm:
+            jersey_int = int(pjersey) if pjersey and pjersey.isdigit() else None
+            cur = conn.execute(
+                "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
+                (pname, norm, jersey_int),
+            )
+            print(f"Auto-created '{pname}' from players.txt (exact name match)")
+            return cur.lastrowid
+
+    # 4. Fuzzy match
     all_players = conn.execute(
         "SELECT player_id, name, normalized_name FROM players"
     ).fetchall()
@@ -303,7 +315,7 @@ def _resolve_player(
             best_player = p
 
     if best_player and best_score >= auto_thresh:
-        print(f"Auto-matched '{name}' → '{best_player['name']}' ({best_score})")
+        print(f"Auto-matched '{name}' → '{best_player['name']}' ({round(best_score)}%)")
         conn.execute(
             "INSERT INTO pending_aliases (incoming, stored, player_id, score, match_type) VALUES (?,?,?,?,?)",
             (name, best_player["name"], best_player["player_id"], best_score, "auto"),

@@ -1,5 +1,5 @@
 paths:
-  data_root: "../Quick 2026 data"
+  data_root: "../Quick 2026"
 
 league:
   avg_ops: 0.720
@@ -14,6 +14,6 @@ league:
     triple: 1.62
     hr: 2.10
 stats:
-  small_sample_threshold: 10
+  small_sample_threshold: 15
 fuzzy:
-  auto_match_threshold: 70   # scores >= this auto-match silently; below = interactive prompt
+  auto_match_threshold: 60   # scores >= this auto-match silently; below = interactive prompt

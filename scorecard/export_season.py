@@ -8,7 +8,7 @@ from typing import Optional
 import click
 import openpyxl
 from openpyxl.formatting.rule import ColorScaleRule
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 import yaml
@@ -17,9 +17,20 @@ from db import get_connection, init_db, _DB_PATH, _CONFIG_PATH
 from stats import compute_all_stats, PlayerStats
 
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
-HEADER_FONT = Font(bold=True, color="FFFFFF")
-TEAM_FILL = PatternFill("solid", fgColor="D9E1F2")
-TEAM_FONT = Font(bold=True)
+HEADER_FONT = Font(bold=True, color="FFFFFF", size=14)
+TEAM_FILL   = PatternFill("solid", fgColor="D9E1F2")
+TEAM_FONT   = Font(bold=True, size=14)
+MAX_FILL    = PatternFill("solid", fgColor="FFC000")   # amber — season leader
+COUNT_COLS  = {"H", "2B", "3B", "HR", "R", "BB"}      # count stats to highlight
+
+_THICK = Side(style="medium")
+_THIN  = Side(style="thin")
+# Right border for the Name column (col A)
+_NAME_COL_BORDER  = Border(right=_THICK)
+# Bottom border for the Team row
+_TEAM_ROW_BORDER  = Border(bottom=_THICK)
+# Corner cell (A2): both right and bottom
+_TEAM_NAME_BORDER = Border(right=_THICK, bottom=_THICK)
 
 # #.000 → ".308" for <1, "1.583" for >=1; no leading zero on rate stats
 _COL_FMT: dict[str, str] = {
@@ -31,13 +42,13 @@ _COL_FMT: dict[str, str] = {
 
 RATE_COLS = {"AVG", "OBP", "SLG", "OPS", "BABIP", "ISO", "wOBA"}
 SEASON_COLS = [
-    "Name", "G", "PA", "AB", "H", "2B", "3B", "HR", "R", "RBI",
+    "Name", "G", "PA", "AB", "H", "2B", "3B", "HR", "R",
     "BB", "K", "SB", "CS", "AVG", "OBP", "SLG", "OPS",
     "BABIP", "ISO", "BB%", "K%", "wOBA", "RC", "OPS+", "AB/HR", "BB/K",
 ]
 GAME_LOG_COLS = [
     "Name", "Date", "Opponent", "PA", "AB", "H", "2B", "3B", "HR",
-    "R", "RBI", "BB", "K", "SB", "CS", "AVG", "OBP",
+    "R", "BB", "K", "SB", "CS", "AVG", "OBP",
 ]
 LOW_CONF_COLS = ["Player", "Date", "Opponent", "Inning", "Result", "Notes", "Reviewed"]
 
@@ -55,8 +66,10 @@ def _write_header(ws, cols: list[str]) -> None:
         cell = ws.cell(row=1, column=i, value=col)
         cell.font = HEADER_FONT
         cell.fill = HEADER_FILL
-        cell.alignment = Alignment(horizontal="center")
-    ws.freeze_panes = "A2"
+        cell.alignment = Alignment(horizontal="left" if i == 1 else "center")
+        if i == 1:
+            cell.border = _NAME_COL_BORDER
+    ws.freeze_panes = "B3"
 
 
 def _autofit(ws) -> None:
@@ -72,7 +85,7 @@ def _autofit(ws) -> None:
 def _stats_row(s: PlayerStats) -> list:
     return [
         s.name, s.G, s.PA, s.AB, s.H, s.doubles, s.triples, s.HR,
-        s.R, s.RBI, s.BB, s.K, s.SB, s.CS,
+        s.R, s.BB, s.K, s.SB, s.CS,
         round(s.AVG, 3), round(s.OBP, 3), round(s.SLG, 3), round(s.OPS, 3),
         round(s.BABIP, 3) if s.BABIP is not None else "",
         round(s.ISO, 3),
@@ -96,7 +109,6 @@ def _team_season_row(stats: list) -> list:
     t = sum(s.triples for s in stats)
     hr = sum(s.HR for s in stats)
     r = sum(s.R for s in stats)
-    rbi = sum(s.RBI for s in stats)
     bb = sum(s.BB for s in stats)
     k = sum(s.K for s in stats)
     sb = sum(s.SB for s in stats)
@@ -115,7 +127,7 @@ def _team_season_row(stats: list) -> list:
     ab_hr = round(ab / hr, 1) if hr > 0 else ""
     bb_k = round(bb / k, 2) if k > 0 else ""
     return [
-        "Team", g, pa, ab, h, d, t, hr, r, rbi, bb, k, sb, cs,
+        "Team", g, pa, ab, h, d, t, hr, r, bb, k, sb, cs,
         avg, obp, slg, ops, babip, iso, bb_pct, k_pct, "", "", "", ab_hr, bb_k,
     ]
 
@@ -128,14 +140,13 @@ def _team_game_row(entries: list[dict]) -> list:
     t = sum(d["3B"] for d in entries)
     hr = sum(d["HR"] for d in entries)
     r = sum(d["R"] for d in entries)
-    rbi = sum(d["RBI"] for d in entries)
     bb = sum(d["BB"] for d in entries)
     k = sum(d["K"] for d in entries)
     sb = sum(d["SB"] for d in entries)
     cs = sum(d["CS"] for d in entries)
     avg = round(h / ab, 3) if ab > 0 else 0.0
     obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
-    return ["", "Team", pa, ab, h, d2, t, hr, r, rbi, bb, k, sb, cs, avg, obp]
+    return ["", "Team", pa, ab, h, d2, t, hr, r, bb, k, sb, cs, avg, obp]
 
 
 def _write_team_row(ws, row_idx: int, vals: list, cols: list[str] | None = None) -> None:
@@ -145,20 +156,37 @@ def _write_team_row(ws, row_idx: int, vals: list, cols: list[str] | None = None)
         cell.fill = TEAM_FILL
         if cols and col_idx <= len(cols) and cols[col_idx - 1] in _COL_FMT:
             cell.number_format = _COL_FMT[cols[col_idx - 1]]
+        if col_idx == 1:
+            cell.alignment = Alignment(horizontal="left")
+            cell.border = _TEAM_NAME_BORDER
+        else:
+            cell.border = _TEAM_ROW_BORDER
 
 
 def _add_color_scale(
     ws, col_idx: int, min_val: float, mid_val: float, max_val: float,
-    num_rows: int, start_row: int = 2,
+    row_indices: list[int], invert: bool = False,
 ) -> None:
+    if not row_indices:
+        return
     col_letter = get_column_letter(col_idx)
-    cell_range = f"{col_letter}{start_row}:{col_letter}{start_row + num_rows - 1}"
+    low_color  = "C0392B" if invert else "4472C4"
+    high_color = "4472C4" if invert else "C0392B"
     rule = ColorScaleRule(
-        start_type="num", start_value=min_val, start_color="FFFFFF",   # white
-        mid_type="num",   mid_value=mid_val,   mid_color="FFEB9C",     # light yellow
-        end_type="num",   end_value=max_val,   end_color="63BE7B",     # green
+        start_type="num", start_value=min_val, start_color=low_color,
+        mid_type="num",   mid_value=mid_val,   mid_color="FFFFFF",
+        end_type="num",   end_value=max_val,   end_color=high_color,
     )
-    ws.conditional_formatting.add(cell_range, rule)
+    # Build sqref as grouped contiguous ranges (e.g. "A3:A7 A9:A11")
+    ranges, start, prev = [], row_indices[0], row_indices[0]
+    for r in row_indices[1:]:
+        if r == prev + 1:
+            prev = r
+        else:
+            ranges.append(f"{col_letter}{start}:{col_letter}{prev}")
+            start = prev = r
+    ranges.append(f"{col_letter}{start}:{col_letter}{prev}")
+    ws.conditional_formatting.add(" ".join(ranges), rule)
 
 
 def export_season(
@@ -175,7 +203,9 @@ def export_season(
 
     all_stats = compute_all_stats(conn)
     filtered = [s for s in all_stats if s.PA >= min_pa]
-    filtered.sort(key=lambda s: s.OPS, reverse=True)
+    sig     = sorted([s for s in filtered if not s.small_sample], key=lambda s: s.AVG, reverse=True)
+    insig   = sorted([s for s in filtered if s.small_sample],     key=lambda s: s.AVG, reverse=True)
+    filtered = sig + insig
 
     wb = openpyxl.Workbook()
 
@@ -184,31 +214,81 @@ def export_season(
     ws1.title = "Season Stats"
     _write_header(ws1, SEASON_COLS)
 
-    _write_team_row(ws1, 2, _team_season_row(all_stats), SEASON_COLS)
+    _write_team_row(ws1, 2, _team_season_row(sig), SEASON_COLS)
 
-    italic_font = Font(italic=True)
+    normal_font = Font(size=14)
+    italic_font = Font(size=14, italic=True)
+    alt_fill = PatternFill(fill_type="solid", fgColor="F2F2F2")
     for row_idx, s in enumerate(filtered, 3):
         row_data = _stats_row(s)
+        use_alt = (row_idx % 2 == 0)
         for col_idx, val in enumerate(row_data, 1):
             cell = ws1.cell(row=row_idx, column=col_idx, value=val)
             col_name = SEASON_COLS[col_idx - 1]
             if col_name in _COL_FMT:
                 cell.number_format = _COL_FMT[col_name]
-            if s.small_sample:
-                cell.font = italic_font
+            if use_alt:
+                cell.fill = alt_fill
+            cell.font = italic_font if s.small_sample else normal_font
+            if col_idx == 1:
+                cell.border = _NAME_COL_BORDER
 
-    # Color scale on AVG, OBP, OPS, wOBA — (floor, league-avg, excellent)
-    color_scale_targets = {
-        "AVG":  (0.150, 0.260, 0.400),
-        "OBP":  (0.200, lg_obp, 0.450),
-        "OPS":  (0.450, lg_ops, 1.100),
-        "wOBA": (0.200, 0.320, 0.430),
+    # ── Season leaders: amber highlight for max in each count stat ────────────
+    count_col_idx = {
+        col: SEASON_COLS.index(col) + 1
+        for col in COUNT_COLS if col in SEASON_COLS
     }
-    num_rows = len(filtered)
-    for col_name, (min_v, mid_v, max_v) in color_scale_targets.items():
+    max_vals: dict[str, int] = {}
+    for col, ci in count_col_idx.items():
+        max_vals[col] = max(
+            (ws1.cell(row=r, column=ci).value or 0)
+            for r in range(3, 3 + len(filtered))
+        )
+    max_bold        = Font(size=14, bold=True)
+    max_bold_italic = Font(size=14, bold=True, italic=True)
+    for row_idx, s in enumerate(filtered, 3):
+        for col, ci in count_col_idx.items():
+            mv = max_vals.get(col, 0)
+            if mv <= 0:
+                continue
+            cell = ws1.cell(row=row_idx, column=ci)
+            if cell.value == mv:
+                cell.fill = MAX_FILL
+                cell.font = max_bold_italic if s.small_sample else max_bold
+
+    # Only scale rows for players with sufficient PA (not small_sample)
+    sig_rows = [row_idx for row_idx, s in enumerate(filtered, 3) if not s.small_sample]
+
+    # Compute team averages from significant players only — used as color scale midpoints
+    # so white = team average, blue = below average, red = above average.
+    sig_team = dict(zip(SEASON_COLS, _team_season_row(sig)))
+
+    def _tmid(col: str, fallback: float) -> float:
+        v = sig_team.get(col)
+        return float(v) if isinstance(v, (int, float)) and v > 0 else fallback
+
+    # Color scale for all rate stats — (floor, team-avg mid, excellent), invert=True where lower is better
+    color_scale_targets = {
+        # higher = better
+        "AVG":   (0.150, _tmid("AVG",   0.260), 0.400, False),
+        "OBP":   (0.200, _tmid("OBP",   0.320), 0.450, False),
+        "SLG":   (0.250, _tmid("SLG",   0.380), 0.600, False),
+        "OPS":   (0.450, _tmid("OPS",   0.700), 1.100, False),
+        "BABIP": (0.200, _tmid("BABIP", 0.300), 0.400, False),
+        "ISO":   (0.050, _tmid("ISO",   0.150), 0.300, False),
+        "BB%":   (0.030, _tmid("BB%",   0.090), 0.200, False),
+        "wOBA":  (0.200, _tmid("wOBA",  0.320), 0.430, False),
+        "RC":    (1.0,   _tmid("RC",    8.0),  20.0,   False),
+        "OPS+":  (60,    _tmid("OPS+",  100),  150,    False),
+        "BB/K":  (0.20,  _tmid("BB/K",  0.60),  2.00,  False),
+        # lower = better
+        "K%":    (0.050, _tmid("K%",    0.180), 0.350, True),
+        "AB/HR": (10,    _tmid("AB/HR", 25),    60,    True),
+    }
+    for col_name, (min_v, mid_v, max_v, inv) in color_scale_targets.items():
         if col_name in SEASON_COLS:
             col_idx = SEASON_COLS.index(col_name) + 1
-            _add_color_scale(ws1, col_idx, min_v, mid_v, max_v, num_rows, start_row=3)
+            _add_color_scale(ws1, col_idx, min_v, mid_v, max_v, sig_rows, invert=inv)
 
     _autofit(ws1)
 
@@ -283,7 +363,7 @@ def export_season(
         row_vals = [
             d["name"], d["date"], d["opponent"],
             d["PA"], d["AB"], d["H"], d["2B"], d["3B"], d["HR"],
-            d["R"], d["RBI"], d["BB"], d["K"], d["SB"], d["CS"],
+            d["R"], d["BB"], d["K"], d["SB"], d["CS"],
             avg, obp,
         ]
         for col_idx, val in enumerate(row_vals, 1):
@@ -296,7 +376,7 @@ def export_season(
 
     # ── Per-game sheets: one box-score tab per game (regenerated from DB) ──
     per_game_cols = ["#", "Name", "PA", "AB", "H", "2B", "3B", "HR",
-                     "R", "RBI", "BB", "K", "SB", "CS", "AVG", "OBP"]
+                     "R", "BB", "K", "SB", "CS", "AVG", "OBP"]
     games_meta = conn.execute(
         "SELECT game_id, date, opponent, game_number FROM games ORDER BY date ASC, game_id ASC"
     ).fetchall()
@@ -324,7 +404,7 @@ def export_season(
             avg = round(h / ab, 3) if ab > 0 else 0.0
             obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
             vals = [d["batting_order"], d["name"], d["PA"], d["AB"], d["H"],
-                    d["2B"], d["3B"], d["HR"], d["R"], d["RBI"], d["BB"],
+                    d["2B"], d["3B"], d["HR"], d["R"], d["BB"],
                     d["K"], d["SB"], d["CS"], avg, obp]
             for col_idx, val in enumerate(vals, 1):
                 cell = wsg.cell(row=row_idx, column=col_idx, value=val)
@@ -364,10 +444,10 @@ def export_season(
 
 
 @click.command()
-@click.option("--output", default=None, help="Output Excel path (default: <data_root>/season_stats.xlsx)")
+@click.option("--output", default=None, help="Output Excel path (default: <data_root>/<folder> stats.xlsx)")
 @click.option("--min-pa", default=0, type=int, help="Minimum PA to include player")
 def main(output: str | None, min_pa: int) -> None:
-    out = output or str(_DB_PATH.parent / "season_stats.xlsx")
+    out = output or str(_DB_PATH.parent / f"{_DB_PATH.parent.name} stats.xlsx")
     export_season(out, min_pa)
 
 

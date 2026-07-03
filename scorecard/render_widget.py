@@ -69,9 +69,25 @@ def compute_stats(game: dict) -> dict:
                 })
             summary = player.get("summary") or {}
             pa_count = len(pas)
-            h  = summary.get("H")  if summary.get("H")  is not None else sum(1 for pa in pas if _is_hit(pa.get("result")))
-            ab = summary.get("AB") if summary.get("AB") is not None else sum(1 for pa in pas if _is_ab(pa.get("result")))
-            r  = summary.get("R")  if summary.get("R")  is not None else sum(1 for pa in pas if pa.get("run_scored"))
+            h   = summary.get("H")  if summary.get("H")  is not None else sum(1 for pa in pas if _is_hit(pa.get("result")))
+            ab  = summary.get("AB") if summary.get("AB") is not None else sum(1 for pa in pas if _is_ab(pa.get("result")))
+            r   = summary.get("R")  if summary.get("R")  is not None else sum(1 for pa in pas if pa.get("run_scored"))
+            bb  = sum(1 for pa in pas if (pa.get("result") or "").upper() == "BB")
+            hbp = sum(1 for pa in pas if (pa.get("result") or "").upper() in ("HP", "HBP"))
+            sf  = sum(1 for pa in pas if (pa.get("result") or "").upper() == "SF")
+            tb  = sum(
+                {"1B": 1, "2B": 2, "3B": 3, "HR": 4}.get((pa.get("result") or "").upper(), 0)
+                for pa in pas
+            )
+            obp_denom = ab + bb + hbp + sf
+            slg_denom = ab
+            avg_str = f".{round(h  / ab         * 1000):03d}" if ab         > 0 else ".---"
+            obp_str = f".{round((h + bb + hbp) / obp_denom * 1000):03d}" if obp_denom > 0 else ".---"
+            slg_str = f".{round(tb / slg_denom  * 1000):03d}" if slg_denom > 0 else ".---"
+            entry_inning = (
+                min((pa.get("inning", 0) for pa in pas), default=None)
+                if idx > 0 else 1
+            )
             players.append({
                 "name":          player.get("name", "?"),
                 "num":           player.get("jersey_number"),
@@ -79,8 +95,12 @@ def compute_stats(game: dict) -> dict:
                 "AB":            ab,
                 "H":             h,
                 "R":             r,
+                "AVG":           avg_str,
+                "OBP":           obp_str,
+                "SLG":           slg_str,
                 "batting_order": slot.get("batting_order", 0),
                 "is_sub":        idx > 0,
+                "entry_inning":  entry_inning,
                 "cells":         cells_by_inning,
             })
 
@@ -117,11 +137,20 @@ def compute_stats(game: dict) -> dict:
         })
 
     # ── Totals ────────────────────────────────────────────────────────────────
-    total_pa = sum(p["PA"] for p in players)
-    total_r  = sum(p["R"]  for p in players)
-    total_h  = sum(p["H"]  for p in players)
-    total_ab = sum(p["AB"] for p in players)
+    total_pa  = sum(p["PA"] for p in players)
+    total_r   = sum(p["R"]  for p in players)
+    total_h   = sum(p["H"]  for p in players)
+    total_ab  = sum(p["AB"] for p in players)
+    # Re-derive BB/HBP/SF/TB from raw PA lists for accurate team totals
+    _all_pas = [pa for slot in lineup for pl in slot.get("players", []) for pa in pl.get("plate_appearances", [])]
+    total_bb  = sum(1 for pa in _all_pas if (pa.get("result") or "").upper() == "BB")
+    total_hbp = sum(1 for pa in _all_pas if (pa.get("result") or "").upper() in ("HP", "HBP"))
+    total_sf  = sum(1 for pa in _all_pas if (pa.get("result") or "").upper() == "SF")
+    total_tb  = sum({"1B":1,"2B":2,"3B":3,"HR":4}.get((pa.get("result") or "").upper(), 0) for pa in _all_pas)
+    _obp_d    = total_ab + total_bb + total_hbp + total_sf
     avg = f".{round(total_h / total_ab * 1000):03d}" if total_ab > 0 else ".000"
+    obp = f".{round((total_h + total_bb + total_hbp) / _obp_d * 1000):03d}" if _obp_d > 0 else ".000"
+    slg = f".{round(total_tb / total_ab * 1000):03d}" if total_ab > 0 else ".000"
 
     game_info = game.get("game", {})
     teams     = game_info.get("teams", {})
@@ -130,6 +159,9 @@ def compute_stats(game: dict) -> dict:
     date      = game_info.get("date") or ""
     title     = f"{home} vs {away}" + (f" — {date}" if date else "")
 
+    # last_batter_by_inning: inning (str key) → 1-based batting slot of last batter
+    last_batter = {int(k): v for k, v in game.get("last_batter_by_inning", {}).items()}
+
     return {
         "title":   title,
         "home":    home,
@@ -137,7 +169,8 @@ def compute_stats(game: dict) -> dict:
         "date":    date,
         "players": players,
         "innings": inning_data,
-        "totals":  {"PA": total_pa, "R": total_r, "H": total_h, "AB": total_ab, "AVG": avg},
+        "totals":  {"PA": total_pa, "R": total_r, "H": total_h, "AB": total_ab, "AVG": avg, "OBP": obp, "SLG": slg},
+        "last_batter_by_inning": last_batter,
     }
 
 
@@ -195,6 +228,7 @@ th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2
 .rch  { background: var(--i-bg); }
 .wrn  { background: var(--w-bg); }
 .mpt  { background: var(--bg2); }
+.bench{ background: var(--bg3); }
 .bug  { background: var(--bg2); }
 .htx  { color: var(--s-tx); font-size: 11px; font-weight: 500; }
 .otx  { color: var(--d-tx); font-size: 11px; font-weight: 500; }
@@ -238,6 +272,7 @@ th { font-size: 11px; font-weight: 500; color: var(--tx2); background: var(--bg2
   <span><span class="sw" style="background:var(--d-bg)"></span>Out</span>
   <span><span class="sw" style="background:var(--w-bg)"></span>FC / E / SF</span>
   <span><span class="sw" style="background:var(--bg2);border:0.5px solid var(--brd)"></span>No PA</span>
+  <span><span class="sw" style="background:var(--bg3);border:0.5px solid var(--brd)"></span>Sub (not yet entered)</span>
   <span class="rok">&#x25CF; run scored</span>
 </div>
 <script>
@@ -255,14 +290,18 @@ function ctype(r) {
   return 'out';
 }
 
-function paCell(pas) {
-  if (!pas || pas.length === 0)
-    return '<td class="mpt"><span class="etx">&#x2014;</span></td>';
+function paCell(pas, isSub, entryInning, inning, extraStyle) {
+  const s = extraStyle ? ` style="${extraStyle}"` : '';
+  if (!pas || pas.length === 0) {
+    if (isSub && entryInning != null && inning < entryInning)
+      return `<td class="bench"${s}></td>`;
+    return `<td class="mpt"${s}><span class="etx">&#x2014;</span></td>`;
+  }
   if (pas.length === 1) {
     const p = pas[0], ct = ctype(p.r);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<td class="${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}</span></td>`;
+    return `<td class="${BGCLS[ct]}"${s}><span class="${TXCLS[ct]}">${txt}${dot}</span></td>`;
   }
   const items = pas.map(p => {
     const ct = ctype(p.r);
@@ -270,7 +309,8 @@ function paCell(pas) {
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
     return `<div class="blk ${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}</span></div>`;
   }).join('');
-  return `<td style="padding:2px"><div style="display:flex;flex-direction:column">${items}</div></td>`;
+  const baseStyle = extraStyle ? `padding:2px;${extraStyle}` : 'padding:2px';
+  return `<td style="${baseStyle}"><div style="display:flex;flex-direction:column">${items}</div></td>`;
 }
 
 document.getElementById('ttl').textContent = D.title;
@@ -297,40 +337,72 @@ if (wraps.length) {
 
 // Header
 const inns = D.innings.map(s => s.inn);
-let hdr = '<tr><th class="pl-th">Player</th>';
+let hdr = '<tr><th style="width:20px;font-size:10px;color:var(--tx3);padding:2px">#</th><th class="pl-th">Player</th>';
 D.innings.forEach(s => {
   const badge = s.wrap ? `<div class="wbdg">wrap</div>` : '';
   hdr += `<th style="width:44px">${s.inn}${badge}</th>`;
 });
-hdr += '<th class="sm-td" style="text-align:left;padding-left:6px">PA&#xB7;H&#xB7;AB&#xB7;R</th></tr>';
+const stH = 'style="width:30px;font-size:11px;text-align:center;color:var(--tx2)"';
+hdr += `<th ${stH}>PA</th><th ${stH}>H</th><th ${stH}>AB</th><th ${stH}>R</th>`;
+hdr += `<th ${stH}>AVG</th><th ${stH}>OBP</th><th ${stH}>SLG</th></tr>`;
 document.getElementById('shead').innerHTML = hdr;
 
 // Body
+// last_batter_by_inning: {inning -> 1-based batting slot of last batter in that inning}
+// lastPlayerInSlot: batting_order -> highest D.players index for that slot (last sub, or starter)
+const lastBatterByInning = D.last_batter_by_inning || {};
+const lastPlayerInSlot = {};
+D.players.forEach((p, pi) => { lastPlayerInSlot[p.batting_order] = pi; });
+
 let hasBug = false, body = '';
-D.players.forEach(p => {
+D.players.forEach((p, pi) => {
   const tag = p.is_sub
     ? `<span class="sub">&#x21B3;</span>${p.name}`
     : `<span class="num">#${p.num ?? '?'}</span>${p.name}`;
-  let row = `<tr><td class="pl-td">${tag}</td>`;
+  const slotCell = p.is_sub
+    ? `<td style="padding:2px"></td>`
+    : `<td style="text-align:center;font-size:11px;font-weight:500;color:var(--tx3);padding:2px">${p.batting_order}</td>`;
+  const slotBorder = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd)' : '';
+  let row = `<tr style="${slotBorder}">${slotCell}<td class="pl-td">${tag}</td>`;
   inns.forEach(i => {
     const pas = p.cells[String(i)] || null;
-    row += paCell(pas);
+    // Bold bottom border marks the last batter of each inning
+    const isLastBatter = lastBatterByInning[i] === p.batting_order && lastPlayerInSlot[p.batting_order] === pi;
+    const botBorder = isLastBatter ? 'border-bottom:2px solid var(--tx2);' : '';
+    const slotTop   = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd);' : '';
+    const cellStyle = slotTop + botBorder;
+    row += paCell(pas, p.is_sub, p.entry_inning, i, cellStyle);
     if (pas && pas.some(x => x.r === 'null')) hasBug = true;
   });
   const rc = p.R > 0 ? 'rok' : 'rzr';
-  row += `<td class="sm-td"><span style="color:var(--tx2)">${p.PA}&#xB7;${p.H}&#xB7;${p.AB}&#xB7;</span><span class="${rc}">${p.R}</span></td></tr>`;
+  const sb = (!p.is_sub && p.batting_order > 1) ? 'border-top:2px solid var(--brd);' : '';
+  const stc = `${sb}width:30px;font-size:11px;text-align:center;padding:2px 3px`;
+  row += `<td style="${stc};color:var(--tx2)">${p.PA}</td>`;
+  row += `<td style="${stc};color:var(--tx2)">${p.H}</td>`;
+  row += `<td style="${stc};color:var(--tx2)">${p.AB}</td>`;
+  row += `<td style="${stc}" class="${rc}">${p.R}</td>`;
+  row += `<td style="${stc};color:var(--tx2)">${p.AVG}</td>`;
+  row += `<td style="${stc};color:var(--tx2)">${p.OBP}</td>`;
+  row += `<td style="${stc};color:var(--tx2)">${p.SLG}</td></tr>`;
   body += row;
 });
 document.getElementById('sbody').innerHTML = body;
 
 // Footer
-let foot = '<tr style="border-top:1px solid var(--brd)"><td class="pl-td" style="font-weight:500;color:var(--tx2)">Totals</td>';
+let foot = '<tr style="border-top:2px solid var(--brd)"><td style="padding:2px"></td><td class="pl-td" style="font-weight:500;color:var(--tx2)">Totals</td>';
 D.innings.forEach(s => {
   const rc = s.R > 0 ? 'rok' : 'rzr';
   foot += `<td class="fcel"><div>PA${s.PA}</div><div class="${rc}">R${s.R}</div><div>H${s.H}</div></td>`;
 });
 const t = D.totals;
-foot += `<td class="sm-td"><span style="color:var(--tx2)">${t.PA}&#xB7;${t.H}&#xB7;${t.AB}&#xB7;</span><span class="rok">${t.R}</span></td></tr>`;
+const ftd = 'width:30px;font-size:11px;text-align:center;padding:2px 3px;font-weight:500';
+foot += `<td style="${ftd};color:var(--tx2)">${t.PA}</td>`;
+foot += `<td style="${ftd};color:var(--tx2)">${t.H}</td>`;
+foot += `<td style="${ftd};color:var(--tx2)">${t.AB}</td>`;
+foot += `<td style="${ftd}" class="rok">${t.R}</td>`;
+foot += `<td style="${ftd};color:var(--tx2)">${t.AVG}</td>`;
+foot += `<td style="${ftd};color:var(--tx2)">${t.OBP}</td>`;
+foot += `<td style="${ftd};color:var(--tx2)">${t.SLG}</td></tr>`;
 document.getElementById('sfoot').innerHTML = foot;
 
 if (hasBug) document.getElementById('bugnote').style.display = 'block';

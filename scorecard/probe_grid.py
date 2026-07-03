@@ -54,7 +54,10 @@ def _snap(target: int, candidates: list[int], tol: int) -> int:
     return nearest if abs(nearest - target) <= tol else target
 
 
-def _build_row_tops(raw_h: list[int], cell_size: int, n_rows: int, n_extra_rows: int = 2) -> list[int]:
+def _build_row_tops(
+    raw_h: list[int], cell_size: int, n_rows: int, n_extra_rows: int = 2,
+    has_sub_rows: bool | None = None,
+) -> list[int]:
     """
     Build player row top y-positions by snapping expected grid positions to
     detected horizontal lines.  cell_size is the FULL player-row height
@@ -68,9 +71,10 @@ def _build_row_tops(raw_h: list[int], cell_size: int, n_rows: int, n_extra_rows:
     Layout A is detected by counting detected lines: when sub-row lines are
     present, each row produces 2 lines.  If more lines are detected than
     (n_rows + n_extra_rows) * 2 expects, the surplus lines are card-border /
-    header lines at the top (Layout A).  This handles both "ring bands at
-    bottom" (card border near y=0) and "ring bands at top" (card border
-    further down, e.g. y=126 for 1952px-tall scans).
+    header lines at the top (Layout A).
+
+    has_sub_rows: pass the value detected in detect_grid; if None it is
+    re-derived from the first gap (fallback for legacy callers).
     """
     if not raw_h:
         return [i * cell_size for i in range(n_rows)]
@@ -81,28 +85,39 @@ def _build_row_tops(raw_h: list[int], cell_size: int, n_rows: int, n_extra_rows:
     def snap(t: int) -> int:
         return _snap(t, raw_h, snap_tol)
 
-    # Detect whether sub-row dividers are present (first gap ≈ cell_size/2).
-    first_gap = (raw_h[1] - raw_h[0]) if len(raw_h) > 1 else cell_size
-    has_sub_rows = first_gap < cell_size * 0.75
+    # Use caller-supplied has_sub_rows when available; otherwise derive from
+    # first gap.  The caller value is more reliable because bimodal detection
+    # uses the full gap distribution rather than just the first gap.
+    if has_sub_rows is None:
+        first_gap = (raw_h[1] - raw_h[0]) if len(raw_h) > 1 else cell_size
+        has_sub_rows = first_gap < cell_size * 0.75
 
     if has_sub_rows:
         # Each row (player + extra) produces 2 detected lines.
-        # Any surplus beyond that count must be card-border / header lines at
-        # the top → Layout A.  Cap at 1: at most one extra header line expected.
         expected = (n_rows + n_extra_rows) * 2
-        n_offset = 1 if len(raw_h) > expected else 0
     else:
         # No sub-rows: one line per row boundary.
         expected = n_rows + n_extra_rows
-        n_offset = 1 if len(raw_h) > expected else 0
+
+    # Surplus lines above expected count are normally card-border / column-header
+    # lines sitting above the player grid.  Cap at 3.
+    surplus  = len(raw_h) - expected
+    n_offset = min(surplus, 3) if surplus > 0 else 0
+
+    # Validate: if the gap between raw_h[0] and raw_h[1] is already ≈ cell_size,
+    # raw_h[0] is a player row top — the surplus lines are at the bottom (grid
+    # bottom border etc.), not header lines at the top.  Skip the offset.
+    if n_offset > 0 and len(raw_h) >= 2:
+        first_gap = raw_h[1] - raw_h[0]
+        if abs(first_gap - cell_size) / cell_size < 0.20:
+            n_offset = 0
 
     if n_offset:
         # Layout A: raw_h[n_offset] is the first player row top.
         first_top = snap(raw_h[n_offset])
-        print(f"Layout A: card border at y={raw_h[0]}; first player row at y={raw_h[n_offset]}")
+        print(f"Layout A: {n_offset} header line(s) at y={raw_h[:n_offset]}; first player row at y={raw_h[n_offset]}")
     elif grid_top < cell_size * 0.4:
-        # Legacy fallback: card border very close to image top, sub-rows may
-        # not have pushed the count above the threshold.
+        # Legacy fallback: card border very close to image top.
         first_top = snap(grid_top + cell_size // 2)
         print(f"Layout A (legacy): first player row at y={first_top}")
     else:
@@ -164,23 +179,51 @@ def detect_grid(
     # then the real player-row height is 2× that gap.
     gaps_h = [raw_h[i + 1] - raw_h[i] for i in range(len(raw_h) - 1)] if len(raw_h) > 1 else []
     if gaps_h:
+        sorted_g = sorted(gaps_h)
+        n_g = len(sorted_g)
         median_gap = int(np.median(gaps_h))
         sub_row_threshold = h // (n_player_rows * 2 + 2)
-        if median_gap < sub_row_threshold:
-            # Sub-row dividers are being picked up; full row = 2 × sub-row gap
+
+        # Bimodal check: two distinct gap clusters in a ~2:1 ratio means
+        # sub-row dividers are mixed with full-row boundaries.  This handles
+        # cards where the sub-row of player-row 1 is not detected — the first
+        # gap becomes a full-row gap, pushing the median above the threshold
+        # and fooling the simple threshold check.
+        if n_g >= 4:
+            lower_med = int(np.median(sorted_g[:n_g // 2]))
+            upper_med = int(np.median(sorted_g[n_g // 2:]))
+            is_bimodal = upper_med > lower_med * 1.5
+        else:
+            is_bimodal = False
+
+        if is_bimodal:
+            # Mixed: sub-row dividers AND full-row boundaries both detected.
+            # Upper cluster = full-row height; lower cluster = sub-row gap.
+            cell_size = upper_med
+            has_sub_rows = True
+            print(f"Sub-row lines detected (gap={lower_med}px); cell_size={cell_size}px")
+        elif median_gap < sub_row_threshold:
+            # Uniform small gaps: only sub-row dividers detected (no full-row
+            # boundaries in the raw list).  Full-row height = 2 × median.
             cell_size = median_gap * 2
+            has_sub_rows = True
             print(f"Sub-row lines detected (gap={median_gap}px); cell_size={cell_size}px")
         else:
-            large = [g for g in gaps_h if g > h // (n_player_rows * 4)]
-            cell_size = int(np.median(large)) if large else h // (n_player_rows + 2)
+            # Unimodal large gaps: full-row boundaries only.  Filter to gaps
+            # at least half of the largest to exclude any stray noise lines.
+            min_credible = sorted_g[-1] * 0.5
+            large = [g for g in gaps_h if g >= min_credible]
+            cell_size = int(np.median(large)) if large else median_gap
+            has_sub_rows = False
             print(f"Full-row lines detected; cell_size={cell_size}px")
     else:
         cell_size = h // (n_player_rows + 2)
+        has_sub_rows = False
         print(f"No H-lines detected; cell_size fallback={cell_size}px")
 
     print(f"H-lines ({len(raw_h)}): {raw_h[:8]}{'...' if len(raw_h) > 8 else ''}")
 
-    row_tops = _build_row_tops(raw_h, cell_size, n_player_rows, n_extra_rows)
+    row_tops = _build_row_tops(raw_h, cell_size, n_player_rows, n_extra_rows, has_sub_rows=has_sub_rows)
     row_bottoms = [t + cell_size for t in row_tops]
     print(f"Row tops:    {row_tops}")
     if len(row_tops) > 1:
@@ -206,10 +249,19 @@ def detect_grid(
 
     if len(raw_v) >= 3 and gaps_v:
         # Sub-column gap = modal (median) spacing between adjacent V-lines.
-        # All KNBSB cards have a 2×2 sub-cell structure, so each inning column
-        # produces 2 V-lines: the column-left border and a center sub-divider.
         modal_gap = int(np.median(gaps_v))
-        col_width = 2 * modal_gap
+
+        # Some KNBSB cards have a center sub-divider inside each inning cell
+        # (2 V-lines per column); others have none (1 V-line per column).
+        # When modal_gap ≈ cell_size the V-lines ARE the column boundaries.
+        # When modal_gap ≈ cell_size/2 they are sub-dividers and every other
+        # V-line is a column boundary.
+        if modal_gap < cell_size * 0.75:
+            col_width  = 2 * modal_gap
+            col_stride = 2
+        else:
+            col_width  = modal_gap
+            col_stride = 1
 
         # Auto-detect x_start (left edge of inning 1) by finding the start of
         # the longest run of evenly-spaced V-lines.  The player-info area to
@@ -229,24 +281,41 @@ def detect_grid(
                 cur_len = 0
         start_pos = best_start
 
-        # The longest run may be extended to the left by player-info dividers
-        # whose sub-column gap (≈modal_gap) accidentally falls within the wide
-        # tolerance.  Those false-start lines produce a two-step (col_width) gap
-        # that is visibly off, while true inning boundaries are within ≈4% of
-        # col_width.  Advance start_pos until the two-step gap is tight.
-        tight_tol = col_width * 0.04          # ≈5.7px for 142px columns
+        # The longest run may include false-start lines from the player-info
+        # area.  Advance start_pos until the one-column step is tight (≈4%).
+        tight_tol = col_width * 0.04
         sp = best_start
-        while sp + 2 < len(raw_v):
-            two_step = raw_v[sp + 2] - raw_v[sp]
-            if abs(two_step - col_width) <= tight_tol:
+        while sp + col_stride < len(raw_v):
+            step = raw_v[sp + col_stride] - raw_v[sp]
+            if abs(step - col_width) <= tight_tol:
                 break
             sp += 1
         start_pos = sp
         x_start = raw_v[start_pos]
 
-        # Build col_lefts: take every-other V-line from x_start onward.
-        # This gives all detected scoring-column left boundaries.
-        col_lefts = list(raw_v[start_pos::2])
+        # Build col_lefts: take every col_stride-th V-line from x_start.
+        col_lefts = list(raw_v[start_pos::col_stride])
+
+        # For no-sub-divider cards, thick separator lines (e.g. between innings
+        # 4–5 and 9–10 on KNBSB sheets) appear as two closely-spaced V-lines.
+        # Merge consecutive pairs where both gaps < 0.65×col_width and their
+        # sum ≈ col_width (within 20%).
+        if col_stride == 1 and len(col_lefts) > 2:
+            merged = [col_lefts[0]]
+            i = 0
+            while i < len(col_lefts) - 1:
+                if i + 2 < len(col_lefts):
+                    g1 = col_lefts[i + 1] - col_lefts[i]
+                    g2 = col_lefts[i + 2] - col_lefts[i + 1]
+                    if (g1 < col_width * 0.65 and g2 < col_width * 0.65
+                            and abs(g1 + g2 - col_width) < col_width * 0.2):
+                        merged.append(col_lefts[i + 2])
+                        i += 2
+                        continue
+                merged.append(col_lefts[i + 1])
+                i += 1
+            col_lefts = merged
+
         if len(col_lefts) < 2:
             col_lefts.append(col_lefts[-1] + col_width)
 

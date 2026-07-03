@@ -836,6 +836,72 @@ def _enforce_gt_runs(
             )
 
 
+# ── RBI backfill ─────────────────────────────────────────────────────────────
+
+def _backfill_rbi_cells(
+    img: np.ndarray,
+    grid: list[list[dict | None]],
+    n_rows: int,
+    n_cols: int,
+    row_tops: list[int],
+    row_bottoms: list[int],
+    col_lefts: list[int],
+    col_to_inning: list[int],
+    row_names: list[dict],
+    client,
+    model: str,
+    cache_dir: Path,
+) -> int:
+    """Re-read run-scoring cells that are missing rbi_slot (old-format cache).
+
+    Called automatically when a game has cached cells that pre-date the RBI
+    tracking feature.  Only cells with run=True and no rbi_slot key are sent
+    to the VLM; every other cell is left untouched.
+    Returns the number of cells updated.
+    """
+    to_backfill = [
+        (ri, ci)
+        for ri in range(n_rows)
+        for ci in range(n_cols)
+        if (grid[ri][ci] or {}).get("run") and "rbi_slot" not in (grid[ri][ci] or {})
+    ]
+    if not to_backfill:
+        return 0
+
+    click.echo(
+        f"\n\n-- RBI backfill: {len(to_backfill)} run cell(s) missing rbi_slot " + "-" * 20
+    )
+    updated = 0
+    for ri, ci in to_backfill:
+        inn = col_to_inning[ci]
+        names = row_names[ri].get("players") or [] if ri < len(row_names) else []
+        player_name = names[0] if names else f"P{ri+1}"
+        y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
+        x1 = max(0, col_lefts[ci])
+        x2 = col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1]
+        crop = img[y1:y2, x1:x2]
+        if crop.size == 0:
+            continue
+        click.echo(f"  P{ri+1} ({player_name}) inn {inn}: re-reading for rbi_slot…")
+        result = classify_cell(crop, player_name, inn, client, model)
+        if result and result.get("result") is not None:
+            result["run"] = True  # preserve confirmed run marker
+            grid[ri][ci] = result
+            cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+            cf.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+            click.echo(f"    → result={result.get('result')}  rbi_slot={result.get('rbi_slot')}")
+            updated += 1
+        else:
+            # VLM failed — stamp rbi_slot=null so this cell is not retried next run
+            existing = dict(grid[ri][ci] or {})
+            existing["rbi_slot"] = None
+            grid[ri][ci] = existing
+            cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+            cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
+            click.echo(f"    → VLM failed; rbi_slot=null stamped to cache")
+    return updated
+
+
 # ── Player name detection ─────────────────────────────────────────────────────
 
 _NAME_SYSTEM = """\
@@ -1809,6 +1875,16 @@ def main(
     )
     if n_reread:
         click.echo(f"  Re-read {n_reread} cell(s) with run=True / result=None")
+
+    # ── RBI backfill: re-read run=True cells that pre-date rbi_slot tracking ──
+    n_rbi_backfill = _backfill_rbi_cells(
+        img, grid, n_active_rows, n_phys_cols,
+        row_tops, row_bottoms, col_lefts,
+        col_to_inning, row_names,
+        client, model, cache_dir,
+    )
+    if n_rbi_backfill:
+        click.echo(f"  RBI backfill: updated {n_rbi_backfill} cell(s)")
 
     # ── Re-read hole cells (null between two non-null in same column) ─────────
     n_holes = _reread_hole_cells(

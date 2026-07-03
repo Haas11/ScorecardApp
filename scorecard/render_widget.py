@@ -269,10 +269,6 @@ thead th { background: var(--hdr); color: #fff; }
   <tfoot id="sfoot"></tfoot>
 </table>
 </div>
-<div id="dbgimg" style="margin-top:1.5rem"></div>
-<p id="bugnote" style="display:none" class="note">
-  &#x26A0; One or more cells show <s>null</s> — VLM returned string "null" instead of JSON null.
-</p>
 <div class="legend">
   <span><span class="sw" style="background:var(--s-bg)"></span>Hit</span>
   <span><span class="sw" style="background:var(--i-bg)"></span>BB / HP</span>
@@ -282,6 +278,10 @@ thead th { background: var(--hdr); color: #fff; }
   <span><span class="sw" style="background:var(--bg-bench);border:0.5px solid var(--brd)"></span>Inactive (sub not entered / starter exited)</span>
   <span class="rok">&#x25CF; run scored</span>
 </div>
+<p id="bugnote" style="display:none" class="note">
+  &#x26A0; One or more cells show <s>null</s> — VLM returned string "null" instead of JSON null.
+</p>
+<div id="dbgimg" style="margin-top:1.5rem"></div>
 <script>
 const D = __DATA_JSON__;
 const BGCLS  = {hit:'hit', out:'out', reach:'rch', warn:'wrn', empty:'mpt', bug:'bug'};

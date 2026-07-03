@@ -1,0 +1,123 @@
+Image : 2026-04-03 - Onze Gezellen (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 7
+Date  : 2026-04-03   Opponent: Onze Gezellen
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (25): [44, 113, 187, 256, 329, 398, 471, 540]...
+Layout A: 1 header line(s) at y=[44]; first player row at y=113
+Row tops:    [113, 256, 398, 540, 683, 824, 967, 1109, 1251, 1394]
+Row gaps:    [143, 142, 142, 143, 141, 143, 142, 142, 143]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=51 median=71 max=460
+Inning cols: x=1026..2588  col_width=142px  (11 cols detected)
+Col lefts:   [1026, 1167, 1310, 1451, 1594, 1735, 1878, 2020, 2161, 2304, 2446, 2588]
+Extra row tops:  [1536, 1678]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-03 - Onze Gezellen (Away)\2026-04-03 - Onze Gezellen (Away)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (7 game innings, 9 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-03 - Onze Gezellen (Away)\2026-04-03 - Onze Gezellen (Away)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Evangelista
+     2.  M. Gelaudie  |  S. Bakker
+     3.  T. Kryston
+     4.  V. Spaandonk
+     5.  G. Suares
+     6.  G.L. McLelland
+     7.  B. Watts
+     8.  J. Bradwell
+     9.  X. Dikkes
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 2 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 2 sub1: 'S. Bakker' → S. Bakker (#0)
+  Row 2: sub1 inning from cache: 4
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'V. Spaandonk' → V. van Spaandonk (#24)
+  Row 5 starter: 'G. Suares' → G. Suares (#2)
+  Row 6 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 7 starter: 'B. Watts' → B. Watts (#0)
+  Row 8 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 9 starter: 'X. Dikkes' → X. Dikkes (#17)
+GT    : 2026-04-03 - Onze Gezellen (Away)_totals.txt loaded
+
+Cells : 81 total | 81 cached | 0 to classify
+Wrap  : none detected (from file)
+
+
+-- RBI backfill: 6 run cell(s) with missing/null rbi_slot --------------------
+  P1 (M. Evangelista) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P3 (T. Kryston) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P4 (V. Spaandonk) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P4 (V. Spaandonk) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P4 (V. Spaandonk) inn 4: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P6 (G.L. McLelland) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  RBI backfill: updated 6 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P9 inn 1: still null between P8 and P1 after re-read
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Evangelista          PA= 5  AB= 5  H= 0  R= 2
+  [Slot  2] M. Gelaudi              PA= 3  AB= 3  H= 3  R= 1
+  [Slot  2]   ↳ S. Bakker           PA= 2  AB= 2  H= 1  R= 1
+  [Slot  3] T. Kryston              PA= 5  AB= 5  H= 3  R= 3
+  [Slot  4] V. van Spaandonk        PA= 5  AB= 5  H= 3  R= 4
+  [Slot  5] G. Suares               PA= 5  AB= 5  H= 2  R= 2
+  [Slot  6] G.L. McLelland          PA= 5  AB= 3  H= 1  R= 2
+  [Slot  7] B. Watts                PA= 5  AB= 5  H= 2  R= 0
+  [Slot  8] J. Bradwell             PA= 5  AB= 4  H= 2  R= 0
+  [Slot  9] X. Dikkes               PA= 5  AB= 5  H= 0  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  8  R= 4  H= 3  E= 3  Outs=0  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 2 ]  PA=  9  R= 4  H= 3  E= 3  Outs=3  PA:OK  R:MISMATCH (GT=5)  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  6  R= 2  H= 3  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  7  R= 2  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  7  R= 3  H= 4  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+
+  -- Run reconciliation:
+  Inn 2: R=4 < GT=5 — rechecking 1 missing run(s)…
+
+  -- Per-inning (column) check after reconciliation:
+  [Inn 1 ]  PA=  8  R= 4  H= 3  E= 3  Outs=0  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 2 ]  PA=  9  R= 4  H= 3  E= 3  Outs=3  PA:OK  R:MISMATCH (GT=5)  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  6  R= 2  H= 3  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  7  R= 2  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  7  R= 3  H= 4  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+
+Saved : 2026-04-03 - Onze Gezellen (Away)_cells.json
+Total : 45 PA extracted   15 runs
+GT    : 16 runs expected
+Widget: 2026-04-03 - Onze Gezellen (Away).html
+
+DB    : Replacing existing game (id=28)...
+DB    : Written as game id=28
+Log   : 2026-04-03 - Onze Gezellen (Away)_run.log

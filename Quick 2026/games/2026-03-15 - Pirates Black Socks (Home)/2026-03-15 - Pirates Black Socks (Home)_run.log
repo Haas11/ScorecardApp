@@ -1,0 +1,142 @@
+Image : 2026-03-15 - Pirates Black Socks (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 7
+Date  : 2026-03-15   Opponent: Pirates Black Socks
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=72px); cell_size=144px
+H-lines (25): [110, 180, 253, 322, 394, 465, 537, 607]...
+Layout A: 1 header line(s) at y=[110]; first player row at y=180
+Row tops:    [180, 322, 465, 607, 749, 890, 1032, 1174, 1316, 1458]
+Row gaps:    [142, 143, 142, 142, 141, 142, 142, 142, 142]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=50 median=71 max=461
+Inning cols: x=1025..2587  col_width=142px  (11 cols detected)
+Col lefts:   [1025, 1166, 1309, 1450, 1593, 1734, 1877, 2019, 2160, 2303, 2445, 2587]
+Extra row tops:  [1602, 1746]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-15 - Pirates Black Socks (Home)\2026-03-15 - Pirates Black Socks (Home)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=144px
+Active: first 9 rows (7 game innings, 9 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-15 - Pirates Black Socks (Home)\2026-03-15 - Pirates Black Socks (Home)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Evangelista  |  G. Suares
+     2.  G.L. McLelland
+     3.  T. Kryston
+     4.  S. Bakker  |  V. Spaandonk
+     5.  P. Chang  |  M. Gelaudi
+     6.  G. Suares  |  K. Glomb  |  C. Trehy
+     7.  V. v. Spaandonk  |  N. Specht
+     8.  X. Dikkes  |  P. Chang
+     9.  C. Trehy  |  C. Romick
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 1 sub1: 'G. Suares' → G. Suares (#2)
+  Row 1: sub1 inning from cache: 5
+  Row 2 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 4 sub1: 'V. Spaandonk' → V. van Spaandonk (#24)
+  Row 4: sub1 inning from cache: 5
+  Row 5 starter: 'P. Chang' → P. Chang (#None)
+  Row 5 sub1: 'M. Gelaudi' → M. Gelaudi (#98)
+  Row 5: sub1 inning from cache: 3
+  Row 6 starter: 'G. Suares' → G. Suares (#2)
+  Row 6 sub1: 'K. Glomb' → K. Glomb (#0)
+  Row 6 sub2: 'C. Trehy' → C. Trehy (#6)
+  Row 6: sub1 inning from cache: 3
+  Row 6: sub2 inning from cache: 7
+  Row 7 starter: 'V. v. Spaandonk' → V. van Spaandonk (#24)
+  Row 7 sub1: 'N. Specht' → N. Specht (#0)
+  Row 7: sub1 inning from cache: 3
+  Row 8 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 sub1: 'P. Chang' → P. Chang (#None)
+  Row 8: sub1 inning from cache: 6
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'C. Romick' → C. Romick (#43)
+  Row 9: sub1 inning from cache: 3
+GT    : 2026-03-15 - Pirates Black Socks (Home)_totals.txt loaded
+
+Cells : 81 total | 81 cached | 0 to classify
+Wrap  : none detected (from file)
+
+
+-- RBI backfill: 11 run cell(s) missing rbi_slot key --------------------
+  P1 (M. Evangelista) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P1 (M. Evangelista) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=2
+  P1 (G. Suares) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=2
+  P2 (G.L. McLelland) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P2 (G.L. McLelland) inn 6: reading bottom-left for rbi_slot…
+    → rbi_slot=4
+  P2 (G.L. McLelland) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=3
+  P3 (T. Kryston) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P3 (T. Kryston) inn 5: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P3 (T. Kryston) inn 6: reading bottom-left for rbi_slot…
+    → rbi_slot=5
+  P6 (K. Glomb) inn 5: reading bottom-left for rbi_slot…
+    → rbi_slot=8
+  P7 (N. Specht) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  RBI backfill: updated 11 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Evangelista          PA= 3  AB= 2  H= 2  R= 2
+  [Slot  1]   ↳ G. Suares           PA= 2  AB= 2  H= 2  R= 1
+  [Slot  2] G.L. McLelland          PA= 5  AB= 3  H= 2  R= 3
+  [Slot  3] T. Kryston              PA= 5  AB= 5  H= 3  R= 3
+  [Slot  4] S. Bakker               PA= 2  AB= 2  H= 0  R= 0
+  [Slot  4]   ↳ V. van Spaandonk    PA= 2  AB= 2  H= 1  R= 0
+  [Slot  5] P. Chang                PA= 1  AB= 1  H= 1  R= 0
+  [Slot  5]   ↳ M. Gelaudi          PA= 3  AB= 3  H= 0  R= 0
+  [Slot  6] G. Suares               PA= 1  AB= 1  H= 0  R= 0
+  [Slot  6]   ↳ K. Glomb            PA= 3  AB= 2  H= 1  R= 1
+  [Slot  6]   ↳ C. Trehy            PA= 0  AB= 0  H= 0  R= 0
+  [Slot  7] V. van Spaandonk        PA= 1  AB= 1  H= 0  R= 0
+  [Slot  7]   ↳ N. Specht           PA= 3  AB= 3  H= 2  R= 1
+  [Slot  8] X. Dikkes               PA= 3  AB= 3  H= 1  R= 0
+  [Slot  8]   ↳ P. Chang            PA= 1  AB= 1  H= 0  R= 0
+  [Slot  9] C. Trehy                PA= 1  AB= 1  H= 0  R= 0
+  [Slot  9]   ↳ C. Romick           PA= 3  AB= 3  H= 0  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 5 ≥ 5 ≥ 5 ≥ 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  7  R= 3  H= 3  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=2)  Outs:OK
+  [Inn 2 ]  PA=  4  R= 1  H= 1  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 3 ]  PA=  5  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 5 ]  PA=  7  R= 2  H= 4  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:OK
+  [Inn 6 ]  PA=  6  R= 2  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 7 ]  PA=  6  R= 3  H= 4  E= 0  Outs=2  PA:MISMATCH (expected 7, got 6)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  Run totals: all match GT.
+
+Saved : 2026-03-15 - Pirates Black Socks (Home)_cells.json
+Total : 39 PA extracted   11 runs
+GT    : 11 runs expected
+Widget: 2026-03-15 - Pirates Black Socks (Home).html
+
+DB    : Replacing existing game (id=13)...
+DB    : Written as game id=30
+Log   : 2026-03-15 - Pirates Black Socks (Home)_run.log

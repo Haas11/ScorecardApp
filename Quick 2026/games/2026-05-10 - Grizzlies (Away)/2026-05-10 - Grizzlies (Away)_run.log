@@ -1,0 +1,142 @@
+Image : 2026-05-10 - Grizzlies (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-05-10   Opponent: Grizzlies
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (24): [25, 95, 169, 238, 311, 380, 453, 523]...
+Layout A (legacy): first player row at y=95
+Row tops:    [95, 238, 380, 523, 665, 806, 949, 1092, 1233, 1376]
+Row gaps:    [143, 142, 143, 142, 141, 143, 143, 141, 143]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=50 median=71 max=461
+Inning cols: x=1024..2586  col_width=142px  (11 cols detected)
+Col lefts:   [1024, 1165, 1308, 1449, 1592, 1733, 1876, 2018, 2159, 2302, 2443, 2586]
+Extra row tops:  [1518, 1660]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-05-10 - Grizzlies (Away)\2026-05-10 - Grizzlies (Away)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-05-10 - Grizzlies (Away)\2026-05-10 - Grizzlies (Away)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  J. Gladwell
+     2.  D. Mabushi  |  M. Gelaudi
+     3.  T. Kryston
+     4.  G. Suares
+     5.  N. Specht
+     6.  G.L. McLelland
+     7.  K. Glomb  |  N. Wisse
+     8.  B. Watts
+     9.  C. Trehy  |  X. Dikkes
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'J. Gladwell' → J. Bradwell (#71)
+  Row 2 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 2 sub1: 'M. Gelaudi' → M. Gelaudi (#98)
+  Row 2: sub1 inning from cache: 7
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'G. Suares' → G. Suares (#2)
+  Row 5 starter: 'N. Specht' → N. Specht (#0)
+  Row 6 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 7 starter: 'K. Glomb' → K. Glomb (#0)
+  Row 7 sub1: 'N. Wisse' → N. Wisse (#57)
+  Row 7: sub1 inning from cache: 7
+  Row 8 starter: 'B. Watts' → B. Watts (#0)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'X. Dikkes' → X. Dikkes (#17)
+  Row 9: sub1 inning from cache: 7
+GT    : 2026-05-10 - Grizzlies (Away)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 to classify
+WRAP  : inning 7 continues into column 8 (file)
+
+
+-- RBI backfill: 17 run cell(s) with missing/null rbi_slot --------------------
+  P1 (J. Gladwell) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=3
+  P1 (J. Gladwell) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P1 (J. Gladwell) inn 8: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P2 (D. Mabushi) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=3
+  P2 (M. Gelaudi) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=3
+  P2 (M. Gelaudi) inn 8: reading bottom-left for rbi_slot…
+    → rbi_slot=4
+  P3 (T. Kryston) inn 3: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P3 (T. Kryston) inn 5: reading bottom-left for rbi_slot…
+    → rbi_slot=4
+  P3 (T. Kryston) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=4
+  P4 (G. Suares) inn 5: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P5 (N. Specht) inn 3: reading bottom-left for rbi_slot…
+    → rbi_slot=7
+  P5 (N. Specht) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=8
+  P6 (G.L. McLelland) inn 8: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P7 (N. Wisse) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=4
+  P7 (N. Wisse) inn 8: reading bottom-left for rbi_slot…
+    → rbi_slot=8
+  P8 (B. Watts) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P8 (B. Watts) inn 8: reading bottom-left for rbi_slot…
+    → rbi_slot=1
+  RBI backfill: updated 17 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [isolated] Player 9 inn 10 was 1-2: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] J. Bradwell             PA= 6  AB= 5  H= 4  R= 3
+  [Slot  2] D. Mabushi              PA= 4  AB= 3  H= 0  R= 1
+  [Slot  2]   ↳ M. Gelaudi          PA= 2  AB= 2  H= 1  R= 2
+  [Slot  3] T. Kryston              PA= 6  AB= 5  H= 5  R= 3
+  [Slot  4] G. Suares               PA= 6  AB= 6  H= 2  R= 1
+  [Slot  5] N. Specht               PA= 6  AB= 6  H= 1  R= 2
+  [Slot  6] G.L. McLelland          PA= 5  AB= 4  H= 2  R= 1
+  [Slot  7] K. Glomb                PA= 3  AB= 3  H= 1  R= 0
+  [Slot  7]   ↳ N. Wisse            PA= 2  AB= 1  H= 1  R= 2
+  [Slot  8] B. Watts                PA= 5  AB= 5  H= 2  R= 2
+  [Slot  9] C. Trehy                PA= 3  AB= 3  H= 0  R= 0
+  [Slot  9]   ↳ X. Dikkes           PA= 2  AB= 2  H= 0  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 5 ≥ 5 ≥ 5 ≥ 5
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  7  R= 2  H= 2  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  6  R= 2  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 4, got 3)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  6  R= 2  H= 3  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  5  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA= 10  R= 6  H= 5  E= 2  Outs=3  PA:OK  R:OK  H:MISMATCH (GT=4)  E:MISMATCH (GT=3)  Outs:OK
+  [Inn 8 ]  PA=  9  R= 5  H= 5  E= 0  Outs=3  PA:OK  R:OK  H:MISMATCH (GT=6)  E:OK  Outs:OK
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  Run totals: all match GT.
+
+Saved : 2026-05-10 - Grizzlies (Away)_cells.json
+Total : 50 PA extracted   17 runs
+GT    : 17 runs expected
+Widget: 2026-05-10 - Grizzlies (Away).html
+
+DB    : Replacing existing game (id=8)...
+DB    : Written as game id=23
+Log   : 2026-05-10 - Grizzlies (Away)_run.log

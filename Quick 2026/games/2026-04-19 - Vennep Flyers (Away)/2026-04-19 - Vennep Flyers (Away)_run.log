@@ -1,0 +1,130 @@
+Image : 2026-04-19 - Vennep Flyers (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-04-19   Opponent: Vennep Flyers
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (23): [33, 103, 176, 246, 318, 388, 460, 530]...
+Layout A (legacy): first player row at y=103
+Row tops:    [103, 246, 388, 530, 672, 814, 957, 1099, 1241, 1383]
+Row gaps:    [143, 142, 142, 142, 142, 143, 142, 142, 142]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=50 median=71 max=461
+Inning cols: x=1023..2584  col_width=142px  (11 cols detected)
+Col lefts:   [1023, 1163, 1306, 1447, 1590, 1731, 1874, 2016, 2157, 2300, 2441, 2584]
+Extra row tops:  [1525, 1667]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-19 - Vennep Flyers (Away)\2026-04-19 - Vennep Flyers (Away)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-19 - Vennep Flyers (Away)\2026-04-19 - Vennep Flyers (Away)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Gelaudie
+     2.  M. Evangelista
+     3.  T. Kryston
+     4.  G. Suares
+     5.  B. Watts  |  V. Spaandonk
+     6.  S. Bakker
+     7.  J. Bradwell  |  N. Specht
+     8.  X. Dikkes  |  N. Wisse
+     9.  C. Trehy  |  D. Mabushi
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 2 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'G. Suares' → G. Suares (#2)
+  Row 5 starter: 'B. Watts' → B. Watts (#0)
+  Row 5 sub1: 'V. Spaandonk' → V. van Spaandonk (#24)
+  Row 5: sub1 inning from cache: 5
+  Row 6 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 7 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 7 sub1: 'N. Specht' → N. Specht (#0)
+  Row 7: sub1 inning from cache: 5
+  Row 8 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 sub1: 'N. Wisse' → N. Wisse (#57)
+  Row 8: sub1 inning from cache: 9
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'D. Mabushi' → D. Mabushi (#0)
+  Row 9: sub1 inning from cache: 5
+GT    : 2026-04-19 - Vennep Flyers (Away)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 to classify
+Wrap  : none detected (from file)
+
+
+-- RBI backfill: 7 run cell(s) with missing/null rbi_slot --------------------
+  P1 (M. Gelaudie) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=3
+  P2 (M. Evangelista) inn 5: reading bottom-left for rbi_slot…
+    → rbi_slot=6
+  P3 (T. Kryston) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=5
+  P4 (G. Suares) inn 1: reading bottom-left for rbi_slot…
+    → rbi_slot=6
+  P4 (G. Suares) inn 7: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P7 (N. Specht) inn 6: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P8 (X. Dikkes) inn 8: reading bottom-left for rbi_slot…
+    → rbi_slot=1
+  RBI backfill: updated 7 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [isolated] Player 5 inn 11 was 1-2: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA= 5  AB= 5  H= 2  R= 1
+  [Slot  2] M. Evangelista          PA= 5  AB= 5  H= 1  R= 1
+  [Slot  3] T. Kryston              PA= 4  AB= 4  H= 1  R= 1
+  [Slot  4] G. Suares               PA= 4  AB= 3  H= 2  R= 2
+  [Slot  5] B. Watts                PA= 2  AB= 2  H= 0  R= 0
+  [Slot  5]   ↳ V. van Spaandonk    PA= 2  AB= 2  H= 1  R= 0
+  [Slot  6] S. Bakker               PA= 4  AB= 4  H= 2  R= 0
+  [Slot  7] J. Bradwell             PA= 2  AB= 2  H= 0  R= 0
+  [Slot  7]   ↳ N. Specht           PA= 2  AB= 2  H= 1  R= 1
+  [Slot  8] X. Dikkes               PA= 4  AB= 2  H= 0  R= 1
+  [Slot  8]   ↳ N. Wisse            PA= 0  AB= 0  H= 0  R= 0
+  [Slot  9] C. Trehy                PA= 2  AB= 2  H= 0  R= 0
+  [Slot  9]   ↳ D. Mabushi          PA= 2  AB= 2  H= 0  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  [PA-seq] IMPOSSIBLE: X. Dikkes (5 PA) > J. Bradwell (4 PA)
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  7  R= 3  H= 3  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=2)  Outs:OK
+  [Inn 2 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  4  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  4  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 5 ]  PA=  6  R= 1  H= 3  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 6 ]  PA=  4  R= 1  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  5  R= 1  H= 2  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 8 ]  PA=  5  R= 1  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  Run totals: all match GT.
+
+
+-- PA ordering: trimmed phantom PAs -----------------------------
+  [pa-order] slot 8: trimmed 1 PA (5→4): inn 11 1B
+  [pa-order] slot 9: trimmed 1 PA (5→4): inn 11 6-3
+
+Saved : 2026-04-19 - Vennep Flyers (Away)_cells.json
+Total : 38 PA extracted   7 runs
+GT    : 7 runs expected
+Widget: 2026-04-19 - Vennep Flyers (Away).html
+
+DB    : Replacing existing game (id=9)...
+DB    : Written as game id=24
+Log   : 2026-04-19 - Vennep Flyers (Away)_run.log

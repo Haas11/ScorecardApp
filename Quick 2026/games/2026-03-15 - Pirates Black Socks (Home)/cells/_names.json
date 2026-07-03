@@ -1,0 +1,77 @@
+{
+  "r01": {
+    "players": [
+      "M. Evangelista",
+      "G. Suares"
+    ],
+    "sub_innings": [
+      5
+    ]
+  },
+  "r02": {
+    "players": [
+      "G.L. McLelland"
+    ]
+  },
+  "r03": {
+    "players": [
+      "T. Kryston"
+    ]
+  },
+  "r04": {
+    "players": [
+      "S. Bakker",
+      "V. Spaandonk"
+    ],
+    "sub_innings": [
+      5
+    ]
+  },
+  "r05": {
+    "players": [
+      "P. Chang",
+      "M. Gelaudi"
+    ],
+    "sub_innings": [
+      3
+    ]
+  },
+  "r07": {
+    "players": [
+      "V. v. Spaandonk",
+      "N. Specht"
+    ],
+    "sub_innings": [
+      3
+    ]
+  },
+  "r08": {
+    "players": [
+      "X. Dikkes",
+      "P. Chang"
+    ],
+    "sub_innings": [
+      6
+    ]
+  },
+  "r09": {
+    "players": [
+      "C. Trehy",
+      "C. Romick"
+    ],
+    "sub_innings": [
+      3
+    ]
+  },
+  "r06": {
+    "players": [
+      "G. Suares",
+      "K. Glomb",
+      "C. Trehy"
+    ],
+    "sub_innings": [
+      3,
+      7
+    ]
+  }
+}

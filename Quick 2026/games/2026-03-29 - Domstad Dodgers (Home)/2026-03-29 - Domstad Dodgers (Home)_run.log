@@ -1,0 +1,116 @@
+Image : 2026-03-29 - Domstad Dodgers (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 4
+Date  : 2026-03-29   Opponent: Domstad Dodgers
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=72px); cell_size=142px
+H-lines (17): [191, 333, 403, 476, 618, 685, 760, 900]...
+Layout B: first player row at y=191
+Row tops:    [191, 333, 476, 618, 760, 900, 1044, 1187, 1328, 1470]
+Row gaps:    [142, 143, 142, 142, 140, 144, 143, 141, 142]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=49 median=71 max=461
+Inning cols: x=1025..2587  col_width=142px  (11 cols detected)
+Col lefts:   [1025, 1166, 1309, 1450, 1593, 1734, 1878, 2019, 2161, 2303, 2445, 2587]
+Extra row tops:  [1612, 1754]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-29 - Domstad Dodgers (Home)\2026-03-29 - Domstad Dodgers (Home)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (4 game innings, 6 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-29 - Domstad Dodgers (Home)\2026-03-29 - Domstad Dodgers (Home)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Gelaudie
+     2.  J. Bradwell
+     3.  T. Kryston
+     4.  V. van Spaandonk
+     5.  N. Specht
+     6.  G.L. McLelland
+     7.  X. Dikkes
+     8.  N. Wisse
+     9.  C. Romick
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
+  Row 5 starter: 'N. Specht' → N. Specht (#0)
+  Row 6 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 starter: 'N. Wisse' → N. Wisse (#57)
+  Row 9 starter: 'C. Romick' → C. Romick (#43)
+GT    : 2026-03-29 - Domstad Dodgers (Home)_totals.txt loaded
+
+Cells : 54 total | 54 cached | 0 to classify
+WRAP  : inning 1 continues into column 2 (file)
+  [hole-reread] P6 (G.L. McLelland) inn 3: null between P5 and P7 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P6 inn 3: still null between P5 and P7 after re-read
+  [isolated] Player 7 inn 3 was K: removed
+  [3-outs] Player 2 inn 1 col 2 was 3B: removed
+  [3-outs] Player 3 inn 1 col 2 was E5: removed
+  [3-outs] Player 4 inn 1 col 2 was HR: removed
+  [3-outs] Player 5 inn 1 col 2 was K: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA= 3  AB= 2  H= 0  R= 0
+  [Slot  2] J. Bradwell             PA= 1  AB= 1  H= 1  R= 1
+  [Slot  3] T. Kryston              PA= 2  AB= 2  H= 0  R= 0
+  [Slot  4] V. van Spaandonk        PA= 2  AB= 2  H= 1  R= 1
+  [Slot  5] N. Specht               PA= 2  AB= 1  H= 0  R= 1
+  [Slot  6] G.L. McLelland          PA= 1  AB= 1  H= 1  R= 0
+  [Slot  7] X. Dikkes               PA= 2  AB= 1  H= 1  R= 0
+  [Slot  8] N. Wisse                PA= 2  AB= 1  H= 1  R= 0
+  [Slot  9] C. Romick               PA= 2  AB= 2  H= 1  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  [PA-seq] IMPOSSIBLE: T. Kryston (2 PA) > J. Bradwell (1 PA)
+  [PA-seq] IMPOSSIBLE: X. Dikkes (2 PA) > G.L. McLelland (1 PA)
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA= 10  R= 3  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 3  E= 0  Outs=1  PA:MISMATCH (expected 7, got 4)  R:MISMATCH (GT=4)  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 1)
+  [Inn 3 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 6, got 3)  R:OK  H:MISMATCH (GT=2)  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 4 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 4, got 0)  R:OK  H:MISMATCH (GT=1)  E:OK  Outs:WARNING (expected 3, got 0)
+
+  -- Run reconciliation:
+  Inn 2: R=0 < GT=4 — rechecking 4 missing run(s)…
+
+  -- Per-inning (column) check after reconciliation:
+  [Inn 1 ]  PA= 10  R= 3  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 3  E= 0  Outs=1  PA:MISMATCH (expected 7, got 4)  R:MISMATCH (GT=4)  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 1)
+  [Inn 3 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 6, got 3)  R:OK  H:MISMATCH (GT=2)  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 4 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 4, got 0)  R:OK  H:MISMATCH (GT=1)  E:OK  Outs:WARNING (expected 3, got 0)
+
+
+-- PA ordering: trimmed phantom PAs -----------------------------
+  [pa-order] slot 3: trimmed 1 PA (2→1): inn 3 6-3
+  [pa-order] slot 4: trimmed 1 PA (2→1): inn 3 1B
+  [pa-order] slot 5: trimmed 1 PA (2→1): inn 3 K
+  [pa-order] slot 7: trimmed 1 PA (2→1): inn 2 1B
+  [pa-order] slot 8: trimmed 1 PA (2→1): inn 2 1B
+  [pa-order] slot 9: trimmed 1 PA (2→1): inn 2 1B
+
+Saved : 2026-03-29 - Domstad Dodgers (Home)_cells.json
+Total : 11 PA extracted   3 runs
+GT    : 7 runs expected
+Widget: 2026-03-29 - Domstad Dodgers (Home).html
+
+DB    : Replacing existing game (id=27)...
+DB    : Written as game id=31
+Log   : 2026-03-29 - Domstad Dodgers (Home)_run.log

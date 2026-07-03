@@ -1,0 +1,51 @@
+{
+  "r01": {
+    "players": [
+      "M. Gelaudie"
+    ]
+  },
+  "r02": {
+    "players": [
+      "J. Bradwell"
+    ]
+  },
+  "r03": {
+    "players": [
+      "V. van Spaandonk"
+    ]
+  },
+  "r04": {
+    "players": [
+      "G. Suares"
+    ]
+  },
+  "r05": {
+    "players": [
+      "X. Dilkes",
+      "C. Lee"
+    ],
+    "sub_innings": [
+      9
+    ]
+  },
+  "r06": {
+    "players": [
+      "D. Mabushi"
+    ]
+  },
+  "r07": {
+    "players": [
+      "N. Wisse"
+    ]
+  },
+  "r08": {
+    "players": [
+      "C. Romick"
+    ]
+  },
+  "r09": {
+    "players": [
+      "C. Trehy"
+    ]
+  }
+}

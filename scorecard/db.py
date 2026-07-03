@@ -407,7 +407,7 @@ def write_game(
                 result = pa.result.upper().strip()
                 needs_review = 1 if pa.confidence == "low" else 0
                 bb = 1 if result == "BB" else 0
-                hp = 1 if result == "HP" else 0
+                hp = 1 if result in ("HP", "HBP") else 0
                 sac = 1 if result in ("SAC", "SH") else 0
                 sf = 1 if result == "SF" else 0
                 sb = pa.sb

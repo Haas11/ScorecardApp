@@ -1,5 +1,5 @@
 Image : 2026-22-06 - Thamen (Away).jpg
-Model : gemini-2.5-flash   Workers: 8   Innings: 5
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
 Date  : 2026-22-06   Opponent: Thamen
 Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
 
@@ -17,25 +17,11 @@ Extra row tops:  [1522, 1664]
 
 Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-22-06 - Thamen (Away)\2026-22-06 - Thamen (Away)_grid_debug.png
 Grid  : 10 player rows x 11 cols, cell=142px
-Active: first 9 rows (5 game innings, 7 cols to read)
+Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-22-06 - Thamen (Away)\2026-22-06 - Thamen (Away)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  J. Bradwell
-     2.  G.L. McLelland
-     3.  V v Spaandonk
-     4.  D. Mabushi  |  N. Wisse
-     5.  N. Specht  |  M. Evangelista
-     6.  B. Watts
-     7.  X. Dikkes
-     8.  C. Romick
-     9.  C. Trehy
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 1 starter: 'J. Bradwell' → J. Bradwell (#71)
   Row 2 starter: 'G.L. McLelland' → G.L. McLelland (#0)
   Row 3 starter: 'V v Spaandonk' → V. van Spaandonk (#24)
   Row 4 starter: 'D. Mabushi' → D. Mabushi (#0)
@@ -50,23 +36,37 @@ Detecting player names from scan...
   Row 9 starter: 'C. Trehy' → C. Trehy (#6)
 GT    : 2026-22-06 - Thamen (Away)_totals.txt loaded
 
-Cells : 63 total | 63 cached | 0 to classify
-Wrap  : none detected (from file)
+Cells : 99 total | 90 cached | 9 to classify
+    9/9 (100%)  4s
+  WARNING: _layout.json has 7 entries but n_phys_cols=11 — re-detecting and overwriting.
+Wrap  : none detected (auto)
 
 
--- RBI backfill: 2 run cell(s) with missing/null rbi_slot --------------------
-  P2 (G.L. McLelland) inn 1: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '```json\n{"rbi_slot": null}\n```'
-    [rbi_slot] null — BL crop saved: rbi_bl_GL_McLelland_inn1.png
-    → rbi_slot=None
-  P3 (V v Spaandonk) inn 1: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '```json\n{"rbi_slot": null}\n```'
-    [rbi_slot] null — BL crop saved: rbi_bl_V_v_Spaandonk_inn1.png
-    → rbi_slot=None
-  RBI backfill: updated 2 cell(s)
+-- SB backfill: 8 reached-base cell(s) missing sb_count --------------------
+  P1 (J. Bradwell) inn 1: counting SB…
+    → sb_count=1
+  P2 (G.L. McLelland) inn 1: counting SB…
+    → sb_count=0
+  P2 (G.L. McLelland) inn 5: counting SB…
+    → sb_count=1
+  P3 (V v Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  P3 (V v Spaandonk) inn 5: counting SB…
+    → sb_count=0
+  P4 (D. Mabushi) inn 1: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 4: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 1: counting SB…
+    → sb_count=0
+  SB backfill: updated 8 cell(s)
+  [hole-reread] P6 (B. Watts) inn 1: null between P5 and P7 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
 
 
 -- Batting rules ------------------------------------------------
+  [hole] P6 inn 1: still null between P5 and P7 after re-read
   [3-outs] Player 9 inn 1 col 1 was BB: removed
 
 
@@ -81,29 +81,39 @@ Wrap  : none detected (from file)
   [Slot  4]   ↳ N. Wisse            PA= 2  AB= 2  H= 0  R= 0
   [Slot  5] N. Specht               PA= 2  AB= 2  H= 0  R= 0
   [Slot  5]   ↳ M. Evangelista      PA= 1  AB= 1  H= 0  R= 0
-  [Slot  6] B. Watts                PA= 2  AB= 1  H= 0  R= 0
+  [Slot  6] B. Watts                PA= 1  AB= 1  H= 0  R= 0
   [Slot  7] X. Dikkes               PA= 2  AB= 2  H= 0  R= 0
   [Slot  8] C. Romick               PA= 2  AB= 2  H= 0  R= 0
   [Slot  9] C. Trehy                PA= 2  AB= 2  H= 0  R= 0
 
 
 -- PA sequence check ---------------------------------------------
-  OK: 3 ≥ 3 ≥ 3 ≥ 3 ≥ 3 ≥ 2 ≥ 2 ≥ 2 ≥ 2
+  [PA-seq] IMPOSSIBLE: X. Dikkes (2 PA) > B. Watts (1 PA)
 
 
 -- Per-inning (column) check -------------------------------------
-  [Inn 1 ]  PA=  8  R= 3  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 1 ]  PA=  7  R= 3  H= 0  E= 0  Outs=3  PA:MISMATCH (expected 8, got 7)  R:OK  H:OK  E:OK  Outs:OK
   [Inn 2 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 3 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 4 ]  PA=  4  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:OK
   [Inn 5 ]  PA=  5  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 7 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
   Run totals: all match GT.
 
+
+-- PA ordering: trimmed phantom PAs -----------------------------
+  [pa-order] slot 7: trimmed 1 PA (2→1): inn 4 K
+  [pa-order] slot 8: trimmed 1 PA (2→1): inn 4 E
+  [pa-order] slot 9: trimmed 1 PA (2→1): inn 4 K
+
 Saved : 2026-22-06 - Thamen (Away)_cells.json
-Total : 23 PA extracted   3 runs
+Total : 19 PA extracted   3 runs
 GT    : 3 runs expected
 Widget: 2026-22-06 - Thamen (Away).html
 
-DB    : Replacing existing game (id=17)...
-DB    : Written as game id=19
+DB    : Replacing existing game (id=42)...
+DB    : Written as game id=52
 Log   : 2026-22-06 - Thamen (Away)_run.log

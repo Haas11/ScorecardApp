@@ -32,7 +32,7 @@
               "result": "1B",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -649,6 +649,8 @@
       0,
       0,
       4,
+      0,
+      0,
       0,
       0
     ],

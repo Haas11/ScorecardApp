@@ -257,7 +257,7 @@
               "result": "BB",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -327,7 +327,7 @@
               "result": "E6",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -337,7 +337,7 @@
               "result": "1B",
               "run_scored": false,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -437,7 +437,7 @@
               "result": "2B",
               "run_scored": false,
               "rbi": 2,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -457,7 +457,7 @@
               "result": "FC",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -767,7 +767,7 @@
               "result": "E6",
               "run_scored": false,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -845,8 +845,8 @@
   "last_batter_by_inning": {
     "1": 5,
     "2": 3,
-    "3": 3,
-    "4": 3,
+    "3": 2,
+    "4": 6,
     "5": 1,
     "6": 7,
     "7": 7,

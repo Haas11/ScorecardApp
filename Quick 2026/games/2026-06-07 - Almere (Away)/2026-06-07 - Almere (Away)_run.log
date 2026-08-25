@@ -21,21 +21,7 @@ Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-06-07 - Almere (Away)\2026-06-07 - Almere (Away)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Gelaudie
-     2.  J. Bradwell
-     3.  V. van Spaandonk
-     4.  G. Suares
-     5.  X. Dilkes  |  C. Lee
-     6.  D. Mabushi
-     7.  N. Wisse
-     8.  C. Romick
-     9.  C. Trehy
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
   Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
   Row 3 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
   Row 4 starter: 'G. Suares' → G. Suares (#2)
@@ -52,59 +38,89 @@ Cells : 99 total | 99 cached | 0 to classify
 Wrap  : none detected (from file)
 
 
--- RBI backfill: 12 run cell(s) with missing/null rbi_slot --------------------
-  P1 (M. Gelaudie) inn 1: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '```json\n{"rbi_slot": null}\n```'
-    [rbi_slot] null — BL crop saved: rbi_bl_M_Gelaudie_inn1.png
-    → rbi_slot=None
-  P1 (M. Gelaudie) inn 7: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '```json\n{"rbi_slot": null}\n```'
-    [rbi_slot] null — BL crop saved: rbi_bl_M_Gelaudie_inn7.png
-    → rbi_slot=None
-  P1 (M. Gelaudie) inn 9: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '```json\n{"rbi_slot": 3}\n```'
-    → rbi_slot=3
-  P2 (J. Bradwell) inn 1: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '```json\n{"rbi_slot": 6}\n```'
-    → rbi_slot=6
-  P2 (J. Bradwell) inn 6: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": 4}'
-    → rbi_slot=4
-  P2 (J. Bradwell) inn 9: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": 3}'
-    → rbi_slot=3
-  P3 (V. van Spaandonk) inn 1: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": null}'
-    [rbi_slot] null — BL crop saved: rbi_bl_V_van_Spaandonk_inn1.png
-    → rbi_slot=None
-  P3 (V. van Spaandonk) inn 7: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": null}'
-    [rbi_slot] null — BL crop saved: rbi_bl_V_van_Spaandonk_inn7.png
-    → rbi_slot=None
-  P3 (V. van Spaandonk) inn 9: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": 5}'
-    → rbi_slot=5
-  P4 (G. Suares) inn 3: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": null}'
-    [rbi_slot] null — BL crop saved: rbi_bl_G_Suares_inn3.png
-    → rbi_slot=None
-  P4 (G. Suares) inn 7: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": null}'
-    [rbi_slot] null — BL crop saved: rbi_bl_G_Suares_inn7.png
-    → rbi_slot=None
-  P5 (X. Dilkes) inn 3: reading bottom-left for rbi_slot…
-    [rbi_slot raw] '{"rbi_slot": null}'
-    [rbi_slot] null — BL crop saved: rbi_bl_X_Dilkes_inn3.png
-    → rbi_slot=None
-  RBI backfill: updated 12 cell(s)
+-- SB backfill: 36 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudie) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 2: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 4: counting SB…
+    → sb_count=1
+  P1 (M. Gelaudie) inn 7: counting SB…
+    → sb_count=1
+  P1 (M. Gelaudie) inn 9: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 1: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 2: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 6: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 9: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 3: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 6: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 7: counting SB…
+    → sb_count=2
+  P3 (V. van Spaandonk) inn 9: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 3: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 6: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 7: counting SB…
+    → sb_count=1
+  P5 (X. Dilkes) inn 3: counting SB…
+    → sb_count=0
+  P5 (X. Dilkes) inn 5: counting SB…
+    → sb_count=1
+  P5 (X. Dilkes) inn 6: counting SB…
+    → sb_count=1
+  P5 (X. Dilkes) inn 7: counting SB…
+    → sb_count=0
+  P5 (C. Lee) inn 9: counting SB…
+    → sb_count=0
+  P5 (C. Lee) inn 11: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 1: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 3: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 6: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 7: counting SB…
+    → sb_count=0
+  P7 (N. Wisse) inn 3: counting SB…
+    → sb_count=0
+  P7 (N. Wisse) inn 5: counting SB…
+    → sb_count=1
+  P7 (N. Wisse) inn 8: counting SB…
+    → sb_count=0
+  P7 (N. Wisse) inn 9: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 2: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 6: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 2: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 5: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 7: counting SB…
+    → sb_count=0
+  SB backfill: updated 36 cell(s)
   [hole-reread] P4 (G. Suares) inn 11: null between P3 and P5 — re-reading…
-    → still no result after re-read ({"result": null, "run": false, "confidence": ")
-    → assigned BB fallback (hole confirmed, cell unreadable)
+    → still unreadable after re-read — leaving null (fix in review)
   Re-read 1 hole cell(s)
 
 
 -- Batting rules ------------------------------------------------
   [hole] P9 inn 9: still null between P8 and P1 after re-read
+  [hole] P4 inn 11: still null between P3 and P5 after re-read
+  [isolated] Player 3 inn 11 was 2-4: removed
 
 
 -- GT run enforcement -------------------------------------------
@@ -124,7 +140,7 @@ Wrap  : none detected (from file)
 
 
 -- PA sequence check ---------------------------------------------
-  [PA-seq] IMPOSSIBLE: V. van Spaandonk (7 PA) > J. Bradwell (6 PA)
+  [PA-seq] IMPOSSIBLE: X. Dikkes (7 PA) > G. Suares (6 PA)
 
 
 -- Per-inning (column) check -------------------------------------
@@ -141,8 +157,6 @@ Wrap  : none detected (from file)
 
 
 -- PA ordering: trimmed phantom PAs -----------------------------
-  [pa-order] slot 3: trimmed 1 PA (7→6): inn 11 2-4
-  [pa-order] slot 4: trimmed 1 PA (7→6): inn 11 BB
   [pa-order] slot 5: trimmed 1 PA (7→6): inn 11 1B
   [pa-order] slot 6: trimmed 1 PA (7→6): inn 11 1-3
 
@@ -151,6 +165,6 @@ Total : 53 PA extracted   12 runs
 GT    : 12 runs expected
 Widget: 2026-06-07 - Almere (Away).html
 
-DB    : Replacing existing game (id=14)...
-DB    : Written as game id=21
+DB    : Replacing existing game (id=40)...
+DB    : Written as game id=51
 Log   : 2026-06-07 - Almere (Away)_run.log

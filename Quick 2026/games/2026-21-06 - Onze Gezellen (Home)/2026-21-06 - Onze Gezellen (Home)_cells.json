@@ -19,7 +19,7 @@
           "plate_appearances": [
             {
               "inning": 1,
-              "result": "SF",
+              "result": "F5",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -46,16 +46,6 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
-            {
-              "inning": 4,
-              "result": "BB",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "hole-fallback:BB",
-              "confidence": "low"
             },
             {
               "inning": 5,
@@ -79,8 +69,8 @@
             }
           ],
           "summary": {
-            "PA": 6,
-            "AB": 3,
+            "PA": 5,
+            "AB": 4,
             "R": 0,
             "H": 0,
             "two_B": null,
@@ -112,7 +102,7 @@
               "result": "1B",
               "run_scored": false,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -122,7 +112,7 @@
               "result": "BB",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -349,7 +339,7 @@
           "plate_appearances": [
             {
               "inning": 1,
-              "result": "K",
+              "result": "F5",
               "run_scored": false,
               "rbi": 0,
               "sb": 0,
@@ -457,7 +447,7 @@
               "result": "BB",
               "run_scored": false,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -467,7 +457,7 @@
               "result": "E43",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -477,7 +467,7 @@
               "result": "1B",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -572,7 +562,7 @@
               "result": "1B",
               "run_scored": false,
               "rbi": 1,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -810,6 +800,7 @@
       0,
       0,
       0,
+      0,
       0
     ],
     "errors_total": null
@@ -819,8 +810,8 @@
     "1": 5,
     "2": 9,
     "3": 1,
-    "4": 1,
-    "5": 1,
+    "4": 9,
+    "5": 3,
     "6": 7,
     "7": 1,
     "8": 5

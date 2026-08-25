@@ -21,21 +21,7 @@ Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-19 - Vennep Flyers (Away)\2026-04-19 - Vennep Flyers (Away)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Gelaudie
-     2.  M. Evangelista
-     3.  T. Kryston
-     4.  G. Suares
-     5.  B. Watts  |  V. Spaandonk
-     6.  S. Bakker
-     7.  J. Bradwell  |  N. Specht
-     8.  X. Dikkes  |  N. Wisse
-     9.  C. Trehy  |  D. Mabushi
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
   Row 2 starter: 'M. Evangelista' → M. Evangelista (#25)
   Row 3 starter: 'T. Kryston' → T. Kryston (#0)
   Row 4 starter: 'G. Suares' → G. Suares (#2)
@@ -58,22 +44,40 @@ Cells : 99 total | 99 cached | 0 to classify
 Wrap  : none detected (from file)
 
 
--- RBI backfill: 7 run cell(s) with missing/null rbi_slot --------------------
-  P1 (M. Gelaudie) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=3
-  P2 (M. Evangelista) inn 5: reading bottom-left for rbi_slot…
-    → rbi_slot=6
-  P3 (T. Kryston) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=5
-  P4 (G. Suares) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=6
-  P4 (G. Suares) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P7 (N. Specht) inn 6: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P8 (X. Dikkes) inn 8: reading bottom-left for rbi_slot…
-    → rbi_slot=1
-  RBI backfill: updated 7 cell(s)
+-- SB backfill: 16 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudie) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 8: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 5: counting SB…
+    → sb_count=0
+  P3 (T. Kryston) inn 1: counting SB…
+    → sb_count=1
+  P3 (T. Kryston) inn 5: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 1: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 3: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 5: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 7: counting SB…
+    → sb_count=0
+  P5 (V. Spaandonk) inn 7: counting SB…
+    → sb_count=0
+  P6 (S. Bakker) inn 1: counting SB…
+    → sb_count=0
+  P6 (S. Bakker) inn 5: counting SB…
+    → sb_count=0
+  P7 (N. Specht) inn 6: counting SB…
+    → sb_count=0
+  P8 (X. Dikkes) inn 4: counting SB…
+    → sb_count=1
+  P8 (X. Dikkes) inn 8: counting SB…
+    → sb_count=0
+  P8 (N. Wisse) inn 11: counting SB…
+    → sb_count=0
+  SB backfill: updated 16 cell(s)
 
 
 -- Batting rules ------------------------------------------------
@@ -125,6 +129,6 @@ Total : 38 PA extracted   7 runs
 GT    : 7 runs expected
 Widget: 2026-04-19 - Vennep Flyers (Away).html
 
-DB    : Replacing existing game (id=9)...
-DB    : Written as game id=24
+DB    : Replacing existing game (id=37)...
+DB    : Written as game id=48
 Log   : 2026-04-19 - Vennep Flyers (Away)_run.log

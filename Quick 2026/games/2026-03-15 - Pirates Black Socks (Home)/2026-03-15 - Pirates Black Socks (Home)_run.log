@@ -1,5 +1,5 @@
 Image : 2026-03-15 - Pirates Black Socks (Home).jpg
-Model : gemini-2.5-flash   Workers: 8   Innings: 7
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
 Date  : 2026-03-15   Opponent: Pirates Black Socks
 Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
 
@@ -17,25 +17,11 @@ Extra row tops:  [1602, 1746]
 
 Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-15 - Pirates Black Socks (Home)\2026-03-15 - Pirates Black Socks (Home)_grid_debug.png
 Grid  : 10 player rows x 11 cols, cell=144px
-Active: first 9 rows (7 game innings, 9 cols to read)
+Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-15 - Pirates Black Socks (Home)\2026-03-15 - Pirates Black Socks (Home)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Evangelista  |  G. Suares
-     2.  G.L. McLelland
-     3.  T. Kryston
-     4.  S. Bakker  |  V. Spaandonk
-     5.  P. Chang  |  M. Gelaudi
-     6.  G. Suares  |  K. Glomb  |  C. Trehy
-     7.  V. v. Spaandonk  |  N. Specht
-     8.  X. Dikkes  |  P. Chang
-     9.  C. Trehy  |  C. Romick
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
   Row 1 sub1: 'G. Suares' → G. Suares (#2)
   Row 1: sub1 inning from cache: 5
   Row 2 starter: 'G.L. McLelland' → G.L. McLelland (#0)
@@ -62,34 +48,9 @@ Detecting player names from scan...
   Row 9: sub1 inning from cache: 3
 GT    : 2026-03-15 - Pirates Black Socks (Home)_totals.txt loaded
 
-Cells : 81 total | 81 cached | 0 to classify
-Wrap  : none detected (from file)
-
-
--- RBI backfill: 11 run cell(s) missing rbi_slot key --------------------
-  P1 (M. Evangelista) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P1 (M. Evangelista) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=2
-  P1 (G. Suares) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=2
-  P2 (G.L. McLelland) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P2 (G.L. McLelland) inn 6: reading bottom-left for rbi_slot…
-    → rbi_slot=4
-  P2 (G.L. McLelland) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=3
-  P3 (T. Kryston) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P3 (T. Kryston) inn 5: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P3 (T. Kryston) inn 6: reading bottom-left for rbi_slot…
-    → rbi_slot=5
-  P6 (K. Glomb) inn 5: reading bottom-left for rbi_slot…
-    → rbi_slot=8
-  P7 (N. Specht) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  RBI backfill: updated 11 cell(s)
+Cells : 99 total | 99 cached | 0 to classify
+  WARNING: _layout.json has 9 entries but n_phys_cols=11 — re-detecting and overwriting.
+Wrap  : none detected (auto)
 
 
 -- Batting rules ------------------------------------------------
@@ -130,6 +91,8 @@ Wrap  : none detected (from file)
   [Inn 5 ]  PA=  7  R= 2  H= 4  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:OK
   [Inn 6 ]  PA=  6  R= 2  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
   [Inn 7 ]  PA=  6  R= 3  H= 4  E= 0  Outs=2  PA:MISMATCH (expected 7, got 6)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
   Run totals: all match GT.
 
 Saved : 2026-03-15 - Pirates Black Socks (Home)_cells.json
@@ -137,6 +100,6 @@ Total : 39 PA extracted   11 runs
 GT    : 11 runs expected
 Widget: 2026-03-15 - Pirates Black Socks (Home).html
 
-DB    : Replacing existing game (id=13)...
-DB    : Written as game id=30
+DB    : Replacing existing game (id=43)...
+DB    : Written as game id=43
 Log   : 2026-03-15 - Pirates Black Socks (Home)_run.log

@@ -22,7 +22,7 @@
               "result": "BB",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -102,7 +102,7 @@
               "result": "1B",
               "run_scored": false,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -368,16 +368,6 @@
           "innings_played": null,
           "plate_appearances": [
             {
-              "inning": 1,
-              "result": "BB",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "hole-fallback:BB",
-              "confidence": "low"
-            },
-            {
               "inning": 4,
               "result": "6-3",
               "run_scored": false,
@@ -389,7 +379,7 @@
             }
           ],
           "summary": {
-            "PA": 2,
+            "PA": 1,
             "AB": 1,
             "R": 0,
             "H": 0,
@@ -426,21 +416,11 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
-            {
-              "inning": 4,
-              "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
             }
           ],
           "summary": {
-            "PA": 2,
-            "AB": 2,
+            "PA": 1,
+            "AB": 1,
             "R": 0,
             "H": 0,
             "two_B": null,
@@ -476,21 +456,11 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
-            {
-              "inning": 4,
-              "result": "E",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
             }
           ],
           "summary": {
-            "PA": 2,
-            "AB": 2,
+            "PA": 1,
+            "AB": 1,
             "R": 0,
             "H": 0,
             "two_B": null,
@@ -526,21 +496,11 @@
               "cs": 0,
               "notes": "",
               "confidence": "high"
-            },
-            {
-              "inning": 4,
-              "result": "K",
-              "run_scored": false,
-              "rbi": 0,
-              "sb": 0,
-              "cs": 0,
-              "notes": "",
-              "confidence": "high"
             }
           ],
           "summary": {
-            "PA": 2,
-            "AB": 2,
+            "PA": 1,
+            "AB": 1,
             "R": 0,
             "H": 0,
             "two_B": null,
@@ -563,6 +523,10 @@
   "inning_totals": {
     "runs_per_inning": [
       3,
+      0,
+      0,
+      0,
+      0,
       0,
       0,
       0,

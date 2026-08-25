@@ -1,5 +1,5 @@
 Image : 2026-04-03 - Onze Gezellen (Away).jpg
-Model : gemini-2.5-flash   Workers: 8   Innings: 7
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
 Date  : 2026-04-03   Opponent: Onze Gezellen
 Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
 
@@ -17,25 +17,11 @@ Extra row tops:  [1536, 1678]
 
 Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-03 - Onze Gezellen (Away)\2026-04-03 - Onze Gezellen (Away)_grid_debug.png
 Grid  : 10 player rows x 11 cols, cell=142px
-Active: first 9 rows (7 game innings, 9 cols to read)
+Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-03 - Onze Gezellen (Away)\2026-04-03 - Onze Gezellen (Away)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Evangelista
-     2.  M. Gelaudie  |  S. Bakker
-     3.  T. Kryston
-     4.  V. Spaandonk
-     5.  G. Suares
-     6.  G.L. McLelland
-     7.  B. Watts
-     8.  J. Bradwell
-     9.  X. Dikkes
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
   Row 2 starter: 'M. Gelaudie' → M. Gelaudi (#98)
   Row 2 sub1: 'S. Bakker' → S. Bakker (#0)
   Row 2: sub1 inning from cache: 4
@@ -48,24 +34,73 @@ Detecting player names from scan...
   Row 9 starter: 'X. Dikkes' → X. Dikkes (#17)
 GT    : 2026-04-03 - Onze Gezellen (Away)_totals.txt loaded
 
-Cells : 81 total | 81 cached | 0 to classify
-Wrap  : none detected (from file)
+Cells : 99 total | 81 cached | 18 to classify
+    9/18 (50%)  5s
+   18/18 (100%)  8s
+  WARNING: _layout.json has 9 entries but n_phys_cols=11 — re-detecting and overwriting.
+Wrap  : none detected (auto)
 
 
--- RBI backfill: 6 run cell(s) with missing/null rbi_slot --------------------
-  P1 (M. Evangelista) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P3 (T. Kryston) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P4 (V. Spaandonk) inn 1: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P4 (V. Spaandonk) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P4 (V. Spaandonk) inn 4: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P6 (G.L. McLelland) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  RBI backfill: updated 6 cell(s)
+-- SB backfill: 29 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Evangelista) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Evangelista) inn 5: counting SB…
+    → sb_count=0
+  P2 (M. Gelaudie) inn 1: counting SB…
+    → sb_count=0
+  P2 (M. Gelaudie) inn 2: counting SB…
+    → sb_count=1
+  P2 (M. Gelaudie) inn 3: counting SB…
+    → sb_count=0
+  P2 (S. Bakker) inn 5: counting SB…
+    → sb_count=0
+  P3 (T. Kryston) inn 1: counting SB…
+    → sb_count=1
+  P3 (T. Kryston) inn 2: counting SB…
+    → sb_count=2
+  P3 (T. Kryston) inn 5: counting SB…
+    → sb_count=0
+  P3 (T. Kryston) inn 7: counting SB…
+    → sb_count=0
+  P4 (V. Spaandonk) inn 1: counting SB…
+    → sb_count=2
+  P4 (V. Spaandonk) inn 2: counting SB…
+    → sb_count=1
+  P4 (V. Spaandonk) inn 4: counting SB…
+    → sb_count=3
+  P4 (V. Spaandonk) inn 7: counting SB…
+    → sb_count=0
+  P5 (G. Suares) inn 1: counting SB…
+    → sb_count=1
+  P5 (G. Suares) inn 7: counting SB…
+    → sb_count=0
+  P6 (G.L. McLelland) inn 1: counting SB…
+    → sb_count=0
+  P6 (G.L. McLelland) inn 2: counting SB…
+    → sb_count=0
+  P6 (G.L. McLelland) inn 4: counting SB…
+    → sb_count=1
+  P6 (G.L. McLelland) inn 5: counting SB…
+    → sb_count=0
+  P6 (G.L. McLelland) inn 7: counting SB…
+    → sb_count=0
+  P7 (B. Watts) inn 1: counting SB…
+    → sb_count=0
+  P7 (B. Watts) inn 2: counting SB…
+    → sb_count=0
+  P7 (B. Watts) inn 4: counting SB…
+    → sb_count=0
+  P7 (B. Watts) inn 7: counting SB…
+    → sb_count=0
+  P8 (J. Bradwell) inn 1: counting SB…
+    → sb_count=0
+  P8 (J. Bradwell) inn 4: counting SB…
+    → sb_count=0
+  P8 (J. Bradwell) inn 6: counting SB…
+    → sb_count=0
+  P9 (X. Dikkes) inn 2: counting SB…
+    → sb_count=0
+  SB backfill: updated 29 cell(s)
 
 
 -- Batting rules ------------------------------------------------
@@ -100,6 +135,8 @@ Wrap  : none detected (from file)
   [Inn 5 ]  PA=  7  R= 2  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 6 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 7 ]  PA=  7  R= 3  H= 4  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
 
   -- Run reconciliation:
   Inn 2: R=4 < GT=5 — rechecking 1 missing run(s)…
@@ -112,12 +149,14 @@ Wrap  : none detected (from file)
   [Inn 5 ]  PA=  7  R= 2  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 6 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 7 ]  PA=  7  R= 3  H= 4  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
 
 Saved : 2026-04-03 - Onze Gezellen (Away)_cells.json
 Total : 45 PA extracted   15 runs
 GT    : 16 runs expected
 Widget: 2026-04-03 - Onze Gezellen (Away).html
 
-DB    : Replacing existing game (id=28)...
-DB    : Written as game id=28
+DB    : Replacing existing game (id=35)...
+DB    : Written as game id=46
 Log   : 2026-04-03 - Onze Gezellen (Away)_run.log

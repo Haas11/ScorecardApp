@@ -1,5 +1,5 @@
 Image : 2026-03-29 - Domstad Dodgers (Home).jpg
-Model : gemini-2.5-flash   Workers: 8   Innings: 4
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
 Date  : 2026-03-29   Opponent: Domstad Dodgers
 Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
 
@@ -17,25 +17,11 @@ Extra row tops:  [1612, 1754]
 
 Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-29 - Domstad Dodgers (Home)\2026-03-29 - Domstad Dodgers (Home)_grid_debug.png
 Grid  : 10 player rows x 11 cols, cell=142px
-Active: first 9 rows (4 game innings, 6 cols to read)
+Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-29 - Domstad Dodgers (Home)\2026-03-29 - Domstad Dodgers (Home)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Gelaudie
-     2.  J. Bradwell
-     3.  T. Kryston
-     4.  V. van Spaandonk
-     5.  N. Specht
-     6.  G.L. McLelland
-     7.  X. Dikkes
-     8.  N. Wisse
-     9.  C. Romick
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
   Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
   Row 3 starter: 'T. Kryston' → T. Kryston (#0)
   Row 4 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
@@ -46,20 +32,52 @@ Detecting player names from scan...
   Row 9 starter: 'C. Romick' → C. Romick (#43)
 GT    : 2026-03-29 - Domstad Dodgers (Home)_totals.txt loaded
 
-Cells : 54 total | 54 cached | 0 to classify
+Cells : 99 total | 99 cached | 0 to classify
 WRAP  : inning 1 continues into column 2 (file)
+
+
+-- RBI backfill: 3 run cell(s) missing rbi_slot key --------------------
+  P2 (J. Bradwell) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P3 (T. Kryston) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  P4 (V. van Spaandonk) inn 2: reading bottom-left for rbi_slot…
+    → rbi_slot=None
+  RBI backfill: updated 3 cell(s)
+
+
+-- SB backfill: 3 reached-base cell(s) missing sb_count --------------------
+  P2 (J. Bradwell) inn 1: counting SB…
+    → sb_count=0
+  P3 (T. Kryston) inn 1: counting SB…
+    → sb_count=1
+  P4 (V. van Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  SB backfill: updated 3 cell(s)
+  [hole-reread] P6 (G.L. McLelland) inn 2: null between P5 and P7 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  [hole-reread] P2 (J. Bradwell) inn 3: null between P1 and P3 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
   [hole-reread] P6 (G.L. McLelland) inn 3: null between P5 and P7 — re-reading…
     → still unreadable after re-read — leaving null (fix in review)
-  Re-read 1 hole cell(s)
+  [hole-reread] P6 (G.L. McLelland) inn 4: null between P5 and P7 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 4 hole cell(s)
 
 
 -- Batting rules ------------------------------------------------
+  [hole] P6 inn 2: still null between P5 and P7 after re-read
+  [hole] P2 inn 3: still null between P1 and P3 after re-read
   [hole] P6 inn 3: still null between P5 and P7 after re-read
+  [hole] P6 inn 4: still null between P5 and P7 after re-read
+  [isolated] Player 1 inn 3 was 6-3: removed
   [isolated] Player 7 inn 3 was K: removed
+  [isolated] Player 7 inn 4 was K: removed
   [3-outs] Player 2 inn 1 col 2 was 3B: removed
   [3-outs] Player 3 inn 1 col 2 was E5: removed
   [3-outs] Player 4 inn 1 col 2 was HR: removed
   [3-outs] Player 5 inn 1 col 2 was K: removed
+  [3-outs] Player 9 inn 1 col 2 was 1B: removed
 
 
 -- GT run enforcement -------------------------------------------
@@ -67,10 +85,10 @@ WRAP  : inning 1 continues into column 2 (file)
 
 -- Per-player (row) check ----------------------------------------
   [Slot  1] M. Gelaudi              PA= 3  AB= 2  H= 0  R= 0
-  [Slot  2] J. Bradwell             PA= 1  AB= 1  H= 1  R= 1
-  [Slot  3] T. Kryston              PA= 2  AB= 2  H= 0  R= 0
-  [Slot  4] V. van Spaandonk        PA= 2  AB= 2  H= 1  R= 1
-  [Slot  5] N. Specht               PA= 2  AB= 1  H= 0  R= 1
+  [Slot  2] J. Bradwell             PA= 2  AB= 2  H= 2  R= 2
+  [Slot  3] T. Kryston              PA= 4  AB= 4  H= 0  R= 1
+  [Slot  4] V. van Spaandonk        PA= 4  AB= 4  H= 3  R= 2
+  [Slot  5] N. Specht               PA= 4  AB= 3  H= 0  R= 1
   [Slot  6] G.L. McLelland          PA= 1  AB= 1  H= 1  R= 0
   [Slot  7] X. Dikkes               PA= 2  AB= 1  H= 1  R= 0
   [Slot  8] N. Wisse                PA= 2  AB= 1  H= 1  R= 0
@@ -78,39 +96,49 @@ WRAP  : inning 1 continues into column 2 (file)
 
 
 -- PA sequence check ---------------------------------------------
-  [PA-seq] IMPOSSIBLE: T. Kryston (2 PA) > J. Bradwell (1 PA)
+  [PA-seq] IMPOSSIBLE: T. Kryston (4 PA) > J. Bradwell (2 PA)
   [PA-seq] IMPOSSIBLE: X. Dikkes (2 PA) > G.L. McLelland (1 PA)
 
 
 -- Per-inning (column) check -------------------------------------
   [Inn 1 ]  PA= 10  R= 3  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 2 ]  PA=  4  R= 0  H= 3  E= 0  Outs=1  PA:MISMATCH (expected 7, got 4)  R:MISMATCH (GT=4)  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 1)
+  [Inn 2 ]  PA=  8  R= 3  H= 5  E= 1  Outs=2  PA:MISMATCH (expected 7, got 8)  R:MISMATCH (GT=4)  H:MISMATCH (GT=3)  E:OK  Outs:WARNING (expected 3, got 2)
   [Inn 3 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 6, got 3)  R:OK  H:MISMATCH (GT=2)  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 4 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 4, got 0)  R:OK  H:MISMATCH (GT=1)  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 4 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 4, got 3)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 6 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 7 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
 
   -- Run reconciliation:
-  Inn 2: R=0 < GT=4 — rechecking 4 missing run(s)…
+  Inn 2: R=3 < GT=4 — rechecking 1 missing run(s)…
 
   -- Per-inning (column) check after reconciliation:
   [Inn 1 ]  PA= 10  R= 3  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 2 ]  PA=  4  R= 0  H= 3  E= 0  Outs=1  PA:MISMATCH (expected 7, got 4)  R:MISMATCH (GT=4)  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 1)
+  [Inn 2 ]  PA=  8  R= 3  H= 5  E= 1  Outs=2  PA:MISMATCH (expected 7, got 8)  R:MISMATCH (GT=4)  H:MISMATCH (GT=3)  E:OK  Outs:WARNING (expected 3, got 2)
   [Inn 3 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 6, got 3)  R:OK  H:MISMATCH (GT=2)  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 4 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 4, got 0)  R:OK  H:MISMATCH (GT=1)  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 4 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 4, got 3)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 6 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 7 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
 
 
 -- PA ordering: trimmed phantom PAs -----------------------------
-  [pa-order] slot 3: trimmed 1 PA (2→1): inn 3 6-3
-  [pa-order] slot 4: trimmed 1 PA (2→1): inn 3 1B
-  [pa-order] slot 5: trimmed 1 PA (2→1): inn 3 K
+  [pa-order] slot 3: trimmed 2 PA (4→2): inn 3 6-3, inn 4 6-3
+  [pa-order] slot 4: trimmed 2 PA (4→2): inn 3 1B, inn 4 1B
+  [pa-order] slot 5: trimmed 2 PA (4→2): inn 3 K, inn 4 K
   [pa-order] slot 7: trimmed 1 PA (2→1): inn 2 1B
   [pa-order] slot 8: trimmed 1 PA (2→1): inn 2 1B
   [pa-order] slot 9: trimmed 1 PA (2→1): inn 2 1B
 
 Saved : 2026-03-29 - Domstad Dodgers (Home)_cells.json
-Total : 11 PA extracted   3 runs
+Total : 15 PA extracted   6 runs
 GT    : 7 runs expected
 Widget: 2026-03-29 - Domstad Dodgers (Home).html
 
-DB    : Replacing existing game (id=27)...
-DB    : Written as game id=31
+DB    : Replacing existing game (id=45)...
+DB    : Written as game id=53
 Log   : 2026-03-29 - Domstad Dodgers (Home)_run.log

@@ -1,5 +1,5 @@
 Image : 2026-03-22 - Boekaniers (Home).jpg
-Model : gemini-2.5-flash   Workers: 8   Innings: 7
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
 Date  : 2026-03-22   Opponent: Boekaniers
 Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
 
@@ -17,25 +17,11 @@ Extra row tops:  [4366, 4770]
 
 Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-22 - Boekaniers (Home)\2026-03-22 - Boekaniers (Home)_grid_debug.png
 Grid  : 10 player rows x 11 cols, cell=404px
-Active: first 9 rows (7 game innings, 9 cols to read)
+Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-03-22 - Boekaniers (Home)\2026-03-22 - Boekaniers (Home)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Gelaudie
-     2.  M. Evangelista
-     3.  T. Kryston
-     4.  V. van Spaandonk
-     5.  N. Specht
-     6.  X. Dikkes
-     7.  G.L. McLelland
-     8.  P. Chang
-     9.  C. Romick
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
   Row 2 starter: 'M. Evangelista' → M. Evangelista (#25)
   Row 3 starter: 'T. Kryston' → T. Kryston (#0)
   Row 4 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
@@ -46,28 +32,34 @@ Detecting player names from scan...
   Row 9 starter: 'C. Romick' → C. Romick (#43)
 GT    : 2026-03-22 - Boekaniers (Home)_totals.txt loaded
 
-Cells : 81 total | 81 cached | 0 to classify
-Wrap  : none detected (from file)
+Cells : 99 total | 99 cached | 0 to classify
+  WARNING: _layout.json has 9 entries but n_phys_cols=11 — re-detecting and overwriting.
+Wrap  : none detected (auto)
 
 
--- RBI backfill: 9 run cell(s) missing rbi_slot key --------------------
-  P1 (M. Gelaudie) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=6
-  P2 (M. Evangelista) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=2
-  P2 (M. Evangelista) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=6
-  P3 (T. Kryston) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P4 (V. van Spaandonk) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P4 (V. van Spaandonk) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=5
-  P4 (V. van Spaandonk) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P5 (N. Specht) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  RBI backfill: updated 8 cell(s)
+-- RBI backfill: 1 run cell(s) missing rbi_slot key --------------------
+
+
+-- SB backfill: 18 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudie) inn 3: counting SB…
+    → sb_count=1
+  P2 (M. Evangelista) inn 3: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 7: counting SB…
+    → sb_count=0
+  P3 (T. Kryston) inn 3: counting SB…
+    → sb_count=0
+  P3 (T. Kryston) inn 7: counting SB…
+    → sb_count=0
+  P4 (V. van Spaandonk) inn 2: counting SB…
+    → sb_count=0
+  P4 (V. van Spaandonk) inn 3: counting SB…
+    → sb_count=0
+  P4 (V. van Spaandonk) inn 7: counting SB…
+    → sb_count=0
+  P5 (N. Specht) inn 7: counting SB…
+    → sb_count=0
+  SB backfill: updated 9 cell(s)
 
 
 -- Batting rules ------------------------------------------------
@@ -102,6 +94,8 @@ Wrap  : none detected (from file)
   [Inn 5 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 6 ]  PA=  6  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 7 ]  PA=  8  R= 4  H= 3  E= 3  Outs=2  PA:MISMATCH (expected 9, got 8)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
   Run totals: all match GT.
 
 Saved : 2026-03-22 - Boekaniers (Home)_cells.json
@@ -109,6 +103,6 @@ Total : 36 PA extracted   9 runs
 GT    : 9 runs expected
 Widget: 2026-03-22 - Boekaniers (Home).html
 
-DB    : Replacing existing game (id=12)...
-DB    : Written as game id=29
+DB    : Replacing existing game (id=33)...
+DB    : Written as game id=44
 Log   : 2026-03-22 - Boekaniers (Home)_run.log

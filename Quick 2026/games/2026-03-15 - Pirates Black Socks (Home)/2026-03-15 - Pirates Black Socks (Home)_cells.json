@@ -22,7 +22,7 @@
               "result": "1B",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -32,7 +32,7 @@
               "result": "BB",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -157,7 +157,7 @@
               "result": "HBP",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -227,7 +227,7 @@
               "result": "1B",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -237,7 +237,7 @@
               "result": "FC",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -382,7 +382,7 @@
               "result": "1B",
               "run_scored": false,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -711,7 +711,7 @@
               "result": "1B",
               "run_scored": false,
               "rbi": 1,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": "high"
@@ -878,6 +878,8 @@
       2,
       2,
       3,
+      0,
+      0,
       0,
       0
     ],

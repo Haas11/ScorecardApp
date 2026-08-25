@@ -21,21 +21,7 @@ Active: first 9 rows (9 game innings, 11 cols to read)
 Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-05-31 - Kinheim (Home)\2026-05-31 - Kinheim (Home)_grid_debug.png
 
 Detecting player names from scan...
-
-  Slot  Names detected (starter  |  sub1  |  sub2)
-  ------------------------------------------------------------
-     1.  M. Gelaudi
-     2.  M. Evangelista  |  N. Wisse
-     3.  V. van Spaandonk
-     4.  G. Suares
-     5.  J. Bradwell
-     6.  S. Bakker
-     7.  X. Dikkes
-     8.  C. Romick
-     9.  C. Trehy
-
-  Enter a slot number to edit it, or press Enter to continue.
-  Edit slot []:  Row 1 starter: 'M. Gelaudi' → M. Gelaudi (#98)
+  Row 1 starter: 'M. Gelaudi' → M. Gelaudi (#98)
   Row 2 starter: 'M. Evangelista' → M. Evangelista (#25)
   Row 2 sub1: 'N. Wisse' → N. Wisse (#57)
   Row 2: sub1 inning from cache: 7
@@ -52,43 +38,77 @@ Cells : 99 total | 99 cached | 0 to classify
 Wrap  : none detected (from file)
 
 
--- RBI backfill: 14 run cell(s) with missing/null rbi_slot --------------------
-  P1 (M. Gelaudi) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P3 (V. van Spaandonk) inn 6: reading bottom-left for rbi_slot…
-    → rbi_slot=5
-  P3 (V. van Spaandonk) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P4 (G. Suares) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=1
-  P4 (G. Suares) inn 6: reading bottom-left for rbi_slot…
-    → rbi_slot=5
-  P4 (G. Suares) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=6
-  P5 (J. Bradwell) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=7
-  P5 (J. Bradwell) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=6
-  P5 (J. Bradwell) inn 9: reading bottom-left for rbi_slot…
-    → rbi_slot=7
-  P6 (S. Bakker) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=8
-  P6 (S. Bakker) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=8
-  P7 (X. Dikkes) inn 2: reading bottom-left for rbi_slot…
-    → rbi_slot=8
-  P7 (X. Dikkes) inn 3: reading bottom-left for rbi_slot…
-    → rbi_slot=None
-  P9 (C. Trehy) inn 7: reading bottom-left for rbi_slot…
-    → rbi_slot=3
-  RBI backfill: updated 14 cell(s)
+-- SB backfill: 31 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudi) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudi) inn 7: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 1: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 2: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 3: counting SB…
+    → sb_count=0
+  P2 (N. Wisse) inn 8: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 2: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 6: counting SB…
+    → sb_count=1
+  P3 (V. van Spaandonk) inn 7: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 3: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 4: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 6: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 7: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 9: counting SB…
+    → sb_count=0
+  P5 (J. Bradwell) inn 3: counting SB…
+    → sb_count=0
+  P5 (J. Bradwell) inn 6: counting SB…
+    → sb_count=1
+  P5 (J. Bradwell) inn 7: counting SB…
+    → sb_count=0
+  P5 (J. Bradwell) inn 9: counting SB…
+    → sb_count=1
+  P6 (S. Bakker) inn 2: counting SB…
+    → sb_count=0
+  P6 (S. Bakker) inn 3: counting SB…
+    → sb_count=0
+  P6 (S. Bakker) inn 7: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 2: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 3: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 5: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 9: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 2: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 8: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 3: counting SB…
+    → sb_count=1
+  P9 (C. Trehy) inn 5: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 7: counting SB…
+    → sb_count=0
+  SB backfill: updated 31 cell(s)
   [hole-reread] P3 (V. van Spaandonk) inn 3: null between P2 and P4 — re-reading…
-    → still no result after re-read ({"result": null, "run": false, "confidence": "high",)
-    → assigned BB fallback (hole confirmed, cell unreadable)
+    → still unreadable after re-read — leaving null (fix in review)
   Re-read 1 hole cell(s)
 
 
 -- Batting rules ------------------------------------------------
+  [hole] P3 inn 3: still null between P2 and P4 after re-read
 
 
 -- GT run enforcement -------------------------------------------
@@ -98,7 +118,7 @@ Wrap  : none detected (from file)
   [Slot  1] M. Gelaudi              PA= 6  AB= 5  H= 1  R= 1
   [Slot  2] M. Evangelista          PA= 4  AB= 2  H= 0  R= 0
   [Slot  2]   ↳ N. Wisse            PA= 2  AB= 1  H= 0  R= 0
-  [Slot  3] V. van Spaandonk        PA= 7  AB= 5  H= 1  R= 2
+  [Slot  3] V. van Spaandonk        PA= 6  AB= 5  H= 1  R= 2
   [Slot  4] G. Suares               PA= 6  AB= 6  H= 3  R= 3
   [Slot  5] J. Bradwell             PA= 6  AB= 5  H= 2  R= 3
   [Slot  6] S. Bakker               PA= 6  AB= 4  H= 1  R= 2
@@ -108,13 +128,13 @@ Wrap  : none detected (from file)
 
 
 -- PA sequence check ---------------------------------------------
-  [PA-seq] IMPOSSIBLE: V. van Spaandonk (7 PA) > M. Evangelista (6 PA)
+  OK: 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 5 ≥ 5
 
 
 -- Per-inning (column) check -------------------------------------
   [Inn 1 ]  PA=  5  R= 0  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
   [Inn 2 ]  PA=  7  R= 2  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 3 ]  PA=  9  R= 4  H= 1  E= 2  Outs=2  PA:MISMATCH (expected 8, got 9)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 3 ]  PA=  8  R= 4  H= 1  E= 2  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
   [Inn 4 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
   [Inn 5 ]  PA=  4  R= 0  H= 0  E= 1  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
   [Inn 6 ]  PA=  6  R= 2  H= 2  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
@@ -123,15 +143,11 @@ Wrap  : none detected (from file)
   [Inn 9 ]  PA=  4  R= 1  H= 2  E= 0  Outs=1  PA:MISMATCH (expected 5, got 4)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
   Run totals: all match GT.
 
-
--- PA ordering: trimmed phantom PAs -----------------------------
-  [pa-order] slot 3: trimmed 1 PA (7→6): inn 3 BB
-
 Saved : 2026-05-31 - Kinheim (Home)_cells.json
 Total : 52 PA extracted   14 runs
 GT    : 14 runs expected
 Widget: 2026-05-31 - Kinheim (Home).html
 
-DB    : Replacing existing game (id=7)...
-DB    : Written as game id=22
+DB    : Replacing existing game (id=39)...
+DB    : Written as game id=50
 Log   : 2026-05-31 - Kinheim (Home)_run.log

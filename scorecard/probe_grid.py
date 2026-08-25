@@ -138,9 +138,12 @@ def find_row_tops(raw_h: list[int], cell_size: int, n_rows: int) -> list[int]:
 def detect_grid(
     img_path: str,
     n_player_rows: int = 10,
-    n_inning_cols: int = 11,   # kept for backward compat but no longer used
+    n_inning_cols: int = 11,
     n_extra_rows: int = 2,
     left_skip_frac: float = 0.05,
+    grid_start: int | None = None,
+    grid_col_width: int | None = None,
+    cell_height: int | None = None,
     debug_out: str | None = None,
     cells_out: str | None = None,
 ):
@@ -198,8 +201,11 @@ def detect_grid(
 
         if is_bimodal:
             # Mixed: sub-row dividers AND full-row boundaries both detected.
-            # Upper cluster = full-row height; lower cluster = sub-row gap.
-            cell_size = upper_med
+            # Use lower_med*2 rather than upper_med: when some "full-row" gaps
+            # are actually sub-row+noise or partial misses, upper_med undershoots
+            # the true full height.  lower_med (sub-row divider height) × 2 is
+            # always the correct full-row height.
+            cell_size = lower_med * 2
             has_sub_rows = True
             print(f"Sub-row lines detected (gap={lower_med}px); cell_size={cell_size}px")
         elif median_gap < sub_row_threshold:
@@ -211,9 +217,15 @@ def detect_grid(
         else:
             # Unimodal large gaps: full-row boundaries only.  Filter to gaps
             # at least half of the largest to exclude any stray noise lines.
-            min_credible = sorted_g[-1] * 0.5
-            large = [g for g in gaps_h if g >= min_credible]
-            cell_size = int(np.median(large)) if large else median_gap
+            # Guard against outlier gaps (missed lines creating a huge gap):
+            # if the max gap is >3× the median, it is an outlier — use median
+            # directly instead of letting it dominate min_credible.
+            if sorted_g[-1] > 3 * median_gap:
+                cell_size = median_gap
+            else:
+                min_credible = sorted_g[-1] * 0.5
+                large = [g for g in gaps_h if g >= min_credible]
+                cell_size = int(np.median(large)) if large else median_gap
             has_sub_rows = False
             print(f"Full-row lines detected; cell_size={cell_size}px")
     else:
@@ -223,6 +235,11 @@ def detect_grid(
 
     print(f"H-lines ({len(raw_h)}): {raw_h[:8]}{'...' if len(raw_h) > 8 else ''}")
 
+    if cell_height is not None:
+        print(f"cell_height override: {cell_height}px (was {cell_size}px)")
+        cell_size = cell_height
+        has_sub_rows = None  # let _build_row_tops re-derive from raw lines
+
     row_tops = _build_row_tops(raw_h, cell_size, n_player_rows, n_extra_rows, has_sub_rows=has_sub_rows)
     row_bottoms = [t + cell_size for t in row_tops]
     print(f"Row tops:    {row_tops}")
@@ -230,12 +247,38 @@ def detect_grid(
         actual_gaps = [row_tops[i + 1] - row_tops[i] for i in range(len(row_tops) - 1)]
         print(f"Row gaps:    {actual_gaps}")
 
+    # ── Manual grid override ──────────────────────────────────────────────────
+    # When --grid-start and --grid-width are supplied, skip V-line detection
+    # entirely and synthesize a perfectly uniform column grid.
+    if grid_start is not None and grid_col_width is not None:
+        col_lefts = [grid_start + i * grid_col_width for i in range(n_inning_cols + 1)]
+        print(f"Grid override: x_start={grid_start}  col_width={grid_col_width}px  ({n_inning_cols} cols)")
+        print(f"Col lefts:   {col_lefts}")
+        extra_tops = [row_bottoms[-1] + i * cell_size for i in range(n_extra_rows)]
+        extra_bottoms = [t + cell_size for t in extra_tops]
+        print(f"Extra row tops:  {extra_tops}")
+        if debug_out:
+            dbg = img.copy()
+            for i, top in enumerate(row_tops):
+                cv2.line(dbg, (0, top), (w, top), (0, 0, 255), 2)
+                cv2.putText(dbg, f"P{i+1}", (5, top + 14), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 200), 1)
+            cv2.line(dbg, (0, row_bottoms[-1]), (w, row_bottoms[-1]), (0, 0, 255), 2)
+            for i, top in enumerate(extra_tops):
+                cv2.line(dbg, (0, top), (w, top), (0, 128, 255), 2)
+                cv2.putText(dbg, f"E{i+1}", (5, top + 14), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 200), 1)
+            for ci, x in enumerate(col_lefts):
+                cv2.line(dbg, (x, 0), (x, h), (255, 0, 0), 2)
+                cv2.putText(dbg, str(ci + 1), (x + 2, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 0, 0), 1)
+            cv2.imwrite(debug_out, dbg)
+            print(f"\nDebug image -> {debug_out}")
+        return row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size
+
     # ── Vertical lines (skip player-info area on the left) ────────────────────
     # The left portion of each scorecard contains player position, name and
     # jersey-number columns before the inning columns begin.  We skip everything
     # to the left of left_skip_frac × image_width.
     left_skip = int(w * left_skip_frac)
-    vk = cv2.getStructuringElement(cv2.MORPH_RECT, (1, h // 3))
+    vk = cv2.getStructuringElement(cv2.MORPH_RECT, (1, h // 4))
     v_proj = np.sum(cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vk), axis=0)
     raw_v_all = cluster(raw_lines_from_projection(v_proj), clust_gap)
     raw_v = [x for x in raw_v_all if x >= left_skip]
@@ -322,6 +365,15 @@ def detect_grid(
         x_end = col_lefts[-1]
         n_detected = len(col_lefts) - 1
         print(f"Inning cols: x={x_start}..{x_end}  col_width={col_width}px  ({n_detected} cols detected)")
+
+        # If fewer columns were detected than expected (V-lines missing on the
+        # left due to low contrast), extrapolate backwards from the first
+        # detected column in exact col_width steps so all gaps stay uniform.
+        if n_detected < n_inning_cols and n_inning_cols > 1:
+            n_missing = n_inning_cols - n_detected
+            synth = [col_lefts[0] - (n_missing - i) * col_width for i in range(n_missing)]
+            col_lefts = synth + col_lefts
+            print(f"  Extrapolated {n_missing} missing left col(s); true x_start={synth[0]}")
     else:
         # Fallback: proportional estimate (1 col ≈ w/16)
         col_w_est = w // 16

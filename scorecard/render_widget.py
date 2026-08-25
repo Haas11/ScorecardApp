@@ -68,6 +68,7 @@ def compute_stats(game: dict) -> dict:
                     "r":   pa.get("result"),
                     "run": bool(pa.get("run_scored")),
                     "rbi": int(pa.get("rbi") or 0),
+                    "sb":  int(pa.get("sb") or 0),
                 })
             summary = player.get("summary") or {}
             pa_count = len(pas)
@@ -245,6 +246,7 @@ thead th { background: var(--hdr); color: #fff; }
 .btx  { color: var(--tx3);  font-size: 13px; text-decoration: line-through; }
 .run  { color: var(--s-tx); font-size: 10px; }
 .rbi  { color: var(--w-tx); font-size: 10px; }
+.sb   { color: var(--i-tx); font-size: 10px; }
 .blk  { border-radius: 2px; padding: 1px 2px; margin-bottom: 1px; }
 .fcel { font-size: 12px; color: var(--tx2); line-height: 1.65; }
 .wbdg { font-size: 10px; background: var(--w-bg); color: var(--w-tx);
@@ -313,15 +315,17 @@ function paCell(pas, isSub, entryInning, inning, extraStyle, exitInning) {
     const p = pas[0], ct = ctype(p.r);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
     const rdot = p.rbi ? ` <span class="rbi">${p.rbi > 1 ? p.rbi : ''}&#x25C6;</span>` : '';
+    const sbdot = p.sb ? ` <span class="sb">${p.sb > 1 ? p.sb : ''}&#x21D7;</span>` : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<td class="${BGCLS[ct]}"${s}><span class="${TXCLS[ct]}">${txt}${dot}${rdot}</span></td>`;
+    return `<td class="${BGCLS[ct]}"${s}><span class="${TXCLS[ct]}">${txt}${dot}${rdot}${sbdot}</span></td>`;
   }
   const items = pas.map(p => {
     const ct = ctype(p.r);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
     const rdot = p.rbi ? ` <span class="rbi">${p.rbi > 1 ? p.rbi : ''}&#x25C6;</span>` : '';
+    const sbdot = p.sb ? ` <span class="sb">${p.sb > 1 ? p.sb : ''}&#x21D7;</span>` : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<div class="blk ${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}${rdot}</span></div>`;
+    return `<div class="blk ${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}${rdot}${sbdot}</span></div>`;
   }).join('');
   const baseStyle = extraStyle ? `padding:2px;${extraStyle}` : 'padding:2px';
   return `<td style="${baseStyle}"><div style="display:flex;flex-direction:column">${items}</div></td>`;

@@ -112,6 +112,13 @@ BOTTOM-RIGHT RESULT RULES:
   A single diagonal template line with NO other marks = NO plate appearance
   Completely blank cell                               = NO plate appearance
 
+VOIDED / MISSCORED CELLS — return null:
+  If the BOTTOM-RIGHT quadrant (1st base / result area) is crossed out with
+  diagonal lines (an X or two crossing strokes through that quadrant), the PA
+  was recorded in the wrong cell and should be ignored → return result: null.
+  If ALL FOUR quadrants are crossed out the entire cell is voided → return result: null.
+  Do NOT attempt to read a result from a crossed-out or voided cell.
+
 IMPORTANT — unknown or ambiguous out marks:
   Dutch KNBSB scorecards do NOT use appeal plays, "OUT (A)", or any out
   notation not listed above. If you see a circle whose contents are ambiguous
@@ -385,6 +392,52 @@ def _read_rbi_slot(
     return None
 
 
+def _read_sb_count(
+    crop: np.ndarray,
+    player_name: str,
+    inning: int,
+    client,
+    model: str,
+) -> int:
+    """Count stolen base notations in the three non-result quadrants of a cell.
+
+    Sends the full cell image and asks the VLM to count 'SB' marks in the
+    top-left, top-right, and bottom-left quadrants only (bottom-right is the
+    result quadrant and never contains SB notations).  Returns 0 or more.
+    """
+    if crop.size == 0:
+        return 0
+    img_bytes, media_type = _encode_cell(crop, scale=6)
+    system = (
+        "You are reading a Dutch KNBSB baseball scorecard cell to count stolen bases. "
+        "The cell has a 2×2 quadrant layout. The BOTTOM-RIGHT quadrant is the plate "
+        "appearance result — ignore it completely. "
+        "Look ONLY at the TOP-LEFT, TOP-RIGHT, and BOTTOM-LEFT quadrants. "
+        "Count the number of times 'SB' (stolen base) appears as a handwritten "
+        "notation in any of those three quadrants. "
+        "Each 'SB' mark counts as one stolen base. There may be 0, 1, 2, or 3. "
+        "Do NOT count WP, PB, CS, or any other abbreviation. "
+        'Return ONLY valid JSON: {"sb_count": <integer>}'
+    )
+    user_text = (
+        f"Player: {player_name}  Inning: {inning}\n"
+        "How many SB notations are in the top-left, top-right, or bottom-left quadrants?"
+    )
+    raw = _call_api(client, model, img_bytes, media_type, user_text, system,
+                    max_tokens=50, thinking_budget=0)
+    if not raw or raw.startswith("api_error:"):
+        return 0
+    parsed = _parse_json_response(raw)
+    if not isinstance(parsed, dict):
+        return 0
+    val = parsed.get("sb_count")
+    if isinstance(val, int) and val >= 0:
+        return val
+    if isinstance(val, str) and val.strip().isdigit():
+        return max(0, int(val.strip()))
+    return 0
+
+
 def _recheck_run(
     crop: np.ndarray,
     player_name: str,
@@ -635,6 +688,10 @@ def _reread_run_no_result_cells(
                 reread += 1
             else:
                 click.echo(f"    → still no result after re-read ({(raw or 'None')[:80]})")
+                # result remains null — clear run so the grid stays consistent
+                grid[ri][ci]["run"] = False
+                cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+                cf.write_text(json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8")
     return reread
 
 
@@ -834,7 +891,7 @@ def _check_row(slot: int, name: str, cells: list[dict], gt: dict[int, tuple] | N
 
 
 def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> None:
-    r    = sum(1 for c in cells if c.get("run"))
+    r    = sum(1 for c in cells if c.get("run") and c.get("result") is not None)
     h    = sum(1 for c in cells if _is_hit(c.get("result")))
     outs = sum(1 for c in cells if _is_out(c.get("result")))
     e    = sum(1 for c in cells if re.match(r"^E\d+$", (c.get("result") or "").upper()))
@@ -942,7 +999,12 @@ def _backfill_rbi_cells(
         for ci in range(n_cols)
         if (grid[ri][ci] or {}).get("run") and "rbi_slot" not in (grid[ri][ci] or {})
     ]
+    n_run_cells = sum(
+        1 for ri in range(n_rows) for ci in range(n_cols)
+        if (grid[ri][ci] or {}).get("run")
+    )
     if not to_backfill:
+        click.echo(f"\n-- RBI: {n_run_cells} run cell(s) — rbi_slot already read for all (no backfill needed)")
         return 0
 
     click.echo(
@@ -973,6 +1035,71 @@ def _backfill_rbi_cells(
         cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
         cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
         click.echo(f"    → rbi_slot={rbi_slot}")
+        updated += 1
+    return updated
+
+
+def _backfill_sb_cells(
+    img: np.ndarray,
+    grid: list[list[dict | None]],
+    n_rows: int,
+    n_cols: int,
+    row_tops: list[int],
+    row_bottoms: list[int],
+    col_lefts: list[int],
+    col_to_inning: list[int],
+    row_names: list[dict],
+    client,
+    model: str,
+    cache_dir: Path,
+) -> int:
+    """Read sb_count for reached-base cells missing the key (old-format cache).
+
+    Targets cells where the batter reached base (result is not null and not an
+    out) and the 'sb_count' key is absent.  Sends the full cell to the VLM and
+    counts SB notations in the three non-result quadrants.
+    Returns the number of cells updated.
+    """
+    to_backfill = [
+        (ri, ci)
+        for ri in range(n_rows)
+        for ci in range(n_cols)
+        if (
+            (grid[ri][ci] or {}).get("result") is not None
+            and not _is_out((grid[ri][ci] or {}).get("result"))
+            and "sb_count" not in (grid[ri][ci] or {})
+        )
+    ]
+    if not to_backfill:
+        return 0
+
+    click.echo(
+        f"\n\n-- SB backfill: {len(to_backfill)} reached-base cell(s) missing sb_count " + "-" * 20
+    )
+    updated = 0
+    for ri, ci in to_backfill:
+        inn = col_to_inning[ci]
+        slot_info = row_names[ri] if ri < len(row_names) else {}
+        names = slot_info.get("players") or []
+        sub_innings = slot_info.get("sub_innings") or []
+        player_name = names[0] if names else f"P{ri+1}"
+        for k, si in enumerate(sub_innings, 1):
+            if inn >= si and k < len(names):
+                player_name = names[k]
+        y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
+        x1 = max(0, col_lefts[ci])
+        x2 = col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1]
+        crop = img[y1:y2, x1:x2]
+        if crop.size == 0:
+            continue
+        click.echo(f"  P{ri+1} ({player_name}) inn {inn}: counting SB…")
+        existing = dict(grid[ri][ci] or {})
+        sb_count = _read_sb_count(crop, player_name, inn, client, model)
+        existing["sb_count"] = sb_count
+        grid[ri][ci] = existing
+        cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+        cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
+        click.echo(f"    → sb_count={sb_count}")
         updated += 1
     return updated
 
@@ -1456,7 +1583,10 @@ def _prompt_player_selection(
     from db import _get_data_root
     players_txt = _get_data_root() / "players.txt"
     jersey_suffix = f", {jersey_int}" if jersey_int is not None else ""
+    existing_bytes = players_txt.read_bytes() if players_txt.exists() else b""
     with open(players_txt, "a", encoding="utf-8") as f:
+        if existing_bytes and existing_bytes[-1:] != b"\n":
+            f.write("\n")
         f.write(f"{new_name}{jersey_suffix}\n")
     click.echo(f"  Created '{new_name}' and added to {players_txt.name}")
 
@@ -1582,12 +1712,25 @@ class _TeeWriter:
               help="Classify cells and check integrity but do not write to DB.")
 @click.option("--yes", "-y", "auto_yes", is_flag=True, default=False,
               help="Skip all interactive review prompts; use cached / auto values throughout.")
+@click.option("--reset-names", is_flag=True, default=False,
+              help="Delete the _names.json cache before running so player names are re-detected from scratch.")
 @click.option("--gt-dir", default=None,
               help="Ground-truth directory (default: the game folder inside data_root/games/).")
+@click.option("--left-skip", "left_skip_frac", default=0.05, show_default=True, type=float,
+              help="Fraction of image width to skip before V-line detection (skips player-info area). "
+                   "Increase to ~0.30–0.35 for landscape/low-res scans with wide player-info columns.")
+@click.option("--grid-start", default=None, type=int,
+              help="X pixel of the first inning's left edge. Bypasses V-line detection entirely "
+                   "when combined with --grid-width.")
+@click.option("--grid-width", default=None, type=int,
+              help="Pixel width of each inning column. Use with --grid-start to force a uniform grid.")
+@click.option("--cell-height", "cell_height", default=None, type=int,
+              help="Override detected row height in pixels. Use when bimodal H-line detection gives wrong cell_size.")
 def main(
     image_path, players_file, active_players, innings,
     n_player_rows, model, workers,
-    reuse_cache, dry_run, auto_yes, gt_dir,
+    reuse_cache, dry_run, auto_yes, gt_dir, left_skip_frac,
+    grid_start, grid_width, cell_height, reset_names,
 ):
     """Cell-based scorecard extraction — inning from column position, not VLM guessing."""
     img_path = Path(image_path).resolve()
@@ -1669,6 +1812,11 @@ def main(
     row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size = detect_grid(
         str(img_path),
         n_player_rows=n_player_rows,
+        n_inning_cols=innings,
+        left_skip_frac=left_skip_frac,
+        grid_start=grid_start,
+        grid_col_width=grid_width,
+        cell_height=cell_height,
         debug_out=debug_img,
     )
     img = cv2.imread(str(img_path))
@@ -1695,6 +1843,11 @@ def main(
         client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     # ── Player name detection from scan ──────────────────────────────────────
+    if reset_names:
+        _nc_path = cache_dir / "_names.json"
+        if _nc_path.exists():
+            _nc_path.unlink()
+            click.echo("  --reset-names: deleted _names.json cache")
     click.echo("\nDetecting player names from scan...")
     row_names = _detect_row_names(
         img, row_tops, row_bottoms, col_lefts, n_active_rows, client, model, cache_dir,
@@ -1723,6 +1876,11 @@ def main(
                 label = "starter" if pi == 0 else f"sub{pi}"
                 click.echo(f"  Row {ri+1} {label}: '{detected}' → {matched[0]} (#{matched[1]})")
             else:
+                # Sub slot with short unmatched name → likely VLM noise, skip.
+                # Real abbreviated names are at least "A. X" (4 significant chars).
+                if pi > 0 and len(detected.replace(".", "").replace(" ", "")) < 4:
+                    click.echo(f"  Row {ri+1} sub{pi}: '{detected}' too short to match, ignoring.")
+                    break
                 context = "sub" if pi > 0 else None
                 chosen = _prompt_player_selection(detected, roster, str(ri + 1), context=context)
                 _update_names_cache(cache_dir, ri, pi, chosen[0])
@@ -2018,6 +2176,16 @@ def main(
     if n_rbi_backfill:
         click.echo(f"  RBI backfill: updated {n_rbi_backfill} cell(s)")
 
+    # ── SB backfill: count stolen bases for reached-base cells ────────────────
+    n_sb_backfill = _backfill_sb_cells(
+        img, grid, n_active_rows, n_phys_cols,
+        row_tops, row_bottoms, col_lefts,
+        col_to_inning, row_names,
+        client, model, cache_dir,
+    )
+    if n_sb_backfill:
+        click.echo(f"  SB backfill: updated {n_sb_backfill} cell(s)")
+
     # ── Re-read hole cells (null between two non-null in same column) ─────────
     n_holes = _reread_hole_cells(
         img, grid, n_active_rows, n_phys_cols,
@@ -2095,7 +2263,7 @@ def main(
             cols = _inning_col_map[inn]
             extracted_r = sum(
                 1 for ci in cols for ri in range(n_active_rows)
-                if (grid[ri][ci] or {}).get("run")
+                if (grid[ri][ci] or {}).get("run") and (grid[ri][ci] or {}).get("result") is not None
             )
             if extracted_r == gt_r:
                 continue
@@ -2166,7 +2334,8 @@ def main(
                 run_scored=bool(cell.get("run")),
                 notes=cell.get("notes") or "",
                 rbi=1 if (r or "").upper() == "HR" else 0,
-                sb=0, cs=0,
+                sb=int(cell.get("sb_count") or 0),
+                cs=0,
                 confidence=cell.get("confidence", "high"),
             )
             # Assign to last player whose entry_inning <= this inning

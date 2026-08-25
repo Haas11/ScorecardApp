@@ -22,7 +22,7 @@ HEADER_FONT = Font(bold=True, color="FFFFFF", size=14)
 TEAM_FILL   = PatternFill("solid", fgColor="D9E1F2")
 TEAM_FONT   = Font(bold=True, size=14)
 MAX_FILL    = PatternFill("solid", fgColor="FFC000")   # amber — season leader
-COUNT_COLS  = {"H", "2B", "3B", "HR", "R", "RBI", "BB"}   # count stats to highlight
+COUNT_COLS  = {"H", "2B", "3B", "HR", "R", "RBI", "BB", "SB"}   # count stats to highlight
 
 _THICK = Side(style="medium")
 _THIN  = Side(style="thin")
@@ -44,12 +44,12 @@ _COL_FMT: dict[str, str] = {
 RATE_COLS = {"AVG", "OBP", "SLG", "OPS", "BABIP", "ISO", "wOBA"}
 SEASON_COLS = [
     "Name", "G", "PA", "AB", "H", "2B", "3B", "HR", "R", "RBI",
-    "BB", "K", "SB", "CS", "AVG", "OBP", "SLG", "OPS",
+    "BB", "K", "SB", "AVG", "OBP", "SLG", "OPS",
     "BABIP", "ISO", "BB%", "K%", "wOBA", "RC", "OPS+", "AB/HR", "BB/K",
 ]
 GAME_LOG_COLS = [
     "Name", "Date", "Opponent", "PA", "AB", "H", "2B", "3B", "HR",
-    "R", "RBI", "BB", "K", "SB", "CS", "AVG", "OBP",
+    "R", "RBI", "BB", "K", "SB", "AVG", "OBP",
 ]
 LOW_CONF_COLS = ["Player", "Date", "Opponent", "Inning", "Result", "Notes", "Reviewed"]
 
@@ -86,7 +86,7 @@ def _autofit(ws) -> None:
 def _stats_row(s: PlayerStats) -> list:
     return [
         s.name, s.G, s.PA, s.AB, s.H, s.doubles, s.triples, s.HR,
-        s.R, s.RBI, s.BB, s.K, s.SB, s.CS,
+        s.R, s.RBI, s.BB, s.K, s.SB,
         round(s.AVG, 3), round(s.OBP, 3), round(s.SLG, 3), round(s.OPS, 3),
         round(s.BABIP, 3) if s.BABIP is not None else "",
         round(s.ISO, 3),
@@ -129,7 +129,7 @@ def _team_season_row(stats: list) -> list:
     bb_k = round(bb / k, 2) if k > 0 else ""
     rbi = sum(s.RBI for s in stats)
     return [
-        "Team", g, pa, ab, h, d, t, hr, r, rbi, bb, k, sb, cs,
+        "Team", g, pa, ab, h, d, t, hr, r, rbi, bb, k, sb,
         avg, obp, slg, ops, babip, iso, bb_pct, k_pct, "", "", "", ab_hr, bb_k,
     ]
 
@@ -149,7 +149,7 @@ def _team_game_row(entries: list[dict]) -> list:
     cs = sum(d["CS"] for d in entries)
     avg = round(h / ab, 3) if ab > 0 else 0.0
     obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
-    return ["", "Team", pa, ab, h, d2, t, hr, r, rbi, bb, k, sb, cs, avg, obp]
+    return ["", "Team", pa, ab, h, d2, t, hr, r, rbi, bb, k, sb, avg, obp]
 
 
 def _write_team_row(ws, row_idx: int, vals: list, cols: list[str] | None = None) -> None:
@@ -366,7 +366,7 @@ def export_season(
         row_vals = [
             d["name"], d["date"], d["opponent"],
             d["PA"], d["AB"], d["H"], d["2B"], d["3B"], d["HR"],
-            d["R"], d["RBI"], d["BB"], d["K"], d["SB"], d["CS"],
+            d["R"], d["RBI"], d["BB"], d["K"], d["SB"],
             avg, obp,
         ]
         for col_idx, val in enumerate(row_vals, 1):
@@ -379,7 +379,7 @@ def export_season(
 
     # ── Per-game sheets: one box-score tab per game (regenerated from DB) ──
     per_game_cols = ["#", "Name", "PA", "AB", "H", "2B", "3B", "HR",
-                     "R", "RBI", "BB", "K", "SB", "CS", "AVG", "OBP"]
+                     "R", "RBI", "BB", "K", "SB", "AVG", "OBP"]
     games_meta = conn.execute(
         "SELECT game_id, date, opponent, game_number FROM games ORDER BY date ASC, game_id ASC"
     ).fetchall()
@@ -408,7 +408,7 @@ def export_season(
             obp = round((h + bb) / (ab + bb), 3) if (ab + bb) > 0 else 0.0
             vals = [d["batting_order"], d["name"], d["PA"], d["AB"], d["H"],
                     d["2B"], d["3B"], d["HR"], d["R"], d["RBI"],
-                    d["BB"], d["K"], d["SB"], d["CS"], avg, obp]
+                    d["BB"], d["K"], d["SB"], avg, obp]
             for col_idx, val in enumerate(vals, 1):
                 cell = wsg.cell(row=row_idx, column=col_idx, value=val)
                 col_name = per_game_cols[col_idx - 1]

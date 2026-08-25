@@ -14,24 +14,5 @@ G.L. McLelland, 0
 B. Watts, 0
 K. Glomb, 0
 M. Evangelista, 25
-P. Chang, 0G.L. McLelland
-S. Bakker
-V. van Spaandonk
-P. Chang
-M. Gelaudi
-K. Glomb
-C. Trehy
-N. Specht
-X. Dikkes
-C. Romick
-G.L. McLelland
-S. Bakker
-V. van Spaandonk
-P. Chang
-M. Gelaudi
-K. Glomb
-C. Trehy
-N. Specht
-X. Dikkes
-C. Romick
-C. Lee
+P. Chang, 0
+C. Lee, 0

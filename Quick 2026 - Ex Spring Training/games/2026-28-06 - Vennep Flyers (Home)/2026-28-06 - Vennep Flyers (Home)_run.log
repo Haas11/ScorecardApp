@@ -1,0 +1,115 @@
+Image : 2026-28-06 - Vennep Flyers (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 10
+Date  : 2026-28-06   Opponent: Vennep Flyers
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 1345x948px  players=10  innings=10
+Sub-row lines detected (gap=37px); cell_size=74px
+H-lines (17): [40, 114, 188, 226, 263, 299, 337, 376]...
+Layout B: first player row at y=40
+Row tops:    [40, 114, 188, 263, 337, 412, 488, 563, 640, 715]
+Row gaps:    [74, 74, 75, 74, 75, 76, 75, 77, 75]
+Grid override: x_start=455  col_width=75px  (10 cols)
+Col lefts:   [455, 530, 605, 680, 755, 830, 905, 980, 1055, 1130, 1205]
+Extra row tops:  [789, 863]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-28-06 - Vennep Flyers (Home)\2026-28-06 - Vennep Flyers (Home)_grid_debug.png
+Grid  : 10 player rows x 10 cols, cell=74px
+Active: first 9 rows (10 game innings, 10 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-28-06 - Vennep Flyers (Home)\2026-28-06 - Vennep Flyers (Home)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Evangelista
+     2.  S. Bakker
+     3.  T. Kryston
+     4.  G. Suares
+     5.  N. Specht  |  N. Wisse  |  C. Romick
+     6.  D. Mabushi  |  B. Watts
+     7.  X. Dikkes
+     8.  J. Bradwell  |  V. v Spaandonk
+     9.  G.L. McLelland
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 2 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'G. Suares' → G. Suares (#2)
+  Row 5 starter: 'N. Specht' → N. Specht (#0)
+  Row 5 sub1: 'N. Wisse' → N. Wisse (#57)
+  Row 5 sub2: 'C. Romick' → C. Romick (#43)
+  Row 5: sub1 inning from cache: 6
+  Row 5: sub2 inning from cache: 9
+  Row 6 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 6 sub1: 'B. Watts' → B. Watts (#0)
+  Row 6: sub1 inning from cache: 7
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 8 sub1: 'V. v Spaandonk' → V. van Spaandonk (#24)
+  Row 8: sub1 inning from cache: 7
+  Row 9 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+GT    : 2026-28-06 - Vennep Flyers (Home)_totals.txt loaded
+
+Cells : 90 total | 90 cached | 0 to classify
+WRAP  : inning 1 continues into column 2 (file)
+
+-- RBI: 20 run cell(s) — rbi_slot already read for all (no backfill needed)
+
+
+-- SB backfill: 1 reached-base cell(s) missing sb_count --------------------
+  P3 (T. Kryston) inn 3: counting SB…
+    → sb_count=0
+  SB backfill: updated 1 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P1 inn 7: still null between P9 and P2 after re-read
+  [3-outs] Player 3 inn 3 col 4 was 2B: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Evangelista          PA= 7  AB= 7  H= 4  R= 2
+  [Slot  2] S. Bakker               PA= 7  AB= 6  H= 4  R= 3
+  [Slot  3] T. Kryston              PA= 7  AB= 4  H= 3  R= 1
+  [Slot  4] G. Suares               PA= 7  AB= 7  H= 4  R= 3
+  [Slot  5] N. Specht               PA= 4  AB= 4  H= 1  R= 1
+  [Slot  5]   ↳ N. Wisse            PA= 1  AB= 0  H= 0  R= 0
+  [Slot  5]   ↳ C. Romick           PA= 1  AB= 1  H= 1  R= 0
+  [Slot  6] D. Mabushi              PA= 4  AB= 4  H= 1  R= 1
+  [Slot  6]   ↳ B. Watts            PA= 2  AB= 1  H= 0  R= 1
+  [Slot  7] X. Dikkes               PA= 6  AB= 5  H= 1  R= 3
+  [Slot  8] J. Bradwell             PA= 4  AB= 4  H= 3  R= 2
+  [Slot  8]   ↳ V. van Spaandonk    PA= 2  AB= 1  H= 1  R= 0
+  [Slot  9] G.L. McLelland          PA= 6  AB= 5  H= 1  R= 3
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 7 ≥ 7 ≥ 7 ≥ 7 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA= 11  R= 7  H= 6  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 2  E= 0  Outs=0  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 3 ]  PA=  5  R= 1  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  3  R= 0  H= 1  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  9  R= 3  H= 4  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  5  R= 0  H= 2  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  8  R= 2  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 8 ]  PA=  4  R= 0  H= 0  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 9 ]  PA=  9  R= 7  H= 6  E= 0  Outs=0  PA:MISMATCH (expected 10, got 9)  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 0)
+  Run totals: all match GT.
+
+Saved : 2026-28-06 - Vennep Flyers (Home)_cells.json
+Total : 58 PA extracted   20 runs
+GT    : 20 runs expected
+Widget: 2026-28-06 - Vennep Flyers (Home).html
+
+DB    : Replacing existing game (id=54)...
+DB    : Written as game id=54
+Log   : 2026-28-06 - Vennep Flyers (Home)_run.log

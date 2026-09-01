@@ -97,7 +97,7 @@ BOTTOM-RIGHT RESULT RULES:
     1 crossbar or "i" written = single (1B) (can look like L or reversed L )
     2 crossbars = double (2B)
     3 crossbars = triple (3B)
-    4 crossbars = home run (HR) 
+    4 crossbars = home run (HR)  will cover all 4 cells (can look like reverse E with dot in center)
     HR crossbars will cover all 4 cells (and has a center run dot). 
 
     The crossbars are HORIZONTAL lines through the vertical stroke.
@@ -355,7 +355,7 @@ def _read_rbi_slot(
     system = (
         "You are reading the BOTTOM-LEFT quadrant of a Dutch KNBSB baseball scorecard cell. "
         "This quadrant may contain ONE of the following: "
-        "  (A) a single batting-order digit 1–9 → the batter who drove in the run; "
+        "  (A) a single batting-order digit 1–9 → the batter who drove in the run (RBI); "
         "  (B) a multi-character notation: SB (stolen base), WP (wild pitch), PB (passed ball), "
         "      CS (caught stealing), or E followed by digits (e.g. E13) → no RBI; "
         "  (C) nothing / blank → no RBI. "
@@ -449,9 +449,9 @@ def _recheck_run(
     img_bytes, media_type = _encode_cell(crop, scale=6)
     system = (
         "You are checking a Dutch KNBSB baseball scorecard cell. "
-        "Look ONLY at the CENTER crosshair for a FILLED solid diamond or dot, "
-        "and the BOTTOM-LEFT quadrant for any circular mark. "
-        "Either indicates a run scored. Respond with exactly: true  or exactly: false"
+        "Look at the CENTER crosshair for a FILLED solid mark or dot, this is a run."
+        "Look at the BOTTOM-LEFT quadrant for any mark/digit/letter(s) this is a run."
+        "Either indicates a run scored. Respond with exactly: true or exactly: false"
     )
     user_text = f"Player: {player_name}  Inning: {inning}\nRun scored?"
     raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=10)

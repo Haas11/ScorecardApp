@@ -1,0 +1,170 @@
+Image : 2026-06-07 - Almere (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-06-07   Opponent: Almere
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=72px); cell_size=144px
+H-lines (24): [29, 99, 172, 241, 314, 383, 456, 525]...
+Layout A (legacy): first player row at y=99
+Row tops:    [99, 241, 383, 525, 668, 810, 952, 1094, 1236, 1379]
+Row gaps:    [142, 142, 142, 143, 142, 142, 142, 142, 143]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=51 median=71 max=460
+Inning cols: x=1021..2582  col_width=142px  (11 cols detected)
+Col lefts:   [1021, 1161, 1304, 1446, 1588, 1729, 1872, 2014, 2155, 2298, 2440, 2582]
+Extra row tops:  [1523, 1667]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-06-07 - Almere (Away)\2026-06-07 - Almere (Away)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=144px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-06-07 - Almere (Away)\2026-06-07 - Almere (Away)_grid_debug.png
+
+Detecting player names from scan...
+  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 3 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
+  Row 4 starter: 'G. Suares' → G. Suares (#2)
+  Row 5 starter: 'X. Dilkes' → X. Dikkes (#17)
+  Row 5 sub1: 'C. Lee' → C. Lee (#None)
+  Row 5: sub1 inning from cache: 9
+  Row 6 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 7 starter: 'N. Wisse' → N. Wisse (#57)
+  Row 8 starter: 'C. Romick' → C. Romick (#43)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+GT    : 2026-06-07 - Almere (Away)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 to classify
+Wrap  : none detected (from file)
+
+
+-- SB backfill: 36 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudie) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 2: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 4: counting SB…
+    → sb_count=1
+  P1 (M. Gelaudie) inn 7: counting SB…
+    → sb_count=1
+  P1 (M. Gelaudie) inn 9: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 1: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 2: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 6: counting SB…
+    → sb_count=0
+  P2 (J. Bradwell) inn 9: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 3: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 6: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 7: counting SB…
+    → sb_count=2
+  P3 (V. van Spaandonk) inn 9: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 3: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 6: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 7: counting SB…
+    → sb_count=1
+  P5 (X. Dilkes) inn 3: counting SB…
+    → sb_count=0
+  P5 (X. Dilkes) inn 5: counting SB…
+    → sb_count=1
+  P5 (X. Dilkes) inn 6: counting SB…
+    → sb_count=1
+  P5 (X. Dilkes) inn 7: counting SB…
+    → sb_count=0
+  P5 (C. Lee) inn 9: counting SB…
+    → sb_count=0
+  P5 (C. Lee) inn 11: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 1: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 3: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 6: counting SB…
+    → sb_count=0
+  P6 (D. Mabushi) inn 7: counting SB…
+    → sb_count=0
+  P7 (N. Wisse) inn 3: counting SB…
+    → sb_count=0
+  P7 (N. Wisse) inn 5: counting SB…
+    → sb_count=1
+  P7 (N. Wisse) inn 8: counting SB…
+    → sb_count=0
+  P7 (N. Wisse) inn 9: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 2: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 6: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 2: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 5: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 7: counting SB…
+    → sb_count=0
+  SB backfill: updated 36 cell(s)
+  [hole-reread] P4 (G. Suares) inn 11: null between P3 and P5 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P9 inn 9: still null between P8 and P1 after re-read
+  [hole] P4 inn 11: still null between P3 and P5 after re-read
+  [isolated] Player 3 inn 11 was 2-4: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA= 6  AB= 4  H= 3  R= 3
+  [Slot  2] J. Bradwell             PA= 6  AB= 5  H= 0  R= 3
+  [Slot  3] V. van Spaandonk        PA= 6  AB= 4  H= 2  R= 3
+  [Slot  4] G. Suares               PA= 6  AB= 5  H= 0  R= 2
+  [Slot  5] X. Dikkes               PA= 5  AB= 4  H= 1  R= 1
+  [Slot  5]   ↳ C. Lee              PA= 1  AB= 1  H= 1  R= 0
+  [Slot  6] D. Mabushi              PA= 6  AB= 3  H= 1  R= 0
+  [Slot  7] N. Wisse                PA= 6  AB= 3  H= 1  R= 0
+  [Slot  8] C. Romick               PA= 6  AB= 6  H= 1  R= 0
+  [Slot  9] C. Trehy                PA= 5  AB= 4  H= 2  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  [PA-seq] IMPOSSIBLE: X. Dikkes (7 PA) > G. Suares (6 PA)
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  6  R= 3  H= 1  E= 1  Outs=2  PA:OK  R:OK  H:OK  E:MISMATCH (GT=2)  Outs:WARNING (expected 3, got 2)
+  [Inn 2 ]  PA=  5  R= 0  H= 2  E= 0  Outs=1  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
+  [Inn 3 ]  PA=  7  R= 2  H= 1  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 2)
+  [Inn 4 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 5 ]  PA=  6  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  7  R= 1  H= 2  E= 1  Outs=1  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
+  [Inn 7 ]  PA=  7  R= 3  H= 2  E= 1  Outs=1  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
+  [Inn 8 ]  PA=  3  R= 0  H= 0  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 9 ]  PA=  8  R= 3  H= 3  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  Run totals: all match GT.
+
+
+-- PA ordering: trimmed phantom PAs -----------------------------
+  [pa-order] slot 5: trimmed 1 PA (7→6): inn 11 1B
+  [pa-order] slot 6: trimmed 1 PA (7→6): inn 11 1-3
+
+Saved : 2026-06-07 - Almere (Away)_cells.json
+Total : 53 PA extracted   12 runs
+GT    : 12 runs expected
+Widget: 2026-06-07 - Almere (Away).html
+
+DB    : Replacing existing game (id=40)...
+DB    : Written as game id=51
+Log   : 2026-06-07 - Almere (Away)_run.log

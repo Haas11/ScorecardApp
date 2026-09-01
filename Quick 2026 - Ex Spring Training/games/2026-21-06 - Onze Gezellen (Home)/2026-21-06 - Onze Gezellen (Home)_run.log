@@ -1,0 +1,130 @@
+Image : 2026-21-06 - Onze Gezellen (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-21-06   Opponent: Onze Gezellen
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=9
+Full-row lines detected; cell_size=142px
+H-lines (13): [191, 333, 474, 616, 758, 899, 1042, 1184]...
+Layout B: first player row at y=191
+Row tops:    [191, 333, 474, 616, 758, 899, 1042, 1184, 1327, 1468]
+Row gaps:    [142, 141, 142, 142, 141, 143, 142, 143, 141]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=51 median=71 max=461
+Inning cols: x=1025..2587  col_width=142px  (11 cols detected)
+Col lefts:   [1025, 1166, 1309, 1450, 1593, 1734, 1877, 2019, 2160, 2303, 2444, 2587]
+Extra row tops:  [1610, 1752]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-21-06 - Onze Gezellen (Home)\2026-21-06 - Onze Gezellen (Home)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-21-06 - Onze Gezellen (Home)\2026-21-06 - Onze Gezellen (Home)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  J. Bradwell
+     2.  S. Bakker
+     3.  T. Kryston
+     4.  V. van Spaandonk
+     5.  K. Glomb  |  G. Suares
+     6.  B. Watts  |  D. Mabushi
+     7.  G.L. McLelland
+     8.  N. Specht  |  N. Wisse
+     9.  C. Trehy  |  X. Dikkes
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 2 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
+  Row 5 starter: 'K. Glomb' → K. Glomb (#0)
+  Row 5 sub1: 'G. Suares' → G. Suares (#2)
+  Row 5: sub1 inning from cache: 4
+  Row 6 starter: 'B. Watts' → B. Watts (#0)
+  Row 6 sub1: 'D. Mabushi' → D. Mabushi (#0)
+  Row 6: sub1 inning from cache: 6
+  Row 7 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 8 starter: 'N. Specht' → N. Specht (#0)
+  Row 8 sub1: 'N. Wisse' → N. Wisse (#57)
+  Row 8: sub1 inning from cache: 7
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'X. Dikkes' → X. Dikkes (#17)
+  Row 9: sub1 inning from cache: 7
+GT    : 2026-21-06 - Onze Gezellen (Home)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 to classify
+WRAP  : inning 3 continues into column 4 (file)
+
+-- RBI: 9 run cell(s) — rbi_slot already read for all (no backfill needed)
+
+
+-- SB backfill: 8 reached-base cell(s) missing sb_count --------------------
+  P6 (D. Mabushi) inn 10: counting SB…
+    → sb_count=0
+  P7 (G.L. McLelland) inn 2: counting SB…
+    → sb_count=0
+  P7 (G.L. McLelland) inn 3: counting SB…
+    → sb_count=0
+  P7 (G.L. McLelland) inn 4: counting SB…
+    → sb_count=1
+  P8 (N. Specht) inn 3: counting SB…
+    → sb_count=0
+  P8 (N. Specht) inn 4: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 3: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 4: counting SB…
+    → sb_count=0
+  SB backfill: updated 8 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P1 inn 4: still null between P9 and P2 after re-read
+  [isolated] Player 6 inn 10 was 1B: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] J. Bradwell             PA= 5  AB= 4  H= 0  R= 0
+  [Slot  2] S. Bakker               PA= 5  AB= 4  H= 1  R= 1
+  [Slot  3] T. Kryston              PA= 5  AB= 4  H= 2  R= 2
+  [Slot  4] V. van Spaandonk        PA= 5  AB= 4  H= 1  R= 1
+  [Slot  5] K. Glomb                PA= 2  AB= 2  H= 0  R= 0
+  [Slot  5]   ↳ G. Suares           PA= 3  AB= 3  H= 1  R= 1
+  [Slot  6] B. Watts                PA= 3  AB= 2  H= 1  R= 2
+  [Slot  6]   ↳ D. Mabushi          PA= 1  AB= 1  H= 1  R= 0
+  [Slot  7] G.L. McLelland          PA= 4  AB= 4  H= 1  R= 1
+  [Slot  8] N. Specht               PA= 3  AB= 3  H= 1  R= 1
+  [Slot  8]   ↳ N. Wisse            PA= 1  AB= 1  H= 0  R= 0
+  [Slot  9] C. Trehy                PA= 3  AB= 3  H= 1  R= 0
+  [Slot  9]   ↳ X. Dikkes           PA= 1  AB= 1  H= 0  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 4 ≥ 4 ≥ 4 ≥ 4
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  5  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 0  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 3 ]  PA= 10  R= 6  H= 3  E= 1  Outs=2  PA:OK  R:OK  H:OK  E:MISMATCH (GT=3)  Outs:WARNING (expected 3, got 2)
+  [Inn 4 ]  PA=  8  R= 3  H= 4  E= 1  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 5 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 8 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  Run totals: all match GT.
+
+Saved : 2026-21-06 - Onze Gezellen (Home)_cells.json
+Total : 41 PA extracted   9 runs
+GT    : 9 runs expected
+Widget: 2026-21-06 - Onze Gezellen (Home).html
+
+DB    : Replacing existing game (id=55)...
+DB    : Written as game id=55
+Log   : 2026-21-06 - Onze Gezellen (Home)_run.log

@@ -1,0 +1,153 @@
+Image : 2026-05-31 - Kinheim (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-05-31   Opponent: Kinheim
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (25): [100, 170, 243, 313, 385, 455, 527, 598]...
+Layout A: 1 header line(s) at y=[100]; first player row at y=170
+Row tops:    [170, 313, 455, 598, 740, 881, 1024, 1166, 1308, 1450]
+Row gaps:    [143, 142, 143, 142, 141, 143, 142, 142, 142]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=50 median=71 max=460
+Inning cols: x=1019..2580  col_width=142px  (11 cols detected)
+Col lefts:   [1019, 1159, 1302, 1444, 1586, 1727, 1870, 2012, 2153, 2296, 2438, 2580]
+Extra row tops:  [1592, 1734]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-05-31 - Kinheim (Home)\2026-05-31 - Kinheim (Home)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-05-31 - Kinheim (Home)\2026-05-31 - Kinheim (Home)_grid_debug.png
+
+Detecting player names from scan...
+  Row 1 starter: 'M. Gelaudi' → M. Gelaudi (#98)
+  Row 2 starter: 'M. Evangelista' → M. Evangelista (#25)
+  Row 2 sub1: 'N. Wisse' → N. Wisse (#57)
+  Row 2: sub1 inning from cache: 7
+  Row 3 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
+  Row 4 starter: 'G. Suares' → G. Suares (#2)
+  Row 5 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 6 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 starter: 'C. Romick' → C. Romick (#43)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+GT    : 2026-05-31 - Kinheim (Home)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 to classify
+Wrap  : none detected (from file)
+
+
+-- SB backfill: 31 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudi) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudi) inn 7: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 1: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 2: counting SB…
+    → sb_count=0
+  P2 (M. Evangelista) inn 3: counting SB…
+    → sb_count=0
+  P2 (N. Wisse) inn 8: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 2: counting SB…
+    → sb_count=0
+  P3 (V. van Spaandonk) inn 6: counting SB…
+    → sb_count=1
+  P3 (V. van Spaandonk) inn 7: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 3: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 4: counting SB…
+    → sb_count=1
+  P4 (G. Suares) inn 6: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 7: counting SB…
+    → sb_count=0
+  P4 (G. Suares) inn 9: counting SB…
+    → sb_count=0
+  P5 (J. Bradwell) inn 3: counting SB…
+    → sb_count=0
+  P5 (J. Bradwell) inn 6: counting SB…
+    → sb_count=1
+  P5 (J. Bradwell) inn 7: counting SB…
+    → sb_count=0
+  P5 (J. Bradwell) inn 9: counting SB…
+    → sb_count=1
+  P6 (S. Bakker) inn 2: counting SB…
+    → sb_count=0
+  P6 (S. Bakker) inn 3: counting SB…
+    → sb_count=0
+  P6 (S. Bakker) inn 7: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 2: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 3: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 5: counting SB…
+    → sb_count=0
+  P7 (X. Dikkes) inn 9: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 2: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 8: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 3: counting SB…
+    → sb_count=1
+  P9 (C. Trehy) inn 5: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 7: counting SB…
+    → sb_count=0
+  SB backfill: updated 31 cell(s)
+  [hole-reread] P3 (V. van Spaandonk) inn 3: null between P2 and P4 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P3 inn 3: still null between P2 and P4 after re-read
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA= 6  AB= 5  H= 1  R= 1
+  [Slot  2] M. Evangelista          PA= 4  AB= 2  H= 0  R= 0
+  [Slot  2]   ↳ N. Wisse            PA= 2  AB= 1  H= 0  R= 0
+  [Slot  3] V. van Spaandonk        PA= 6  AB= 5  H= 1  R= 2
+  [Slot  4] G. Suares               PA= 6  AB= 6  H= 3  R= 3
+  [Slot  5] J. Bradwell             PA= 6  AB= 5  H= 2  R= 3
+  [Slot  6] S. Bakker               PA= 6  AB= 4  H= 1  R= 2
+  [Slot  7] X. Dikkes               PA= 6  AB= 5  H= 3  R= 2
+  [Slot  8] C. Romick               PA= 5  AB= 3  H= 1  R= 0
+  [Slot  9] C. Trehy                PA= 5  AB= 5  H= 1  R= 1
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 5 ≥ 5
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  5  R= 0  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 2 ]  PA=  7  R= 2  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 3 ]  PA=  8  R= 4  H= 1  E= 2  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 4 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 5 ]  PA=  4  R= 0  H= 0  E= 1  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 6 ]  PA=  6  R= 2  H= 2  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  9  R= 5  H= 3  E= 2  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 8 ]  PA=  5  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 9 ]  PA=  4  R= 1  H= 2  E= 0  Outs=1  PA:MISMATCH (expected 5, got 4)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
+  Run totals: all match GT.
+
+Saved : 2026-05-31 - Kinheim (Home)_cells.json
+Total : 52 PA extracted   14 runs
+GT    : 14 runs expected
+Widget: 2026-05-31 - Kinheim (Home).html
+
+DB    : Replacing existing game (id=39)...
+DB    : Written as game id=50
+Log   : 2026-05-31 - Kinheim (Home)_run.log

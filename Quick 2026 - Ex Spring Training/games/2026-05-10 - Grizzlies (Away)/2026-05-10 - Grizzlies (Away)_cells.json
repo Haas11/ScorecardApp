@@ -1,0 +1,884 @@
+{
+  "game": {
+    "teams": {
+      "home": "Quick",
+      "away": "Grizzlies"
+    },
+    "date": "2026-05-10",
+    "game_number": null
+  },
+  "lineup": [
+    {
+      "batting_order": 1,
+      "players": [
+        {
+          "name": "J. Bradwell",
+          "position": null,
+          "jersey_number": 71,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 2,
+              "result": "BB",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 2,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 4,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 2,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "E6",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 5,
+            "R": 3,
+            "H": 4,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 1,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 2,
+      "players": [
+        {
+          "name": "D. Mabushi",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "BB",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 2,
+              "result": "F3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 4,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
+              "result": "F7",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 4,
+            "AB": 3,
+            "R": 1,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "M. Gelaudi",
+          "position": null,
+          "jersey_number": 98,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 7,
+              "result": "E4",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 2,
+            "AB": 2,
+            "R": 2,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 3,
+      "players": [
+        {
+          "name": "T. Kryston",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "2B",
+              "run_scored": false,
+              "rbi": 2,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 2,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
+              "result": "HBP",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 5,
+            "R": 3,
+            "H": 5,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 3,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 4,
+      "players": [
+        {
+          "name": "G. Suares",
+          "position": null,
+          "jersey_number": 2,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "F7",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "F8",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "3B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
+              "result": "F6",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 2,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "5-3",
+              "run_scored": false,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 6,
+            "R": 1,
+            "H": 2,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 4,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 5,
+      "players": [
+        {
+          "name": "N. Specht",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "F6",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "E5",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "F9",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 6,
+            "R": 2,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 6,
+      "players": [
+        {
+          "name": "G.L. McLelland",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "HBP",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "F3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 5,
+            "AB": 4,
+            "R": 1,
+            "H": 2,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 7,
+      "players": [
+        {
+          "name": "K. Glomb",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "F7",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 3,
+            "AB": 3,
+            "R": 0,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 1,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "N. Wisse",
+          "position": null,
+          "jersey_number": 57,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 7,
+              "result": "2B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "BB",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 2,
+            "AB": 1,
+            "R": 2,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 8,
+      "players": [
+        {
+          "name": "B. Watts",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 2,
+              "result": "F7",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 3,
+              "result": "4-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 5,
+              "result": "4-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 7,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "2B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 5,
+            "AB": 5,
+            "R": 2,
+            "H": 2,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 2,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 9,
+      "players": [
+        {
+          "name": "C. Trehy",
+          "position": null,
+          "jersey_number": 6,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 2,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 4,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 6,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 3,
+            "AB": 3,
+            "R": 0,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "X. Dikkes",
+          "position": null,
+          "jersey_number": 17,
+          "innings_played": null,
+          "plate_appearances": [
+            {
+              "inning": 7,
+              "result": "F4",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            },
+            {
+              "inning": 8,
+              "result": "7-4",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": "high"
+            }
+          ],
+          "summary": {
+            "PA": 2,
+            "AB": 2,
+            "R": 0,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    }
+  ],
+  "pitching": [],
+  "inning_totals": {
+    "runs_per_inning": [
+      2,
+      0,
+      2,
+      0,
+      2,
+      0,
+      6,
+      5,
+      0,
+      0
+    ],
+    "errors_total": null
+  },
+  "ambiguous_cells": [],
+  "last_batter_by_inning": {
+    "1": 7,
+    "2": 2,
+    "3": 8,
+    "4": 2,
+    "5": 8,
+    "6": 4,
+    "7": 5,
+    "8": 5
+  }
+}

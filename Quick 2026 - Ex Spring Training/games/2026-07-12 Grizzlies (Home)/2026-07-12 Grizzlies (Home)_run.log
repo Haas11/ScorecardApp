@@ -1,0 +1,101 @@
+Image : 2026-07-12 Grizzlies (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 7
+Date  : 2026-07-12   Opponent: Grizzlies
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2713x1826px  players=10  innings=7
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (24): [23, 93, 165, 236, 307, 378, 449, 520]...
+Layout A (legacy): first player row at y=93
+Row tops:    [93, 236, 378, 520, 662, 803, 945, 1088, 1229, 1371]
+Row gaps:    [143, 142, 142, 142, 141, 142, 143, 141, 142]
+V-lines total=33, after left_skip(135px)=32, V-gaps min=51 median=71 max=460
+Inning cols: x=1010..2710  col_width=142px  (12 cols detected)
+Col lefts:   [1010, 1152, 1295, 1436, 1578, 1720, 1863, 2004, 2146, 2288, 2430, 2573, 2710]
+Extra row tops:  [1513, 1655]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-07-12 Grizzlies (Home)\2026-07-12 Grizzlies (Home)_grid_debug.png
+Grid  : 10 player rows x 12 cols, cell=142px
+Active: first 9 rows (7 game innings, 9 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-07-12 Grizzlies (Home)\2026-07-12 Grizzlies (Home)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  G.L. McLelland
+     2.  D. Mabushi
+     3.  T. Kryston
+     4.  V. van Spaandonk
+     5.  N. Specht
+     6.  B. Watts
+     7.  X. Dikkes
+     8.  N. Wisse
+     9.  C. Trehy  |  J. Barneveld
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 2 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
+  Row 5 starter: 'N. Specht' → N. Specht (#0)
+  Row 6 starter: 'B. Watts' → B. Watts (#0)
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 starter: 'N. Wisse' → N. Wisse (#57)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'J. Barneveld' → J.V. Barneveld (#0)
+  Row 9: sub1 inning from cache: 5
+GT    : 2026-07-12 Grizzlies (Home)_totals.txt loaded
+
+Cells : 81 total | 81 cached | 0 to classify
+Wrap  : none detected (from file)
+
+-- RBI: 10 run cell(s) — rbi_slot already read for all (no backfill needed)
+  [hole-reread] P6 (B. Watts) inn 6: null between P5 and P7 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P6 inn 6: still null between P5 and P7 after re-read
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] G.L. McLelland          PA= 4  AB= 4  H= 1  R= 2
+  [Slot  2] D. Mabushi              PA= 4  AB= 1  H= 0  R= 2
+  [Slot  3] T. Kryston              PA= 4  AB= 4  H= 4  R= 3
+  [Slot  4] V. van Spaandonk        PA= 4  AB= 4  H= 2  R= 1
+  [Slot  5] N. Specht               PA= 4  AB= 4  H= 1  R= 0
+  [Slot  6] B. Watts                PA= 4  AB= 4  H= 0  R= 0
+  [Slot  7] X. Dikkes               PA= 4  AB= 4  H= 1  R= 0
+  [Slot  8] N. Wisse                PA= 4  AB= 4  H= 1  R= 1
+  [Slot  9] C. Trehy                PA= 2  AB= 2  H= 0  R= 0
+  [Slot  9]   ↳ J.V. Barneveld      PA= 2  AB= 2  H= 1  R= 1
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4 ≥ 4
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  5  R= 2  H= 2  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  7  R= 3  H= 1  E= 2  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 5 ]  PA=  5  R= 1  H= 3  E= 0  Outs=1  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
+  [Inn 6 ]  PA=  8  R= 4  H= 3  E= 2  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  [Inn 7 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  Run totals: all match GT.
+
+Saved : 2026-07-12 Grizzlies (Home)_cells.json
+Total : 36 PA extracted   10 runs
+GT    : 10 runs expected
+Widget: 2026-07-12 Grizzlies (Home).html
+
+DB    : Replacing existing game (id=2)...
+DB    : Written as game id=2
+Log   : 2026-07-12 Grizzlies (Home)_run.log

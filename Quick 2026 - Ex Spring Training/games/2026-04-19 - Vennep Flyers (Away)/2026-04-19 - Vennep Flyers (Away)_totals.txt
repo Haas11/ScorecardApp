@@ -1,0 +1,10 @@
+# Totaal per inning — auto-extracted from scan; edit if needed, then re-run.
+# inning  runs  hits  errors  lob
+1	3	3	2	1
+2	0	0	0	0
+3	0	0	1	1
+4	0	0	0	1
+5	1	3	0	2
+6	1	1	0	0
+7	1	2	0	1
+8	1	1	0	1

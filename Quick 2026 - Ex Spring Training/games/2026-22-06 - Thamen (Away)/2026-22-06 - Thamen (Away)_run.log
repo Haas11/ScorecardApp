@@ -1,0 +1,119 @@
+Image : 2026-22-06 - Thamen (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-22-06   Opponent: Thamen
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2688x1852px  players=10  innings=11
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (17): [30, 101, 173, 245, 314, 387, 529, 671]...
+Layout A (legacy): first player row at y=101
+Row tops:    [101, 245, 387, 529, 671, 811, 954, 1096, 1238, 1380]
+Row gaps:    [144, 142, 142, 142, 140, 143, 142, 142, 142]
+V-lines total=32, after left_skip(134px)=31, V-gaps min=51 median=71 max=461
+Inning cols: x=1015..2576  col_width=142px  (11 cols detected)
+Col lefts:   [1015, 1155, 1299, 1440, 1582, 1723, 1866, 2008, 2149, 2292, 2434, 2576]
+Extra row tops:  [1522, 1664]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-22-06 - Thamen (Away)\2026-22-06 - Thamen (Away)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-22-06 - Thamen (Away)\2026-22-06 - Thamen (Away)_grid_debug.png
+
+Detecting player names from scan...
+  Row 1 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 2 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 3 starter: 'V v Spaandonk' → V. van Spaandonk (#24)
+  Row 4 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 4 sub1: 'N. Wisse' → N. Wisse (#57)
+  Row 4: sub1 inning from cache: 3
+  Row 5 starter: 'N. Specht' → N. Specht (#0)
+  Row 5 sub1: 'M. Evangelista' → M. Evangelista (#25)
+  Row 5: sub1 inning from cache: 5
+  Row 6 starter: 'B. Watts' → B. Watts (#0)
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 starter: 'C. Romick' → C. Romick (#43)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+GT    : 2026-22-06 - Thamen (Away)_totals.txt loaded
+
+Cells : 99 total | 90 cached | 9 to classify
+    9/9 (100%)  4s
+  WARNING: _layout.json has 7 entries but n_phys_cols=11 — re-detecting and overwriting.
+Wrap  : none detected (auto)
+
+
+-- SB backfill: 8 reached-base cell(s) missing sb_count --------------------
+  P1 (J. Bradwell) inn 1: counting SB…
+    → sb_count=1
+  P2 (G.L. McLelland) inn 1: counting SB…
+    → sb_count=0
+  P2 (G.L. McLelland) inn 5: counting SB…
+    → sb_count=1
+  P3 (V v Spaandonk) inn 1: counting SB…
+    → sb_count=0
+  P3 (V v Spaandonk) inn 5: counting SB…
+    → sb_count=0
+  P4 (D. Mabushi) inn 1: counting SB…
+    → sb_count=0
+  P8 (C. Romick) inn 4: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 1: counting SB…
+    → sb_count=0
+  SB backfill: updated 8 cell(s)
+  [hole-reread] P6 (B. Watts) inn 1: null between P5 and P7 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P6 inn 1: still null between P5 and P7 after re-read
+  [3-outs] Player 9 inn 1 col 1 was BB: removed
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] J. Bradwell             PA= 3  AB= 2  H= 0  R= 1
+  [Slot  2] G.L. McLelland          PA= 3  AB= 2  H= 1  R= 1
+  [Slot  3] V. van Spaandonk        PA= 3  AB= 1  H= 0  R= 1
+  [Slot  4] D. Mabushi              PA= 1  AB= 0  H= 0  R= 0
+  [Slot  4]   ↳ N. Wisse            PA= 2  AB= 2  H= 0  R= 0
+  [Slot  5] N. Specht               PA= 2  AB= 2  H= 0  R= 0
+  [Slot  5]   ↳ M. Evangelista      PA= 1  AB= 1  H= 0  R= 0
+  [Slot  6] B. Watts                PA= 1  AB= 1  H= 0  R= 0
+  [Slot  7] X. Dikkes               PA= 2  AB= 2  H= 0  R= 0
+  [Slot  8] C. Romick               PA= 2  AB= 2  H= 0  R= 0
+  [Slot  9] C. Trehy                PA= 2  AB= 2  H= 0  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  [PA-seq] IMPOSSIBLE: X. Dikkes (2 PA) > B. Watts (1 PA)
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  7  R= 3  H= 0  E= 0  Outs=3  PA:MISMATCH (expected 8, got 7)  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 2 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  4  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:OK
+  [Inn 5 ]  PA=  5  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 6 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 7 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0
+  Run totals: all match GT.
+
+
+-- PA ordering: trimmed phantom PAs -----------------------------
+  [pa-order] slot 7: trimmed 1 PA (2→1): inn 4 K
+  [pa-order] slot 8: trimmed 1 PA (2→1): inn 4 E
+  [pa-order] slot 9: trimmed 1 PA (2→1): inn 4 K
+
+Saved : 2026-22-06 - Thamen (Away)_cells.json
+Total : 19 PA extracted   3 runs
+GT    : 3 runs expected
+Widget: 2026-22-06 - Thamen (Away).html
+
+DB    : Replacing existing game (id=42)...
+DB    : Written as game id=52
+Log   : 2026-22-06 - Thamen (Away)_run.log

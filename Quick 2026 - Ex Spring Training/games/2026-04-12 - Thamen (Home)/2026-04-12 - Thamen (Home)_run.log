@@ -1,0 +1,142 @@
+Image : 2026-04-12 - Thamen (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-04-12   Opponent: Thamen
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Image: 2717x1952px  players=10  innings=11
+Sub-row lines detected (gap=71px); cell_size=142px
+H-lines (25): [126, 196, 269, 339, 411, 481, 553, 623]...
+Layout A: 1 header line(s) at y=[126]; first player row at y=196
+Row tops:    [196, 339, 481, 623, 765, 907, 1050, 1192, 1334, 1475]
+Row gaps:    [143, 142, 142, 142, 142, 143, 142, 142, 141]
+V-lines total=32, after left_skip(135px)=31, V-gaps min=50 median=71 max=461
+Inning cols: x=1026..2588  col_width=142px  (11 cols detected)
+Col lefts:   [1026, 1168, 1311, 1451, 1594, 1735, 1878, 2020, 2161, 2304, 2446, 2588]
+Extra row tops:  [1617, 1759]
+
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-12 - Thamen (Home)\2026-04-12 - Thamen (Home)_grid_debug.png
+Grid  : 10 player rows x 11 cols, cell=142px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-04-12 - Thamen (Home)\2026-04-12 - Thamen (Home)_grid_debug.png
+
+Detecting player names from scan...
+  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 2 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 3 starter: 'G. Suares' → G. Suares (#2)
+  Row 4 starter: 'V.v. Spaandonk' → V. van Spaandonk (#24)
+  Row 5 starter: 'N. Specht' → N. Specht (#0)
+  Row 6 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 7 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 8 starter: 'B. Watts' → B. Watts (#0)
+  Row 8 sub1: 'D. Mabuchi' → D. Mabushi (#0)
+  Row 8: sub1 inning from cache: 7
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'K. Glomb' → K. Glomb (#0)
+  Row 9: sub1 inning from cache: 6
+GT    : 2026-04-12 - Thamen (Home)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 to classify
+WRAP  : inning 2 continues into column 3 (file)
+
+
+-- SB backfill: 26 reached-base cell(s) missing sb_count --------------------
+  P1 (M. Gelaudie) inn 1: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 2: counting SB…
+    → sb_count=0
+  P1 (M. Gelaudie) inn 3: counting SB…
+    → sb_count=1
+  P2 (S. Bakker) inn 1: counting SB…
+    → sb_count=1
+  P2 (S. Bakker) inn 2: counting SB…
+    → sb_count=1
+  P2 (S. Bakker) inn 3: counting SB…
+    → sb_count=1
+  P2 (S. Bakker) inn 5: counting SB…
+    → sb_count=1
+  P3 (G. Suares) inn 1: counting SB…
+    → sb_count=0
+  P3 (G. Suares) inn 2: counting SB…
+    → sb_count=0
+  P3 (G. Suares) inn 5: counting SB…
+    → sb_count=0
+  P3 (G. Suares) inn 9: counting SB…
+    → sb_count=0
+  P4 (V.v. Spaandonk) inn 2: counting SB…
+    → sb_count=0
+  P4 (V.v. Spaandonk) inn 4: counting SB…
+    → sb_count=0
+  P4 (V.v. Spaandonk) inn 5: counting SB…
+    → sb_count=0
+  P5 (N. Specht) inn 2: counting SB…
+    → sb_count=0
+  P5 (N. Specht) inn 2: counting SB…
+    → sb_count=0
+  P5 (N. Specht) inn 4: counting SB…
+    → sb_count=0
+  P5 (N. Specht) inn 9: counting SB…
+    → sb_count=1
+  P6 (G.L. McLelland) inn 2: counting SB…
+    → sb_count=1
+  P6 (G.L. McLelland) inn 5: counting SB…
+    → sb_count=0
+  P6 (G.L. McLelland) inn 7: counting SB…
+    → sb_count=0
+  P7 (J. Bradwell) inn 2: counting SB…
+    → sb_count=0
+  P8 (B. Watts) inn 2: counting SB…
+    → sb_count=0
+  P8 (B. Watts) inn 4: counting SB…
+    → sb_count=0
+  P9 (C. Trehy) inn 4: counting SB…
+    → sb_count=0
+  P9 (K. Glomb) inn 6: counting SB…
+    → sb_count=0
+  SB backfill: updated 26 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA= 6  AB= 4  H= 1  R= 1
+  [Slot  2] S. Bakker               PA= 6  AB= 3  H= 0  R= 2
+  [Slot  3] G. Suares               PA= 6  AB= 4  H= 2  R= 2
+  [Slot  4] V. van Spaandonk        PA= 6  AB= 5  H= 1  R= 1
+  [Slot  5] N. Specht               PA= 6  AB= 5  H= 2  R= 3
+  [Slot  6] G.L. McLelland          PA= 5  AB= 3  H= 1  R= 1
+  [Slot  7] J. Bradwell             PA= 5  AB= 5  H= 1  R= 1
+  [Slot  8] B. Watts                PA= 4  AB= 4  H= 2  R= 1
+  [Slot  8]   ↳ D. Mabushi          PA= 1  AB= 1  H= 0  R= 0
+  [Slot  9] C. Trehy                PA= 3  AB= 1  H= 0  R= 0
+  [Slot  9]   ↳ K. Glomb            PA= 2  AB= 2  H= 1  R= 0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 6 ≥ 6 ≥ 6 ≥ 6 ≥ 6 ≥ 5 ≥ 5 ≥ 5 ≥ 5
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=  4  R= 0  H= 0  E= 0  Outs=1  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 1)
+  [Inn 2 ]  PA= 12  R= 7  H= 5  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA=  5  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 4 ]  PA=  7  R= 2  H= 2  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 5 ]  PA=  7  R= 1  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:OK
+  [Inn 6 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 7 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 8 ]  PA=  3  R= 0  H= 0  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 9 ]  PA=  4  R= 2  H= 1  E= 0  Outs=2  PA:MISMATCH (expected 5, got 4)  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:WARNING (expected 3, got 2)
+  Run totals: all match GT.
+
+Saved : 2026-04-12 - Thamen (Home)_cells.json
+Total : 50 PA extracted   12 runs
+GT    : 12 runs expected
+Widget: 2026-04-12 - Thamen (Home).html
+
+DB    : Replacing existing game (id=36)...
+DB    : Written as game id=47
+Log   : 2026-04-12 - Thamen (Home)_run.log

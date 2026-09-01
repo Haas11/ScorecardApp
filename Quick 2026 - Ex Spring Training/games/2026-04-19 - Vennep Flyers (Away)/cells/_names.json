@@ -1,0 +1,63 @@
+{
+  "r01": {
+    "players": [
+      "M. Gelaudie"
+    ]
+  },
+  "r02": {
+    "players": [
+      "M. Evangelista"
+    ]
+  },
+  "r03": {
+    "players": [
+      "T. Kryston"
+    ]
+  },
+  "r04": {
+    "players": [
+      "G. Suares"
+    ]
+  },
+  "r05": {
+    "players": [
+      "B. Watts",
+      "V. Spaandonk"
+    ],
+    "sub_innings": [
+      5
+    ]
+  },
+  "r06": {
+    "players": [
+      "S. Bakker"
+    ]
+  },
+  "r07": {
+    "players": [
+      "J. Bradwell",
+      "N. Specht"
+    ],
+    "sub_innings": [
+      5
+    ]
+  },
+  "r08": {
+    "players": [
+      "X. Dikkes",
+      "N. Wisse"
+    ],
+    "sub_innings": [
+      9
+    ]
+  },
+  "r09": {
+    "players": [
+      "C. Trehy",
+      "D. Mabushi"
+    ],
+    "sub_innings": [
+      5
+    ]
+  }
+}

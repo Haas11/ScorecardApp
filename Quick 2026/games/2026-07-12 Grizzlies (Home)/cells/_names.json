@@ -1,0 +1,51 @@
+{
+  "r01": {
+    "players": [
+      "G.L. McLelland"
+    ]
+  },
+  "r02": {
+    "players": [
+      "D. Mabushi"
+    ]
+  },
+  "r03": {
+    "players": [
+      "T. Kryston"
+    ]
+  },
+  "r04": {
+    "players": [
+      "V. van Spaandonk"
+    ]
+  },
+  "r05": {
+    "players": [
+      "N. Specht"
+    ]
+  },
+  "r06": {
+    "players": [
+      "B. Watts"
+    ]
+  },
+  "r07": {
+    "players": [
+      "X. Dikkes"
+    ]
+  },
+  "r08": {
+    "players": [
+      "N. Wisse"
+    ]
+  },
+  "r09": {
+    "players": [
+      "C. Trehy",
+      "J. Barneveld"
+    ],
+    "sub_innings": [
+      5
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+enforce Run count matches GT per inning
+we know GT is true, so it can't be that we miss runs in an inning. 
+if needed we have to change from a binary assignment to a probablity score and then pick the highest ones until runs assigned matches GT(?)
+
+enforce a home-run counts as a run
+
+improve home run detection as backward capital E with dot in center
+
+change GT cross-check logging as real (GT) per stat (with more whitespace between columns to remain aligned) (dont print extra text behind it)
+for example instead of:
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA= 12  R= 8  H= 6  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=2)  Outs:OK
+  [Inn 2 ]  PA=  4  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
+  [Inn 3 ]  PA= 11  R= 4  H= 4  E= 2  Outs=2  PA:OK  R:MISMATCH (GT=5)  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+  
+  do:
+ 
+  -- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=12  		R=8  		H=6  		E=1 (GT=2)	Outs=3  
+  [Inn 2 ]  PA= 4  		R=0  		H=0  		E=1  		Outs=3  
+  [Inn 3 ]  PA=11  		R=4 (GT=5) 	H=4  		E=2  		Outs=2  
+  
+  
+improve RBI detection, too many are missed despite clear numbers in bottom left
+
+improve run detection, too many are missed despite clear mark in bottom left and center dot
+
+if we assigni an RBI by looking at bottom left, we can then also assign a run to the current player (perhaps this is already done implicitly?)
+and conversely, when a run is assigned, we must check if there's an RBI we can assign from the bottom-left. 
+
+sometimes a PA is lifted not from the bottom-right but from another cell. 
+ensure the 2x2 split is done more rigorously
+
+in case of a home-run, assign a run, and also the rbi to that player
+
+consolidate the multple readme files into 1 concisely written readme for user instructions
+
+why is the confidence field sometimes there sometimes not?
+make consistent
+
+counting total RBIs for a player is wrong. 
+in Urbanus game player3 gets 3 RBI in inning 3 and 4, but should be 2RBIs...
+
+innings played is a field in json, but always null. shoudl be easy to count. 
+
+how do I handle multiple teams? I have an extra folder (quick without spring training). 
+seems like export-season defaults hardcoded to quick 2026? how do I generate different a teams season stats. 

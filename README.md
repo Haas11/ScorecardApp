@@ -44,6 +44,7 @@ scorecard/
   review.py             ← interactive low-confidence PA review
   publish.py            ← copy HTML widgets + xlsx to a destination folder
   mark_reviewed.py     ← bulk-mark PAs as reviewed
+  rename_game.py        ← fix a mistyped game date (folder/files/DB) without re-extracting
   manage_players.py    ← player alias management
   render_widget.py     ← standalone HTML widget renderer
   stats.py              ← derived stat calculations (AVG, OBP, SLG, wOBA, OPS+, …)
@@ -122,6 +123,15 @@ If you hand-edit `_cells.json`, the per-cell cache (`cells/r##_c##.json`) still 
 ```powershell
 uv run python reimport.py --sync-cells "../Quick 2026/games/{stem}/{stem}_cells.json"
 ```
+
+## Fixing a mistyped game date
+
+If a game folder was named with the wrong date (e.g. month/day swapped), don't re-run extraction — `rename_game.py` renames the game folder, its `_cells.json`/`.html`/log/debug-image files, and the matching scan in `scans/`, then patches `game.date` in the JSON and (if already imported) the DB `games` row, and regenerates the widget. The per-cell cache in `cells/` moves automatically since it lives inside the renamed folder.
+```powershell
+uv run python rename_game.py "../Quick 2026/games/2026-04-12 - Thamen (Home)" 2026-12-04
+uv run python rename_game.py --dry-run "2026-04-12 - Thamen (Home)" 2026-12-04   # preview only
+```
+Then run `export_season.py` to refresh the xlsx, since game dates changed.
 
 ## Bulk operations
 

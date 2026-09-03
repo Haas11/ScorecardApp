@@ -4,7 +4,7 @@ Date  : 2026-03-15   Opponent: Pirates Black Socks
 Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
 
 Detecting grid...
-Image: 2717x1952px  players=10  innings=11
+Image: 2717x1952px  players=10  innings=9
 Sub-row lines detected (gap=72px); cell_size=144px
 H-lines (25): [110, 180, 253, 322, 394, 465, 537, 607]...
 Layout A: 1 header line(s) at y=[110]; first player row at y=180
@@ -29,7 +29,7 @@ Detecting player names from scan...
   Row 4 starter: 'S. Bakker' → S. Bakker (#0)
   Row 4 sub1: 'V. Spaandonk' → V. van Spaandonk (#24)
   Row 4: sub1 inning from cache: 5
-  Row 5 starter: 'P. Chang' → P. Chang (#None)
+  Row 5 starter: 'P. Chang' → P. Chang (#0)
   Row 5 sub1: 'M. Gelaudi' → M. Gelaudi (#98)
   Row 5: sub1 inning from cache: 3
   Row 6 starter: 'G. Suares' → G. Suares (#2)
@@ -41,7 +41,7 @@ Detecting player names from scan...
   Row 7 sub1: 'N. Specht' → N. Specht (#0)
   Row 7: sub1 inning from cache: 3
   Row 8 starter: 'X. Dikkes' → X. Dikkes (#17)
-  Row 8 sub1: 'P. Chang' → P. Chang (#None)
+  Row 8 sub1: 'P. Chang' → P. Chang (#0)
   Row 8: sub1 inning from cache: 6
   Row 9 starter: 'C. Trehy' → C. Trehy (#6)
   Row 9 sub1: 'C. Romick' → C. Romick (#43)
@@ -49,8 +49,7 @@ Detecting player names from scan...
 GT    : 2026-03-15 - Pirates Black Socks (Home)_totals.txt loaded
 
 Cells : 99 total | 99 cached | 0 to classify
-  WARNING: _layout.json has 9 entries but n_phys_cols=11 — re-detecting and overwriting.
-Wrap  : none detected (auto)
+Wrap  : none detected (from file)
 
 
 -- Batting rules ------------------------------------------------
@@ -60,23 +59,23 @@ Wrap  : none detected (auto)
 
 
 -- Per-player (row) check ----------------------------------------
-  [Slot  1] M. Evangelista          PA= 3  AB= 2  H= 2  R= 2
-  [Slot  1]   ↳ G. Suares           PA= 2  AB= 2  H= 2  R= 1
-  [Slot  2] G.L. McLelland          PA= 5  AB= 3  H= 2  R= 3
-  [Slot  3] T. Kryston              PA= 5  AB= 5  H= 3  R= 3
-  [Slot  4] S. Bakker               PA= 2  AB= 2  H= 0  R= 0
-  [Slot  4]   ↳ V. van Spaandonk    PA= 2  AB= 2  H= 1  R= 0
-  [Slot  5] P. Chang                PA= 1  AB= 1  H= 1  R= 0
-  [Slot  5]   ↳ M. Gelaudi          PA= 3  AB= 3  H= 0  R= 0
-  [Slot  6] G. Suares               PA= 1  AB= 1  H= 0  R= 0
-  [Slot  6]   ↳ K. Glomb            PA= 3  AB= 2  H= 1  R= 1
-  [Slot  6]   ↳ C. Trehy            PA= 0  AB= 0  H= 0  R= 0
-  [Slot  7] V. van Spaandonk        PA= 1  AB= 1  H= 0  R= 0
-  [Slot  7]   ↳ N. Specht           PA= 3  AB= 3  H= 2  R= 1
-  [Slot  8] X. Dikkes               PA= 3  AB= 3  H= 1  R= 0
-  [Slot  8]   ↳ P. Chang            PA= 1  AB= 1  H= 0  R= 0
-  [Slot  9] C. Trehy                PA= 1  AB= 1  H= 0  R= 0
-  [Slot  9]   ↳ C. Romick           PA= 3  AB= 3  H= 0  R= 0
+  [Slot  1] M. Evangelista          PA=3            AB=2            H=2             R=2
+  [Slot  1]   ↳ G. Suares           PA=2            AB=2            H=2             R=1
+  [Slot  2] G.L. McLelland          PA=5            AB=3            H=2             R=3
+  [Slot  3] T. Kryston              PA=5            AB=5            H=3             R=3
+  [Slot  4] S. Bakker               PA=2            AB=2            H=0             R=0
+  [Slot  4]   ↳ V. van Spaandonk    PA=2            AB=2            H=1             R=0
+  [Slot  5] P. Chang                PA=1            AB=1            H=1             R=0
+  [Slot  5]   ↳ M. Gelaudi          PA=3            AB=3            H=0             R=0
+  [Slot  6] G. Suares               PA=1            AB=1            H=0             R=0
+  [Slot  6]   ↳ K. Glomb            PA=3            AB=2            H=1             R=1
+  [Slot  6]   ↳ C. Trehy            PA=0            AB=0            H=0             R=0
+  [Slot  7] V. van Spaandonk        PA=1            AB=1            H=0             R=0
+  [Slot  7]   ↳ N. Specht           PA=3            AB=3            H=2             R=1
+  [Slot  8] X. Dikkes               PA=3            AB=3            H=1             R=0
+  [Slot  8]   ↳ P. Chang            PA=1            AB=1            H=0             R=0
+  [Slot  9] C. Trehy                PA=1            AB=1            H=0             R=0
+  [Slot  9]   ↳ C. Romick           PA=3            AB=3            H=0             R=0
 
 
 -- PA sequence check ---------------------------------------------
@@ -84,22 +83,24 @@ Wrap  : none detected (auto)
 
 
 -- Per-inning (column) check -------------------------------------
-  [Inn 1 ]  PA=  7  R= 3  H= 3  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=2)  Outs:OK
-  [Inn 2 ]  PA=  4  R= 1  H= 1  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 3 ]  PA=  5  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 4 ]  PA=  4  R= 0  H= 1  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 5 ]  PA=  7  R= 2  H= 4  E= 0  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=1)  Outs:OK
-  [Inn 6 ]  PA=  6  R= 2  H= 2  E= 0  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 7 ]  PA=  6  R= 3  H= 4  E= 0  Outs=2  PA:MISMATCH (expected 7, got 6)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 8 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
-  [Inn 9 ]  PA=  0  R= 0  H= 0  E= 0  Outs=0  PA:MISMATCH (expected 3, got 0)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 1 ]  PA=7            R=3             H=3             E=0 (GT=2)      Outs=3
+  [Inn 2 ]  PA=4            R=1             H=1             E=0             Outs=2 (exp=3)
+  [Inn 3 ]  PA=5            R=0             H=0             E=1             Outs=3
+  [Inn 4 ]  PA=4            R=0             H=1             E=0             Outs=3
+  [Inn 5 ]  PA=7            R=2             H=4             E=0 (GT=1)      Outs=3
+  [Inn 6 ]  PA=6            R=2             H=2             E=0             Outs=2 (exp=3)
+  [Inn 7 ]  PA=6 (exp=7)    R=3             H=4             E=0             Outs=2 (exp=3)
+  [Inn 8 ]  PA=0 (exp=3)    R=0             H=0             E=0             Outs=0 (exp=3)
+  [Inn 9 ]  PA=0 (exp=3)    R=0             H=0             E=0             Outs=0 (exp=3)
   Run totals: all match GT.
+
+-- RBI: 11 run cell(s) — rbi_slot already read for all (no backfill needed)
 
 Saved : 2026-03-15 - Pirates Black Socks (Home)_cells.json
 Total : 39 PA extracted   11 runs
 GT    : 11 runs expected
 Widget: 2026-03-15 - Pirates Black Socks (Home).html
 
-DB    : Replacing existing game (id=43)...
-DB    : Written as game id=43
+DB    : Replacing existing game (id=61)...
+DB    : Written as game id=76
 Log   : 2026-03-15 - Pirates Black Socks (Home)_run.log

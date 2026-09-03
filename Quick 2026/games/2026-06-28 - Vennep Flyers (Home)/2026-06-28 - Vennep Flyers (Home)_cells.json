@@ -15,7 +15,7 @@
           "name": "M. Evangelista",
           "position": null,
           "jersey_number": 25,
-          "innings_played": null,
+          "innings_played": "1,3,5,6,8,9",
           "plate_appearances": [
             {
               "inning": 1,
@@ -25,7 +25,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 1,
@@ -35,7 +40,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 3,
@@ -45,7 +55,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -55,7 +70,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 6,
@@ -65,7 +85,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 8,
@@ -75,7 +100,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -85,7 +115,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -115,7 +150,7 @@
           "name": "S. Bakker",
           "position": null,
           "jersey_number": 0,
-          "innings_played": null,
+          "innings_played": "1,3,5,7,8,9",
           "plate_appearances": [
             {
               "inning": 1,
@@ -125,7 +160,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 1,
@@ -135,7 +175,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 3,
@@ -145,7 +190,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -155,7 +205,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 7,
@@ -165,7 +220,12 @@
               "sb": 2,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 8,
@@ -175,7 +235,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -185,7 +250,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -215,7 +285,7 @@
           "name": "T. Kryston",
           "position": null,
           "jersey_number": 0,
-          "innings_played": null,
+          "innings_played": "1,2,4,5,7,8,9",
           "plate_appearances": [
             {
               "inning": 1,
@@ -225,7 +295,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 2,
@@ -235,7 +310,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 4,
@@ -245,7 +325,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -255,7 +340,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 7,
@@ -265,7 +355,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 8,
@@ -275,7 +370,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -285,7 +385,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -315,7 +420,7 @@
           "name": "G. Suares",
           "position": null,
           "jersey_number": 2,
-          "innings_played": null,
+          "innings_played": "1,2,4,5,7,8,9",
           "plate_appearances": [
             {
               "inning": 1,
@@ -325,7 +430,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 2,
@@ -335,7 +445,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 4,
@@ -345,7 +460,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -355,7 +475,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 7,
@@ -365,7 +490,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 8,
@@ -375,7 +505,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -385,7 +520,13 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 3,
+              "result_conf": 4,
+              "run_conf": 3,
+              "conf_reasons": [
+                "legacy",
+                "run_without_rbi_digit"
+              ]
             }
           ],
           "summary": {
@@ -415,7 +556,7 @@
           "name": "N. Specht",
           "position": null,
           "jersey_number": 0,
-          "innings_played": null,
+          "innings_played": "1,2,4,5",
           "plate_appearances": [
             {
               "inning": 1,
@@ -425,7 +566,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 2,
@@ -435,7 +581,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 4,
@@ -445,7 +596,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -455,7 +611,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -480,7 +641,7 @@
           "name": "N. Wisse",
           "position": null,
           "jersey_number": 57,
-          "innings_played": null,
+          "innings_played": "7",
           "plate_appearances": [
             {
               "inning": 7,
@@ -490,7 +651,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -515,7 +681,7 @@
           "name": "C. Romick",
           "position": null,
           "jersey_number": 43,
-          "innings_played": null,
+          "innings_played": "9",
           "plate_appearances": [
             {
               "inning": 9,
@@ -525,7 +691,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -555,7 +726,7 @@
           "name": "D. Mabushi",
           "position": null,
           "jersey_number": 0,
-          "innings_played": null,
+          "innings_played": "1,2,5,6",
           "plate_appearances": [
             {
               "inning": 1,
@@ -565,7 +736,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 2,
@@ -575,17 +751,27 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
               "result": "1B",
               "run_scored": true,
-              "rbi": 1,
+              "rbi": 0,
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 6,
@@ -595,7 +781,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -611,7 +802,7 @@
             "K": null,
             "SB": null,
             "CS": null,
-            "RBI": 1,
+            "RBI": 0,
             "SAC": null,
             "SF": null
           }
@@ -620,7 +811,7 @@
           "name": "B. Watts",
           "position": null,
           "jersey_number": 0,
-          "innings_played": null,
+          "innings_played": "7,9",
           "plate_appearances": [
             {
               "inning": 7,
@@ -630,7 +821,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -640,7 +836,13 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 3,
+              "result_conf": 4,
+              "run_conf": 3,
+              "conf_reasons": [
+                "legacy",
+                "run_without_rbi_digit"
+              ]
             }
           ],
           "summary": {
@@ -670,7 +872,7 @@
           "name": "X. Dikkes",
           "position": null,
           "jersey_number": 17,
-          "innings_played": null,
+          "innings_played": "1,3,5,6,7,9",
           "plate_appearances": [
             {
               "inning": 1,
@@ -680,7 +882,13 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 3,
+              "result_conf": 4,
+              "run_conf": 3,
+              "conf_reasons": [
+                "legacy",
+                "run_without_rbi_digit"
+              ]
             },
             {
               "inning": 3,
@@ -690,7 +898,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -700,7 +913,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 6,
@@ -710,7 +928,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 7,
@@ -720,7 +943,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -730,7 +958,13 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 3,
+              "result_conf": 4,
+              "run_conf": 3,
+              "conf_reasons": [
+                "legacy",
+                "run_without_rbi_digit"
+              ]
             }
           ],
           "summary": {
@@ -760,7 +994,7 @@
           "name": "J. Bradwell",
           "position": null,
           "jersey_number": 71,
-          "innings_played": null,
+          "innings_played": "1,3,5,6",
           "plate_appearances": [
             {
               "inning": 1,
@@ -770,7 +1004,13 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 3,
+              "result_conf": 4,
+              "run_conf": 3,
+              "conf_reasons": [
+                "legacy",
+                "run_without_rbi_digit"
+              ]
             },
             {
               "inning": 3,
@@ -780,7 +1020,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -790,7 +1035,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 6,
@@ -800,7 +1050,12 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -825,7 +1080,7 @@
           "name": "V. van Spaandonk",
           "position": null,
           "jersey_number": 24,
-          "innings_played": null,
+          "innings_played": "7,9",
           "plate_appearances": [
             {
               "inning": 7,
@@ -835,7 +1090,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -845,7 +1105,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -875,7 +1140,7 @@
           "name": "G.L. McLelland",
           "position": null,
           "jersey_number": 0,
-          "innings_played": null,
+          "innings_played": "1,3,5,6,7,9",
           "plate_appearances": [
             {
               "inning": 1,
@@ -885,7 +1150,13 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 3,
+              "result_conf": 4,
+              "run_conf": 3,
+              "conf_reasons": [
+                "legacy",
+                "run_without_rbi_digit"
+              ]
             },
             {
               "inning": 3,
@@ -895,7 +1166,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 5,
@@ -905,7 +1181,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 6,
@@ -915,7 +1196,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 7,
@@ -925,7 +1211,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             },
             {
               "inning": 9,
@@ -935,7 +1226,12 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": "high"
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "legacy"
+              ]
             }
           ],
           "summary": {
@@ -985,5 +1281,61 @@
     "7": 9,
     "8": 4,
     "9": 4
+  },
+  "gt_totals": {
+    "1": {
+      "R": 7,
+      "H": 6,
+      "E": 1,
+      "LOB": 1
+    },
+    "2": {
+      "R": 0,
+      "H": 2,
+      "E": 0,
+      "LOB": 1
+    },
+    "3": {
+      "R": 1,
+      "H": 1,
+      "E": 0,
+      "LOB": 1
+    },
+    "4": {
+      "R": 0,
+      "H": 1,
+      "E": 0,
+      "LOB": 0
+    },
+    "5": {
+      "R": 3,
+      "H": 4,
+      "E": 1,
+      "LOB": 3
+    },
+    "6": {
+      "R": 0,
+      "H": 2,
+      "E": 0,
+      "LOB": 2
+    },
+    "7": {
+      "R": 2,
+      "H": 2,
+      "E": 0,
+      "LOB": 3
+    },
+    "8": {
+      "R": 0,
+      "H": 0,
+      "E": 0,
+      "LOB": 1
+    },
+    "9": {
+      "R": 7,
+      "H": 6,
+      "E": 1,
+      "LOB": 0
+    }
   }
 }

@@ -1,1 +1,1 @@
-{"result": null, "run": false, "notes": "removed:after_3_outs (HR)"}
+{"result": null, "run": false, "notes": "removed:after_3_outs (HR)", "sb_count": 0, "adjusted": ["constraint:HR->run=True"]}

@@ -12,8 +12,8 @@
   ],
   "run_args": {
     "innings": 7,
-    "n_player_rows": null,
-    "left_skip_frac": null,
+    "n_player_rows": 10,
+    "left_skip_frac": 0.05,
     "grid_start": null,
     "grid_width": null,
     "cell_height": null

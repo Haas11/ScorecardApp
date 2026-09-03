@@ -13,7 +13,7 @@
   ],
   "run_args": {
     "innings": 10,
-    "n_player_rows": null,
+    "n_player_rows": 10,
     "left_skip_frac": 0.35,
     "grid_start": 455,
     "grid_width": 75,

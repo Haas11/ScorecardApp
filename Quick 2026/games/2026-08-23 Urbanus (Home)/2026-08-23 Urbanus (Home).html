@@ -264,8 +264,10 @@ D.innings.forEach(s => {
 });
 const t = D.totals, tg = t.gt || {};
 const ftd = 'width:30px;font-size:13px;text-align:center;padding:2px 3px;font-weight:500';
-foot += `<td style="${ftd};color:var(--tx2)" class="${gtCls(t.PA, tg.PA)}"${gtTitle(t.PA, tg.PA)}>${t.PA}</td>`;
-foot += `<td style="${ftd};color:var(--tx2)" class="${gtCls(t.H, tg.H)}"${gtTitle(t.H, tg.H)}>${t.H}</td>`;
+// No inline colour on PA/H when a GT class applies — inline style would win over the class.
+const neutral = (cls) => cls ? '' : ';color:var(--tx2)';
+foot += `<td style="${ftd}${neutral(gtCls(t.PA, tg.PA))}" class="${gtCls(t.PA, tg.PA)}"${gtTitle(t.PA, tg.PA)}>${t.PA}</td>`;
+foot += `<td style="${ftd}${neutral(gtCls(t.H, tg.H))}" class="${gtCls(t.H, tg.H)}"${gtTitle(t.H, tg.H)}>${t.H}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.AB}</td>`;
 foot += `<td style="${ftd}" class="${gtCls(t.R, tg.R, 'rok')}"${gtTitle(t.R, tg.R)}>${t.R}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.AVG}</td>`;

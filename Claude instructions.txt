@@ -41,7 +41,8 @@ GROUP 2 - OPS TOOLING (cheaper model)
 [x] #15 Fix mistyped game dates (month/day swapped) without re-extracting.
         Write rename_game.py: rename game folder + _cells.json + html, patch date/
         raw_json_path inside json and DB, regenerate HTML. Cell cache moves with folder.
-          Done 2026-09-03: scorecard/rename_game.py <folder-or-cells.json> <new-date>
+          Done 2026-09-03: scorecard/correct_date.py <folder-or-cells.json> <new-date>
+          (renamed from rename_game.py — it only fixes the date, not opponent/home-away)
           [--data-root] [--dry-run]; also renames the scans/ image so crawl.py keeps
           finding it, and patches the DB games row only if that game was already imported.
           Verified end-to-end against a scratch data root + seeded DB row.

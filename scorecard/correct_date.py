@@ -6,10 +6,10 @@ folder), patches the date inside _cells.json and the DB, and regenerates the
 HTML widget.
 
 Usage:
-  uv run python rename_game.py "../Quick 2026/games/2026-04-12 - Thamen (Home)" 2026-12-04
-  uv run python rename_game.py "../Quick 2026/games/2026-04-12 - Thamen (Home)/2026-04-12 - Thamen (Home)_cells.json" 2026-12-04
-  uv run python rename_game.py --data-root "Quick 2026 - Ex Spring Training" "2026-04-12 - Thamen (Home)" 2026-12-04
-  uv run python rename_game.py --dry-run "2026-04-12 - Thamen (Home)" 2026-12-04
+  uv run python correct_date.py "../Quick 2026/games/2026-04-12 - Thamen (Home)" 2026-12-04
+  uv run python correct_date.py "../Quick 2026/games/2026-04-12 - Thamen (Home)/2026-04-12 - Thamen (Home)_cells.json" 2026-12-04
+  uv run python correct_date.py --data-root "Quick 2026 - Ex Spring Training" "2026-04-12 - Thamen (Home)" 2026-12-04
+  uv run python correct_date.py --dry-run "2026-04-12 - Thamen (Home)" 2026-12-04
 """
 from __future__ import annotations
 

@@ -89,6 +89,7 @@ Scan image (JPG/PNG)
 | `render_widget.py` | Standalone HTML widget renderer (color-coded scorecard grid + per-player stats + SB indicator). |
 | `publish.py` | Copies `*.html` (root + up to 2 subfolder levels) and the xlsx to a destination folder; auto-detects the xlsx if not passed. Must be run with `uv run` from `scorecard/`. |
 | `mark_reviewed.py` | Bulk-mark PAs as reviewed in the DB. |
+| `rename_game.py` | Fix a mistyped game date (e.g. month/day swapped) without re-extracting: renames the game folder, `_cells.json`, `.html`, and scan image, patches `game.date` in the JSON and the DB `games` row (`date` + `raw_json_path`), regenerates the widget. The per-cell cache in `cells/` moves automatically with the folder rename. |
 | `manage_players.py` | CLI for fuzzy-matched player aliases (confirm, merge, list). |
 | `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, confidence, notes). |
 

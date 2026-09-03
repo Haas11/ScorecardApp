@@ -7,6 +7,7 @@ then copies them alongside the xlsx stats file.
 Usage:
   uv run python publish.py "Quick 2026 data" "C:/Shares/Quick/stats"
   uv run python publish.py "Quick 2026 data" "C:/Shares/Quick/stats" --xlsx "Quick 2026/Quick 2026 stats.xlsx"
+  uv run python publish.py --data-root "Quick 2026 - Ex Spring Training" "C:/Shares/Quick/stats"
 """
 from __future__ import annotations
 
@@ -15,6 +16,8 @@ import sys
 from pathlib import Path
 
 import click
+
+from db import get_data_root, DATA_ROOT_ENV_VAR
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -50,16 +53,32 @@ def publish(source: Path, dest: Path, xlsx: Path | None) -> None:
 
 
 @click.command()
-@click.argument("source", type=click.Path(exists=True, file_okay=False))
-@click.argument("dest", type=click.Path(file_okay=False))
+@click.argument("path_args", metavar="[SOURCE] DEST", nargs=-1, required=True)
 @click.option(
     "--xlsx",
     default=None,
     type=click.Path(dir_okay=False),
     help="Path to the season stats xlsx (auto-detected if omitted).",
 )
-def main(source: str, dest: str, xlsx: str | None) -> None:
+@click.option("--data-root", "data_root_opt", default=None, envvar=DATA_ROOT_ENV_VAR,
+              help="Season data root to use as SOURCE (SOURCE may then be omitted), "
+                   f"e.g. \"Quick 2026 - Ex Spring Training\". Also settable via {DATA_ROOT_ENV_VAR}.")
+def main(path_args: tuple[str, ...], xlsx: str | None, data_root_opt: str | None) -> None:
+    """Copy game HTML files (and the season xlsx) from SOURCE to DEST.
+
+    SOURCE may be omitted when --data-root (or SCORECARD_DATA_ROOT) is set —
+    it is then used as SOURCE, and PATH_ARGS is just DEST.
+    """
+    if len(path_args) == 2:
+        source, dest = path_args
+    elif len(path_args) == 1 and data_root_opt:
+        source, dest = str(get_data_root(data_root_opt)), path_args[0]
+    else:
+        raise click.UsageError("Usage: publish.py [SOURCE] DEST [--data-root ROOT] "
+                                "(SOURCE required unless --data-root is given).")
     src_path = Path(source).resolve()
+    if not src_path.is_dir():
+        raise click.UsageError(f"Source directory not found: {src_path}")
 
     xlsx_path: Path | None
     if xlsx:

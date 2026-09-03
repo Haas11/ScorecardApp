@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 import sys
@@ -13,21 +14,41 @@ from models import GameExtraction, PlateAppearance, PitchingLine
 
 _CONFIG_PATH = Path(__file__).parent / "config.yml"
 
+# Overrides the config.yml paths.data_root value for every helper below.
+# Set by CLI tools that accept a --data-root flag (export_season, reimport,
+# crawl, publish) so a single process can target a season other than the
+# config.yml default, e.g. "Quick 2026 - Ex Spring Training".
+DATA_ROOT_ENV_VAR = "SCORECARD_DATA_ROOT"
+
 
 def _load_config() -> dict:
     with open(_CONFIG_PATH) as f:
         return yaml.safe_load(f)
 
 
-def _get_data_root() -> Path:
+def get_data_root(override: str | Path | None = None) -> Path:
+    """Resolve the season data root: explicit override > env var > config.yml."""
+    override = override or os.environ.get(DATA_ROOT_ENV_VAR)
+    if override:
+        p = Path(override)
+        return p.resolve() if p.is_absolute() else (Path(__file__).parent / p).resolve()
     cfg = _load_config()
     rel = cfg.get("paths", {}).get("data_root", "../Quick 2026")
     return (Path(__file__).parent / rel).resolve()
 
 
-# DB filename mirrors the data-root folder name (e.g. "Quick 2026.db").
-_data_root: Path = _get_data_root()
-_DB_PATH: Path = _data_root / f"{_data_root.name}.db"
+def get_db_path(data_root: Path | None = None) -> Path:
+    """DB filename mirrors the data-root folder name (e.g. "Quick 2026.db")."""
+    data_root = data_root or get_data_root()
+    return data_root / f"{data_root.name}.db"
+
+
+# Back-compat alias — internal helpers below still call this name.
+_get_data_root = get_data_root
+
+# Defaults for callers that don't need a --data-root override.
+_data_root: Path = get_data_root()
+_DB_PATH: Path = get_db_path(_data_root)
 
 
 def _load_thresholds() -> int:

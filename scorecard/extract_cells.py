@@ -876,18 +876,38 @@ def _load_gt_stats(path: Path) -> dict[int, tuple[int, int]]:
 
 # ── Integrity checks ──────────────────────────────────────────────────────────
 
+_STAT_COL_WIDTH = 16   # width of one "NAME=val (GT=x)" column in the check tables
+
+
+def _fmt_stat(name: str, value: int, expected: int | None, label: str = "GT") -> str:
+    """Format one stat as a fixed-width column.
+
+    Appends " (GT=x)" (or " (exp=x)") only when an expected value is given AND
+    it differs from the extracted value — matching stats print bare so the eye
+    goes straight to the annotated ones.
+    """
+    s = f"{name}={value}"
+    if expected is not None and value != expected:
+        s += f" ({label}={expected})"
+    # Pad to the column width, but always keep at least two spaces before the
+    # next column so an unusually long annotation can't run into its neighbour.
+    return s.ljust(_STAT_COL_WIDTH - 2) + "  "
+
+
 def _check_row(slot: int, name: str, cells: list[dict], gt: dict[int, tuple] | None) -> None:
     pa = sum(1 for c in cells if c.get("result") is not None)
     h  = sum(1 for c in cells if _is_hit(c.get("result")))
     ab = sum(1 for c in cells if _is_ab(c.get("result")))
     r  = sum(1 for c in cells if c.get("run"))
-    line = f"  [Slot {slot:2d}] {name:<22}  PA={pa:>2}  AB={ab:>2}  H={h:>2}  R={r:>2}"
-    if gt and slot in gt:
-        gt_h, gt_ab = gt[slot]
-        h_mark  = "OK" if h  == gt_h  else f"MISMATCH (GT={gt_h})"
-        ab_mark = "OK" if ab == gt_ab else f"MISMATCH (GT={gt_ab})"
-        line += f"  H:{h_mark}  AB:{ab_mark}"
-    click.echo(line)
+    gt_h, gt_ab = gt[slot] if (gt and slot in gt) else (None, None)
+    line = (
+        f"  [Slot {slot:2d}] {name:<22}  "
+        + _fmt_stat("PA", pa, None)
+        + _fmt_stat("AB", ab, gt_ab)
+        + _fmt_stat("H", h, gt_h)
+        + _fmt_stat("R", r, None)
+    )
+    click.echo(line.rstrip())
 
 
 def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> None:
@@ -896,17 +916,20 @@ def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> No
     outs = sum(1 for c in cells if _is_out(c.get("result")))
     e    = sum(1 for c in cells if re.match(r"^E\d+$", (c.get("result") or "").upper()))
     pa   = sum(1 for c in cells if c.get("result") is not None)
-    line = f"  [Inn {inning:<2}]  PA={pa:>3}  R={r:>2}  H={h:>2}  E={e:>2}  Outs={outs}"
-    if gt and inning in gt:
-        g = gt[inning]
-        expected_pa = 3 + g["R"] + g["LOB"]
-        pa_mark   = "OK" if pa   == expected_pa else f"MISMATCH (expected {expected_pa}, got {pa})"
-        r_mark    = "OK" if r    == g["R"] else f"MISMATCH (GT={g['R']})"
-        h_mark    = "OK" if h    == g["H"] else f"MISMATCH (GT={g['H']})"
-        e_mark    = "OK" if e    == g["E"] else f"MISMATCH (GT={g['E']})"
-        outs_mark = "OK" if outs == 3      else f"WARNING (expected 3, got {outs})"
-        line += f"  PA:{pa_mark}  R:{r_mark}  H:{h_mark}  E:{e_mark}  Outs:{outs_mark}"
-    click.echo(line)
+    g = gt[inning] if (gt and inning in gt) else None
+    # PA and Outs have no direct GT value: PA is derived (3 outs + R + LOB) and
+    # a completed inning always has 3 outs — labelled "exp" to make that clear.
+    exp_pa   = 3 + g["R"] + g["LOB"] if g else None
+    exp_outs = 3 if g else None
+    line = (
+        f"  [Inn {inning:<2}]  "
+        + _fmt_stat("PA", pa, exp_pa, "exp")
+        + _fmt_stat("R", r, g["R"] if g else None)
+        + _fmt_stat("H", h, g["H"] if g else None)
+        + _fmt_stat("E", e, g["E"] if g else None)
+        + _fmt_stat("Outs", outs, exp_outs, "exp")
+    )
+    click.echo(line.rstrip())
 
 
 def _check_pa_sequence(
@@ -1117,6 +1140,7 @@ def _enforce_constraints(
          alongside run=True and notes suggest error, the run is preserved.
          More concretely: any result matching ^E\\d* is safe (not an out).
       2. Out → run must be False. A retired batter cannot have scored.
+      3. HR → run must be True (the batter always scores on his own home run).
     """
     changed = 0
     for ri in range(n_rows):
@@ -1148,6 +1172,17 @@ def _enforce_constraints(
                 click.echo(
                     f"  [constraint] P{ri+1} c{ci+1} ({result}+run=True) → run forced False"
                 )
+                changed += 1
+
+            # Rule 3: HR → run=True (the batter always scores on his own home run)
+            if result == "HR" and not run:
+                cell = dict(cell)
+                cell["run"] = True
+                notes = (cell.get("notes") or "").strip()
+                cell["notes"] = (notes + " [constraint: HR→run=True]").strip()
+                grid[ri][ci] = cell
+                dirty = True
+                click.echo(f"  [constraint] P{ri+1} c{ci+1} (HR) → run forced True")
                 changed += 1
 
             if dirty:
@@ -2385,6 +2420,7 @@ def main(
             PlayerEntry(
                 name=p_name,
                 jersey_number=p_jersey,
+                innings_played=",".join(str(i) for i in sorted({pa.inning for pa in pas})) or None,
                 plate_appearances=pas,
                 summary=_make_summary(pas),
             )

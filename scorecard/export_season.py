@@ -14,7 +14,7 @@ from openpyxl.utils import get_column_letter
 
 import yaml
 
-from db import get_connection, init_db, _DB_PATH, _CONFIG_PATH
+from db import get_connection, init_db, get_data_root, get_db_path, DATA_ROOT_ENV_VAR, _CONFIG_PATH
 from stats import compute_all_stats, PlayerStats
 
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
@@ -197,8 +197,9 @@ def export_season(
     min_pa: int = 0,
     db_path: Path | None = None,
 ) -> None:
-    conn = get_connection(db_path or _DB_PATH)
-    init_db(db_path or _DB_PATH)
+    db_path = db_path or get_db_path()
+    conn = get_connection(db_path)
+    init_db(db_path)
 
     cfg = yaml.safe_load(open(_CONFIG_PATH))
     lg_obp = cfg["league"]["avg_obp"]
@@ -447,11 +448,15 @@ def export_season(
 
 
 @click.command()
+@click.option("--data-root", "data_root_opt", default=None, envvar=DATA_ROOT_ENV_VAR,
+              help="Season data root to target (default: config.yml paths.data_root), "
+                   f"e.g. \"Quick 2026 - Ex Spring Training\". Also settable via {DATA_ROOT_ENV_VAR}.")
 @click.option("--output", default=None, help="Output Excel path (default: <data_root>/<folder> stats.xlsx)")
 @click.option("--min-pa", default=0, type=int, help="Minimum PA to include player")
-def main(output: str | None, min_pa: int) -> None:
-    out = output or str(_DB_PATH.parent / f"{_DB_PATH.parent.name} stats.xlsx")
-    export_season(out, min_pa)
+def main(data_root_opt: str | None, output: str | None, min_pa: int) -> None:
+    db_path = get_db_path(get_data_root(data_root_opt))
+    out = output or str(db_path.parent / f"{db_path.parent.name} stats.xlsx")
+    export_season(out, min_pa, db_path)
     os.startfile(out)
 
 

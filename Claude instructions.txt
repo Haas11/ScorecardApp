@@ -1,47 +1,99 @@
-enforce Run count matches GT per inning
-we know GT is true, so it can't be that we miss runs in an inning. 
-if needed we have to change from a binary assignment to a probablity score and then pick the highest ones until runs assigned matches GT(?)
+IMPROVEMENT PLAN
+================
+One item per session/commit. Work top to bottom within a group; groups are ordered by
+dependency and risk. Mark items [x] when done, keep a one-line note of what was decided.
 
-enforce a home-run counts as a run
+Legend: [ ] todo   [~] in progress   [x] done   [-] dropped
 
-improve home run detection as backward capital E with dot in center
 
-change GT cross-check logging as real (GT) per stat (with more whitespace between columns to remain aligned) (dont print extra text behind it)
-for example instead of:
--- Per-inning (column) check -------------------------------------
-  [Inn 1 ]  PA= 12  R= 8  H= 6  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:MISMATCH (GT=2)  Outs:OK
-  [Inn 2 ]  PA=  4  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 3 ]  PA= 11  R= 4  H= 4  E= 2  Outs=2  PA:OK  R:MISMATCH (GT=5)  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  
-  do:
- 
-  -- Per-inning (column) check -------------------------------------
-  [Inn 1 ]  PA=12  		R=8  		H=6  		E=1 (GT=2)	Outs=3  
-  [Inn 2 ]  PA= 4  		R=0  		H=0  		E=1  		Outs=3  
-  [Inn 3 ]  PA=11  		R=4 (GT=5) 	H=4  		E=2  		Outs=2  
-  
-  
-improve RBI detection, too many are missed despite clear numbers in bottom left
+GROUP 1 - QUICK WINS (no VLM changes, small isolated edits; cheaper model)
+--------------------------------------------------------------------------
+[x] #4  GT cross-check logging: print each stat as "R=4 (GT=5)" only when it mismatches,
+        no OK/MISMATCH text, wider aligned columns. Applies to per-inning check (and per-row
+        check where the same pattern exists).
+          before:  [Inn 3 ]  PA= 11  R= 4  H= 4  E= 2  Outs=2  PA:OK  R:MISMATCH (GT=5)  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
+          after:   [Inn 3 ]  PA=11 (exp=12)  R=4 (GT=5)      H=4             E=2             Outs=2 (exp=3)
+        Done 2026-09-03: _fmt_stat() helper in extract_cells.py, 16-char columns. PA and
+        Outs have no direct GT so they use "(exp=..)" (PA = 3 + R + LOB, Outs = 3).
 
-improve run detection, too many are missed despite clear mark in bottom left and center dot
+[x] #13 innings_played is a field in GameExtraction (models.py) but always null.
+        Count innings with at least one PA and fill it at export.
+          Done 2026-09-03: filled at PlayerEntry construction in extract_cells.py as
+          comma-joined sorted unique innings from that player's plate_appearances.
 
-if we assigni an RBI by looking at bottom left, we can then also assign a run to the current player (perhaps this is already done implicitly?)
-and conversely, when a run is assigned, we must check if there's an RBI we can assign from the bottom-left. 
+[x] #2/#9  Home run rule: HR => run=True for that cell and rbi includes the batter himself.
+        Pure post-processing rule, apply alongside the other constraint rules
+        (_enforce_constraints), before GT enforcement.
+          Done 2026-09-03: added rule 3 (HR→run=True) to _enforce_constraints in
+          extract_cells.py; self-RBI (rbi=1 for HR) was already set at PA construction.
 
-sometimes a PA is lifted not from the bottom-right but from another cell. 
-ensure the 2x2 split is done more rigorously
+[x] #14 Multiple teams: data_root comes from config.yml (db.py) and help texts hardcode
+        "Quick 2026". Add a --data-root CLI flag / env var so export_season, reimport,
+        crawl, publish can target e.g. "Quick 2026 - Ex Spring Training".
+          Done 2026-09-03: db.py exposes get_data_root()/get_db_path() (override arg >
+          SCORECARD_DATA_ROOT env var > config.yml); export_season/reimport/crawl/publish
+          all gained --data-root (envvar-backed); crawl also propagates the resolved root
+          via env var to its extract_cells.py subprocess so that write targets the same DB.
 
-in case of a home-run, assign a run, and also the rbi to that player
 
-consolidate the multple readme files into 1 concisely written readme for user instructions
+GROUP 2 - OPS TOOLING (cheaper model)
+-------------------------------------
+[x] #15 Fix mistyped game dates (month/day swapped) without re-extracting.
+        Write rename_game.py: rename game folder + _cells.json + html, patch date/
+        raw_json_path inside json and DB, regenerate HTML. Cell cache moves with folder.
+          Done 2026-09-03: scorecard/rename_game.py <folder-or-cells.json> <new-date>
+          [--data-root] [--dry-run]; also renames the scans/ image so crawl.py keeps
+          finding it, and patches the DB games row only if that game was already imported.
+          Verified end-to-end against a scratch data root + seeded DB row.
 
-why is the confidence field sometimes there sometimes not?
-make consistent
 
-counting total RBIs for a player is wrong. 
-in Urbanus game player3 gets 3 RBI in inning 3 and 4, but should be 2RBIs...
+GROUP 3 - RUN / RBI CONSISTENCY (Fable designs, cheaper model implements)
+-------------------------------------------------------------------------
+Order matters: investigate #12 first (may change the design), then #11 -> #7 -> #1.
 
-innings played is a field in json, but always null. shoudl be easy to count. 
+[ ] #12 Player RBI totals sometimes wrong (Urbanus game: player 3 got 3 RBI in innings 3+4,
+        should be 2). Disappeared after clean-slate rerun -> suspect stale cache or a rule
+        applied twice on --reuse-cache. Investigate before touching #7/#1.
 
-how do I handle multiple teams? I have an extra folder (quick without spring training). 
-seems like export-season defaults hardcoded to quick 2026? how do I generate different a teams season stats. 
+[ ] #11 Confidence field is inconsistent (sometimes present, sometimes not). Always emit it.
+        Consider 1-5 scale instead of low/high so #1 can rank candidates. Must not blow up
+        token use. Touches prompt, cache, models, DB, review.py, export.
+
+[ ] #7  RBI <-> run coupling: an RBI read from bottom-left implies a run for that cell (check
+        whether already implicit); a run=True cell should trigger the RBI backfill read.
+
+[ ] #1  Enforce run count == GT per inning, both directions. Today _enforce_gt_runs only
+        zeroes runs for R=0 innings and logs overcounts. To ADD runs, rank candidate cells by
+        confidence score (#11) and pick highest until GT is matched.
+        CAUTION: adding a run to the wrong player fabricates stats. Only auto-assign when
+        there is a clear score gap between candidates; otherwise flag for review.py.
+
+
+GROUP 4 - VLM DETECTION QUALITY (build eval set first, then iterate prompts/crops)
+----------------------------------------------------------------------------------
+Without a labelled set we cannot tell if a prompt change helped or moved errors around.
+
+[ ] #0  Build eval set: ~50-100 cells with known result/run/rbi taken from games where GT
+        already checks out. Script that reruns classify_cell on the set and reports accuracy.
+
+[ ] #3  HR detection: glyph is a backward capital E with a dot in the center. Add to prompt.
+
+[ ] #5  RBI detection misses clear digits in bottom-left. Tune crop / prompt of
+        _backfill_rbi_cells.
+
+[ ] #6  Run detection misses clear bottom-left mark + center dot. Tune main prompt / crop.
+
+[ ] #8  Sometimes a PA is read from a neighbouring cell instead of its own. Make the 2x2
+        quadrant split more rigorous (relates to grid accuracy, #16).
+
+
+GROUP 5 - GRID DETECTION REDESIGN (design session only, no coding spree)
+------------------------------------------------------------------------
+[ ] #16 Grid detection misplaces lines even on clean aligned scans; eventual goal is normal
+        photos. Reconsider the approach (e.g. template/homography, line-model fitting,
+        VLM-assisted corner finding) and agree on a design before implementing.
+
+
+DONE / DROPPED
+--------------
+[x] #10 Consolidate multiple readme files into one (commit 1189445, README.md + CLAUDE.md).

@@ -19,7 +19,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import click
 
-from db import get_connection, init_db, find_duplicate_game, delete_game, write_game, _DB_PATH
+from db import (
+    get_connection, init_db, find_duplicate_game, delete_game, write_game,
+    get_data_root, get_db_path, DATA_ROOT_ENV_VAR,
+)
 from models import GameExtraction
 from render_widget import render_widget_for_game
 
@@ -124,7 +127,10 @@ def reimport_one(p: Path, conn) -> str:
               help="Treat PATH as a games directory and reimport every _cells.json found.")
 @click.option("--sync-cells", "do_sync_cells", is_flag=True,
               help="Write cell cache files from the _cells.json instead of reimporting to DB.")
-def main(path: str, reimport_all: bool, do_sync_cells: bool) -> None:
+@click.option("--data-root", "data_root_opt", default=None, envvar=DATA_ROOT_ENV_VAR,
+              help="Season data root whose DB to write to (default: config.yml paths.data_root), "
+                   f"e.g. \"Quick 2026 - Ex Spring Training\". Also settable via {DATA_ROOT_ENV_VAR}.")
+def main(path: str, reimport_all: bool, do_sync_cells: bool, data_root_opt: str | None) -> None:
     """Reimport one or all _cells.json files into the DB and regenerate HTML widgets."""
 
     if do_sync_cells:
@@ -134,8 +140,9 @@ def main(path: str, reimport_all: bool, do_sync_cells: bool) -> None:
         click.echo("Now run crawl.py --reuse-cache to backfill without overwriting your edits.")
         return
 
-    init_db(_DB_PATH)
-    conn = get_connection(_DB_PATH)
+    db_path = get_db_path(get_data_root(data_root_opt))
+    init_db(db_path)
+    conn = get_connection(db_path)
 
     if reimport_all:
         games_dir = Path(path).resolve()

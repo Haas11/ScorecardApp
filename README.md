@@ -68,7 +68,7 @@ The pipeline detects the grid, reads player names/subs, classifies every PA cell
 
 ### 2 — Check the output
 
-Open the generated `.html` widget. Color coding: **green** = hit, **blue** = reached base without a hit (BB/HBP), **yellow** = error/FC/K-PB, **red** = out. Also check the terminal for `MISMATCH` lines.
+Open the generated `.html` widget. Color coding: **green** = hit, **blue** = reached base without a hit (BB/HBP), **yellow** = error/FC/K-PB, **red** = out. Also check the terminal: in the per-player and per-inning check tables, any stat that disagrees with ground truth is annotated inline, e.g. `R=4 (GT=5)`; stats that match print bare.
 
 ### 3 — (Optional) supply ground truth
 
@@ -160,6 +160,28 @@ Copy all HTML widgets and the stats xlsx to a shared folder (e.g. Google Drive):
 uv run python publish.py "../Quick 2026" "G:\My Drive\Quick 2026"
 ```
 
+## Multiple teams / seasons
+
+By default every tool targets the season folder in `scorecard/config.yml` (`paths.data_root`, currently `"../Quick 2026"`). To target a different folder (another team, or e.g. spring training games kept separate from the regular season) without editing `config.yml`, pass `--data-root` — a path relative to `scorecard/` or absolute — to `export_season.py`, `reimport.py`, `crawl.py`, or `publish.py`:
+
+```powershell
+uv run python export_season.py --data-root "../Quick 2026 - Ex Spring Training"
+uv run python reimport.py --all "../Quick 2026 - Ex Spring Training/games"
+uv run python crawl.py --data-root "../Quick 2026 - Ex Spring Training"
+uv run python publish.py --data-root "../Quick 2026 - Ex Spring Training" "G:\My Drive\Quick 2026 - Ex Spring Training"
+```
+
+`reimport.py --all` and `crawl.py` also accept the games directory directly as a positional argument instead of `--data-root` — either works.
+
+Or set it once per shell session with the `SCORECARD_DATA_ROOT` environment variable so every command after it uses the same folder:
+```powershell
+$env:SCORECARD_DATA_ROOT = "../Quick 2026 - Ex Spring Training"
+uv run python export_season.py
+uv run python publish.py "../Quick 2026 - Ex Spring Training" "G:\My Drive\Quick 2026 - Ex Spring Training"
+```
+
+Each data root gets its own SQLite DB (named after the folder, e.g. `Quick 2026 - Ex Spring Training.db`) and its own `players.txt` — rosters are not shared between seasons/teams.
+
 ## Roster
 
 Player names are detected from the scorecard automatically and fuzzy-matched against `Quick 2026/players.txt`. Substitutions share the same batting slot and are detected from the info strip.
@@ -173,4 +195,4 @@ uv run python manage_players.py aliases    # audit recent fuzzy matches
 
 - **API key safety**: `.env` is gitignored. Never commit API keys. (Org policy: CMMC, CRA, PCI, TISAX, EU AI regulations apply.)
 - **Re-running a game**: the pipeline replaces any existing DB entry automatically (matched on date + opponent).
-- **DB path**: driven by `paths.data_root` in `scorecard/config.yml`.
+- **DB path**: driven by `paths.data_root` in `scorecard/config.yml`, overridable per-command with `--data-root` or the `SCORECARD_DATA_ROOT` env var (see [Multiple teams / seasons](#multiple-teams--seasons)).

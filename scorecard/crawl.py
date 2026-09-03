@@ -7,26 +7,43 @@ without re-doing any VLM classification.
 Usage:
   uv run python crawl.py "Quick 2026/games"
   uv run python crawl.py "Quick 2026/games" --game "2026-04-12"   # single game by date fragment
+  uv run python crawl.py --data-root "Quick 2026 - Ex Spring Training"
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import click
 
+from db import get_data_root, DATA_ROOT_ENV_VAR
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 @click.command()
-@click.argument("games_dir", type=click.Path(exists=True, file_okay=False))
+@click.argument("games_dir", type=click.Path(file_okay=False), required=False, default=None)
 @click.option("--game", "game_filter", default=None,
               help="Only process folders whose name contains this string.")
-def main(games_dir: str, game_filter: str | None) -> None:
+@click.option("--data-root", "data_root_opt", default=None, envvar=DATA_ROOT_ENV_VAR,
+              help="Season data root; used as <data_root>/games when GAMES_DIR is omitted, "
+                   f"e.g. \"Quick 2026 - Ex Spring Training\". Also settable via {DATA_ROOT_ENV_VAR}.")
+def main(games_dir: str | None, game_filter: str | None, data_root_opt: str | None) -> None:
     """Re-run extract_cells --reuse-cache for every game folder under GAMES_DIR."""
+    if games_dir is None:
+        if data_root_opt is None:
+            raise click.UsageError("Pass GAMES_DIR or --data-root.")
+        games_dir = str(get_data_root(data_root_opt) / "games")
     root = Path(games_dir).resolve()
+    if not root.is_dir():
+        raise click.UsageError(f"Games directory not found: {root}")
+    # Propagate to the extract_cells.py subprocess so its DB write targets the
+    # same season (db.py reads this env var when no explicit override is passed).
+    if data_root_opt:
+        os.environ[DATA_ROOT_ENV_VAR] = str(get_data_root(data_root_opt))
 
     folders = sorted(
         d for d in root.iterdir()

@@ -7,6 +7,7 @@ without re-doing any VLM classification.
 Usage:
   uv run python crawl.py "Quick 2026/games"
   uv run python crawl.py "Quick 2026/games" --game "2026-04-12"   # single game by date fragment
+  uv run python crawl.py "Quick 2026/games/2026-04-12 - Thamen (Home)"   # a single game folder also works
   uv run python crawl.py --data-root "Quick 2026 - Ex Spring Training"
 """
 from __future__ import annotations
@@ -45,10 +46,18 @@ def main(games_dir: str | None, game_filter: str | None, data_root_opt: str | No
     if data_root_opt:
         os.environ[DATA_ROOT_ENV_VAR] = str(get_data_root(data_root_opt))
 
-    folders = sorted(
-        d for d in root.iterdir()
-        if d.is_dir() and not d.name.startswith(".")
-    )
+    # Accept a single game folder too (it has a cells/ subfolder of its own):
+    # treat it as the one game to crawl instead of iterating its children,
+    # which would only find "cells" and skip it.
+    if (root / "cells").is_dir():
+        folders = [root]
+        games_root = root.parent
+    else:
+        folders = sorted(
+            d for d in root.iterdir()
+            if d.is_dir() and not d.name.startswith(".")
+        )
+        games_root = root
     if game_filter:
         folders = [f for f in folders if game_filter in f.name]
 
@@ -56,10 +65,10 @@ def main(games_dir: str | None, game_filter: str | None, data_root_opt: str | No
         click.echo("No matching game folders found.")
         return
 
-    click.echo(f"Crawling {len(folders)} game(s) in {root}\n")
+    click.echo(f"Crawling {len(folders)} game(s) in {games_root}\n")
     ok, failed = 0, 0
 
-    scans_dir = root.parent / "scans"
+    scans_dir = games_root.parent / "scans"
 
     for folder in folders:
         cells_dir = folder / "cells"

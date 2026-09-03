@@ -8,6 +8,8 @@ read the batter's own slot digit in the HR cell's bottom-left quadrant.
 """
 from __future__ import annotations
 
+import numpy as np
+
 import extract_cells as ec
 
 
@@ -93,6 +95,64 @@ def test_run_without_result_never_credits():
     })
     slot_data, _ = ec._build_slot_data(grid, _slot_info(2), 2, 1, [1])
     assert _rbi(slot_data, 0) == [(1, "1B", 0)]
+
+
+# ── #7: RBI <= Runs per inning invariant ──────────────────────────────────────
+
+def test_check_rbi_leq_runs_no_violation():
+    slot_data = [
+        ([(("P1", None), 0)], [[ec.PlateAppearance(inning=1, result="HR", run_scored=True, rbi=1)]]),
+    ]
+    assert ec._check_rbi_leq_runs(slot_data) == []
+
+
+def test_check_rbi_leq_runs_flags_violation():
+    slot_data = [
+        ([(("P1", None), 0)], [[ec.PlateAppearance(inning=1, result="K", run_scored=False, rbi=1)]]),
+    ]
+    warnings = ec._check_rbi_leq_runs(slot_data)
+    assert len(warnings) == 1
+    assert "inn 1" in warnings[0] and "RBI total 1 > runs scored 0" in warnings[0]
+
+
+def test_classify_cell_omits_rbi_slot_key_when_run_false():
+    # #7: a run=False cell must not carry "rbi_slot": None — that would look
+    # identical to "read attempted, no digit found" and block a later pass
+    # (hole-reread, HR constraint, GT reconciliation) that flips run to True
+    # from ever triggering _backfill_rbi_cells for this cell.
+    orig_call_api = ec._call_api
+    ec._call_api = lambda *a, **k: '{"result": "K", "run": false, "result_conf": 5, "run_conf": 5}'
+    try:
+        result = ec.classify_cell(np.zeros((10, 10, 3), dtype=np.uint8), "P1", 1, client=None, model="x")
+    finally:
+        ec._call_api = orig_call_api
+    assert result.get("run") is False
+    assert "rbi_slot" not in result
+
+
+def test_classify_cell_sets_rbi_slot_key_when_run_true():
+    orig_call_api, orig_read_rbi = ec._call_api, ec._read_rbi_slot
+    ec._call_api = lambda *a, **k: '{"result": "1B", "run": true, "result_conf": 5, "run_conf": 5}'
+    ec._read_rbi_slot = lambda *a, **k: 4
+    try:
+        result = ec.classify_cell(np.zeros((10, 10, 3), dtype=np.uint8), "P1", 1, client=None, model="x")
+    finally:
+        ec._call_api, ec._read_rbi_slot = orig_call_api, orig_read_rbi
+    assert result.get("rbi_slot") == 4
+
+
+def test_build_slot_data_fallback_credit_can_trigger_rbi_leq_runs_warning():
+    # P1's only PA is in inning 2 with no run. A run cell in inning 1 credits
+    # rbi_slot=1 (P1's slot), but P1 has no PA in inning 1 to attach it to, so
+    # the fallback ("credit the batter's last PA") lands the RBI on the
+    # inning-2 PA instead — _check_rbi_leq_runs should flag that mismatch.
+    grid = _grid(2, 2, {
+        (0, 1): {"result": "K", "run": False},                # P1's only PA: inn 2, no run
+        (1, 0): {"result": "BB", "run": True, "rbi_slot": 1},  # inn 1: runner scores, credits slot 1
+    })
+    slot_data, warnings = ec._build_slot_data(grid, _slot_info(2), 2, 2, [1, 2])
+    assert _rbi(slot_data, 0) == [(2, "K", 1)]
+    assert any("inn 2" in w and "RBI total 1 > runs scored 0" in w for w in warnings)
 
 
 if __name__ == "__main__":

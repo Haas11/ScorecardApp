@@ -346,7 +346,10 @@ def classify_cell(
     client,
     model: str,
 ) -> dict:
-    """Classify one PA cell. Returns {"result": str|None, "run": bool, "rbi_slot": int|None, "notes": str|None}."""
+    """Classify one PA cell. Returns {"result": str|None, "run": bool, "notes": str|None},
+    plus "rbi_slot": int|None but only when run=True (see #7 — the key's absence is a
+    deliberate sentinel meaning "not applicable / not yet attempted", distinct from a
+    present-but-null value meaning "read attempted, no digit found")."""
     img_bytes, media_type = _encode_cell(crop)
     user_text = f"Player: {player_name}  Inning: {inning}\nReturn JSON only."
 
@@ -363,11 +366,13 @@ def classify_cell(
         if parsed is not None:
             if attempt == 1:
                 _add_adjusted(parsed, "parse_retry")
-            # Focused bottom-left crop for rbi_slot — more reliable than the general prompt
+            # Focused bottom-left crop for rbi_slot — more reliable than the general prompt.
+            # Only set the key when run=True: a run=False cell has nothing to read (#7),
+            # and leaving the key absent (rather than None) lets a later pass that flips
+            # run to True (hole-reread, HR constraint, GT reconciliation) still trigger
+            # _backfill_rbi_cells's "rbi_slot" not in cell check instead of looking already-done.
             if parsed.get("run"):
                 parsed["rbi_slot"] = _read_rbi_slot(crop, player_name, inning, client, model)
-            else:
-                parsed["rbi_slot"] = None
             return parsed
         if attempt == 0:
             continue
@@ -1072,12 +1077,16 @@ def _backfill_rbi_cells(
     model: str,
     cache_dir: Path,
 ) -> int:
-    """Re-read run-scoring cells that are missing rbi_slot (old-format cache).
+    """Re-read run-scoring cells that are missing rbi_slot.
 
-    Called automatically when a game has cached cells that pre-date the RBI
-    tracking feature.  Only cells with run=True and no rbi_slot key are sent
-    to the VLM; every other cell is left untouched.
-    Returns the number of cells updated.
+    Runs last in the pipeline (see #7), after every pass that can set
+    run=True on a cell — old-format cache entries that pre-date rbi_slot
+    tracking, but also any cell whose run flag was only settled to True by
+    hole-reread, the HR constraint, or GT reconciliation this same run.
+    classify_cell omits the "rbi_slot" key entirely for run=False cells (see
+    its docstring), so "key absent" reliably means "never attempted" here —
+    only cells with run=True and no rbi_slot key are sent to the VLM; every
+    other cell is left untouched. Returns the number of cells updated.
     """
     to_backfill = [
         (ri, ci)
@@ -1817,6 +1826,35 @@ def _score_cell(
     return result_conf, run_conf, reasons
 
 
+def _check_rbi_leq_runs(slot_data: list[tuple]) -> list[str]:
+    """Per-inning invariant (#7): RBI credited can never exceed runs scored.
+
+    An RBI is only ever credited alongside a run=True cell (see phases 1/2
+    above — self-RBI on a HR, or an rbi_slot digit on a *different* run=True
+    cell), so each run can contribute at most one RBI credit. A violation
+    here means a bug in the attribution logic, not a scorekeeping quirk —
+    it is not auto-corrected, just surfaced alongside the other RBI warnings.
+    """
+    rbi_by_inning: dict[int, int] = {}
+    runs_by_inning: dict[int, int] = {}
+    for _, pa_lists in slot_data:
+        for pas in pa_lists:
+            for pa in pas:
+                rbi_by_inning[pa.inning] = rbi_by_inning.get(pa.inning, 0) + pa.rbi
+                if pa.run_scored:
+                    runs_by_inning[pa.inning] = runs_by_inning.get(pa.inning, 0) + 1
+    warnings_out: list[str] = []
+    for inn in sorted(set(rbi_by_inning) | set(runs_by_inning)):
+        rbi = rbi_by_inning.get(inn, 0)
+        runs = runs_by_inning.get(inn, 0)
+        if rbi > runs:
+            warnings_out.append(
+                f"  WARNING: inn {inn}: RBI total {rbi} > runs scored {runs} "
+                "— RBI can never exceed runs"
+            )
+    return warnings_out
+
+
 def _build_slot_data(
     grid: list[list[dict | None]],
     slot_info: list[dict],
@@ -1919,6 +1957,7 @@ def _build_slot_data(
             if not credited and target_pas:
                 target_pas[-1].rbi += 1
 
+    warnings_out.extend(_check_rbi_leq_runs(slot_data))
     return slot_data, warnings_out
 
 
@@ -2429,16 +2468,6 @@ def main(
     if n_reread:
         click.echo(f"  Re-read {n_reread} cell(s) with run=True / result=None")
 
-    # ── RBI backfill: re-read run=True cells that pre-date rbi_slot tracking ──
-    n_rbi_backfill = _backfill_rbi_cells(
-        img, grid, n_active_rows, n_phys_cols,
-        row_tops, row_bottoms, col_lefts,
-        col_to_inning, row_names,
-        client, model, cache_dir,
-    )
-    if n_rbi_backfill:
-        click.echo(f"  RBI backfill: updated {n_rbi_backfill} cell(s)")
-
     # ── SB backfill: count stolen bases for reached-base cells ────────────────
     n_sb_backfill = _backfill_sb_cells(
         img, grid, n_active_rows, n_phys_cols,
@@ -2575,6 +2604,19 @@ def main(
                 inning_flags[inn] = _check_col(inn, _inning_cells_check[inn], gt_totals)
         else:
             click.echo("  Run totals: all match GT.")
+
+    # ── RBI backfill: re-read every cell that ended up run=True but never got
+    # an rbi_slot read (#7). Deliberately runs LAST, after every pass that can
+    # flip run False→True (hole-reread, HR constraint, GT reconciliation) —
+    # rbi_slot is only ever meaningful once run has settled to its final value.
+    n_rbi_backfill = _backfill_rbi_cells(
+        img, grid, n_active_rows, n_phys_cols,
+        row_tops, row_bottoms, col_lefts,
+        col_to_inning, row_names,
+        client, model, cache_dir,
+    )
+    if n_rbi_backfill:
+        click.echo(f"  RBI backfill: updated {n_rbi_backfill} cell(s)")
 
     # ── Assemble GameExtraction ───────────────────────────────────────────────
     # Phases 1+2 (PA lists + RBI attribution) live in _build_slot_data so they

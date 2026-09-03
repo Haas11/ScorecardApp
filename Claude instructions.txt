@@ -180,10 +180,23 @@ Order matters: investigate #12 first (may change the design), then #11 -> #7 -> 
         adding a missing run; only auto-assign when the best candidate is >= 2 points
         below (less certain about "no run") than the next one, else flag for review.
 
-[ ] #7  RBI <-> run coupling: an RBI read from bottom-left implies a run for that cell (check
+[x] #7  RBI <-> run coupling: an RBI read from bottom-left implies a run for that cell (check
         whether already implicit); a run=True cell should trigger the RBI backfill read.
-		note that run doesnt always imply an RBI (could be PB, SB, E#, etc).
-		So RBIs <= Runs per inning. 
+		note that a run doesnt always imply an RBI (could be due to PB, SB, E#, etc).
+		So RBIs <= Runs per inning.
+          Done 2026-09-03: "RBI implies run" was already implicit (rbi_slot is only ever read
+          or consumed on run=True cells) — nothing to change there. "run=True should trigger
+          backfill" had a real gap: classify_cell wrote rbi_slot=null (key present) even when
+          run=False, which made a cell that only later flipped True (hole-reread, HR constraint,
+          GT reconciliation) look already-backfilled forever. Fixed by omitting the key
+          entirely when run=False, and moved _backfill_rbi_cells to run LAST (after every
+          run-flipping pass, right before _build_slot_data) so it actually catches them.
+          Added _check_rbi_leq_runs() as an explicit per-inning invariant check (folded into
+          the RBI attribution warnings), plus 4 new tests in test_rbi_attribution.py (2 for
+          the sentinel fix via monkeypatched classify_cell, 2 for the new invariant, one of
+          which exercises a real fallback-crediting path that violates it). Verified the
+          reordering end-to-end on a scratch copy of a real game — all 12 run cells still get
+          rbi_slot correctly.
 		
 [ ] #1  Enforce run count == GT per inning, both directions. Today _enforce_gt_runs only
         zeroes runs for R=0 innings and logs overcounts. To ADD runs, rank candidate cells by

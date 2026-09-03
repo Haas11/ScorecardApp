@@ -22,43 +22,46 @@ Scan image (JPG/PNG)
         │                   independent of --reuse-cache — delete or use --reset-names to redo)
         ▼
 3. Per-cell VLM          extract_cells.py / classify_cell()
-        │                → one dict per cell: result, run, rbi_slot, result_conf, run_conf
+        │                → one dict per cell: result, run, rbi_slot (run=True cells only,
+        │                   see #7 below), result_conf, run_conf
         │                   cached in games/{stem}/cells/r##_c##.json
         ▼
-4. RBI backfill          _backfill_rbi_cells()
-        │                → focused VLM call on bottom-left quadrant of run=True cells
-        │                   to identify which batting slot drove in the run
-        │                → only re-reads cells missing the rbi_slot KEY (old-format cache);
-        │                   rbi_slot: null is treated as valid cached data
-        ▼
-5. SB backfill           _backfill_sb_cells()
+4. SB backfill           _backfill_sb_cells()
         │                → focused VLM call counting stolen-base notations in
         │                   top-left/top-right/bottom-left quadrants of reached-base cells
         │                → only re-reads cells missing sb_count key
         ▼
-6. Constraint enforcement  _enforce_constraints()
+5. Constraint enforcement  _enforce_constraints()
         │                → E (error) is never an out
         │                → out → run=False
+        │                → HR → run=True
         ▼
-7. Structural rules      _apply_batting_rules()
+6. Structural rules      _apply_batting_rules()
         │                → isolation, 3-out, K-PB enforcement
         ▼
-8. Hole detection        _reread_hole_cells() / run-reread pass
+7. Hole detection        _reread_hole_cells() / run-reread pass
         │                → null cell sandwiched between two non-null cells re-read
         │                → run=True with result=None re-read; if still no result,
         │                   run is forced to False (grid + cache) so nothing phantom
         │                   flows into stats — cyclic P9→P1 boundary suppressed
         ▼
-9. GT enforcement        _enforce_gt_runs()
+8. GT enforcement        _enforce_gt_runs()
         │                → fix impossible runs against ground-truth totals
         ▼
-10. Reconciliation       main loop
+9. Reconciliation        main loop
         │                → focused re-check when extracted R < GT R
         ▼
-11. Integrity checks     _check_row(), _check_pa_sequence(), _check_col()
+10. Integrity checks     _check_row(), _check_pa_sequence(), _check_col()
         │                → per-player and per-inning cross-checks printed to terminal
         │                → run counts here EXCLUDE cells with result=None even if run=True,
         │                   matching what actually reaches PlateAppearance/stats
+        ▼
+11. RBI backfill         _backfill_rbi_cells()
+        │                → focused VLM call on bottom-left quadrant of run=True cells
+        │                   missing an rbi_slot key, to identify which batting slot drove
+        │                   in the run — rbi_slot: null (key present) is valid cached data
+        │                → runs LAST (#7): any of steps 5-9 above can flip a cell's run
+        │                   False→True, and rbi_slot is only meaningful once run has settled
         ▼
 12. JSON export          GameExtraction (models.py)
         │                → games/{stem}/{stem}_cells.json
@@ -92,7 +95,7 @@ Scan image (JPG/PNG)
 | `correct_date.py` | Fix a mistyped game date (e.g. month/day swapped) without re-extracting: renames the game folder, `_cells.json`, `.html`, and scan image, patches `game.date` in the JSON and the DB `games` row (`date` + `raw_json_path`), regenerates the widget. The per-cell cache in `cells/` moves automatically with the folder rename. Date only — it does not touch opponent or home/away. |
 | `manage_players.py` | CLI for fuzzy-matched player aliases (confirm, merge, list). |
 | `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, result_conf, run_conf, reread, adjusted, notes). |
-| `test_rbi_attribution.py` | Unit tests for `_build_slot_data()` (PA construction + RBI attribution). Run with `uv run python test_rbi_attribution.py` from `scorecard/`. No image or API needed. |
+| `test_rbi_attribution.py` | Unit tests for `_build_slot_data()` (PA construction + RBI attribution), `_check_rbi_leq_runs()`, and `classify_cell()`'s rbi_slot sentinel behavior (see #7). Run with `uv run python test_rbi_attribution.py` from `scorecard/`. No image needed; the two `classify_cell` tests monkeypatch `_call_api`/`_read_rbi_slot` instead of hitting the API. |
 | `test_confidence.py` | Unit tests for `_score_cell()` and its wiring into `_build_slot_data()` (see #11 below). Run with `uv run python test_confidence.py`. No image or API needed. |
 
 ---
@@ -105,9 +108,16 @@ Each cell result is persisted as `games/{stem}/cells/r{ri:02d}_c{ci:02d}.json` (
 Cells removed by structural rules are stored as `removed:<rule> (<original_result>)`. On the next run they are **restored** to their original result so rules re-evaluate fresh — making rules stateless and idempotent.
 
 ### RBI slot detection
-After main classification, `_backfill_rbi_cells()` makes a focused VLM call on the bottom-left quadrant of every `run=True` cell. The quadrant contains either a single batting-order digit 1–9 (the batter who drove in the run) or a multi-character notation (SB/WP/PB/E# = no RBI). `thinking_budget=0` prevents Gemini thinking tokens from consuming the small `max_tokens` budget. On `--reuse-cache`, `rbi_slot: null` is valid cached data; only cells missing the key entirely are backfilled.
+`_backfill_rbi_cells()` makes a focused VLM call on the bottom-left quadrant of every `run=True` cell missing an `rbi_slot` key. The quadrant contains either a single batting-order digit 1–9 (the batter who drove in the run) or a multi-character notation (SB/WP/PB/E# = no RBI). `thinking_budget=0` prevents Gemini thinking tokens from consuming the small `max_tokens` budget.
+
+**RBI ↔ run coupling (#7).** `rbi_slot` is only ever meaningful on a `run=True` cell, so the coupling is enforced at both ends:
+- *Read side* — `classify_cell()` only calls `_read_rbi_slot()` when `run` is true, and (this is the #7 fix) **omits the `"rbi_slot"` key entirely** when `run` is false, rather than writing `null`. That distinguishes "not applicable / never attempted" (key absent) from "attempted, no digit found" (key present, `null`) — the same value that `--reuse-cache` treats as "already read, skip." Before this fix a cell that was born `run=False` (so `rbi_slot` was written as `null`) and only later flipped to `run=True` by hole-reread, the HR constraint, or GT reconciliation would permanently look "already backfilled" and never get its digit read.
+- *Ordering* — because of that, `_backfill_rbi_cells()` now runs **last**, after every pass that can set `run=True` (hole-reread, `_enforce_constraints`, `_apply_batting_rules`, `_enforce_gt_runs`, GT run reconciliation), right before `_build_slot_data()`. On `--reuse-cache`, `rbi_slot: null` is valid cached data; only cells with `run=True` and no `rbi_slot` key at all are backfilled.
+- *Consumption side* — `_build_slot_data()` Phase 2 only reads `rbi_slot` off cells that already pass `cell.get("run")` (and have a non-null `result`), so a stray `rbi_slot` on a `run=False` cell — e.g. from hand-edited JSON — is inert.
 
 **RBI attribution** happens in `_build_slot_data()` (pure function, unit-tested in `test_rbi_attribution.py`): a HR credits its batter 1 RBI at PA construction; every `run=True` cell with an `rbi_slot` digit credits the batter in that slot on their PA in the same inning. If `rbi_slot` equals the runner's **own** slot, nothing extra is credited: on a HR the scorer writes the batter's own number in the bottom-left, and that RBI is already counted (this self-reference produced 3 RBI on a 2-run HR — improvement #12; it only showed up when the VLM happened to read the digit, and vanished on a clean-slate run that read null). On a non-HR result a self-reference is impossible and is printed under "RBI attribution warnings" instead.
+
+**RBI ≤ runs invariant (#7).** A run doesn't always imply an RBI (SB/WP/PB/E# advance the runner without one), but the reverse always holds: total RBI credited in an inning can never exceed runs scored that inning, since each run=True cell contributes at most one RBI credit (either the HR self-credit or one `rbi_slot` attribution, never both — see #12 above). `_check_rbi_leq_runs()` verifies this per inning after attribution and appends a warning (folded into the same "RBI attribution warnings" section) if it's ever violated — a sign of a bug, not a scorekeeping quirk, so it is not auto-corrected.
 
 ### Stolen base (SB) detection
 `_backfill_sb_cells()` targets reached-base, non-out cells missing `sb_count`. Counts SB notations in the top-left/top-right/bottom-left quadrants (never bottom-right, which is RBI/out territory). `PlateAppearance.sb = int(cell.get("sb_count") or 0)`. Flows through `stats.py SB` → `export_season.py` (gold-highlighted season leader column, included in per-game and game-log sheets). CS was removed from the schema/exports — SB only.

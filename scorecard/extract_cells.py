@@ -124,14 +124,21 @@ IMPORTANT — unknown or ambiguous out marks:
   notation not listed above. If you see a circle whose contents are ambiguous
   or do not clearly show a fielder number or DP/SAC/SF, return result: "K".
 
-Set "confidence" to "low" if the cell is ambiguous, hard to read, or you are unsure of the result.
-Set "confidence" to "high" if the cell is clear and unambiguous.
+Also rate your own confidence with two integers, "result_conf" and "run_conf" (1-5).
+Ask yourself what the alternative reading would be — don't just report a feeling:
+  5  every stroke is unambiguous
+  4  clear, with minor doubt on a detail (e.g. 1 vs 2 crossbars, but the count is visible)
+  3  plausible, but a specific alternative reading exists — NAME IT in "notes"
+  2  you guessed between two readings — name both in "notes"
+  1  barely legible
+"result_conf" rates how sure you are of "result"; "run_conf" rates how sure you
+are of "run" (true OR false — being sure nothing scored is also a high run_conf).
 
 Return ONLY valid JSON — no prose, no explanation, no markdown fences.
 For a PA result use the string code. For no PA use JSON null (NOT the string "null").
-PA no run:  {"result": "K",  "run": false, "confidence": "high", "notes": null}
-PA + run:   {"result": "1B", "run": true,  "confidence": "high", "notes": null}
-Empty cell: {"result": null, "run": false, "confidence": "high", "notes": null}"""
+PA no run:  {"result": "K",  "run": false, "result_conf": 5, "run_conf": 5, "notes": null}
+PA + run:   {"result": "1B", "run": true,  "result_conf": 5, "run_conf": 4, "notes": "could be 2 crossbars"}
+Empty cell: {"result": null, "run": false, "result_conf": 5, "run_conf": 5, "notes": null}"""
 
 
 # ── VLM cell call ─────────────────────────────────────────────────────────────
@@ -261,6 +268,20 @@ def _call_api(
     return None
 
 
+def _coerce_conf(v) -> int | None:
+    """Sanitize a result_conf/run_conf value to an int in [1,5], else None
+    (missing/invalid values are never fabricated — see #11)."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int) and 1 <= v <= 5:
+        return v
+    if isinstance(v, str) and v.strip().isdigit():
+        n = int(v.strip())
+        if 1 <= n <= 5:
+            return n
+    return None
+
+
 def _parse_json_response(raw: str) -> dict | None:
     """Parse JSON response; fall back to partial-JSON salvage for truncated output."""
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.DOTALL).strip()
@@ -276,6 +297,9 @@ def _parse_json_response(raw: str) -> dict | None:
         # Normalize string "null" → Python None (VLM sometimes returns "null" as a string)
         if isinstance(parsed.get("result"), str) and parsed["result"].strip().lower() == "null":
             parsed["result"] = None
+        if "result_conf" in parsed or "run_conf" in parsed:
+            parsed["result_conf"] = _coerce_conf(parsed.get("result_conf"))
+            parsed["run_conf"] = _coerce_conf(parsed.get("run_conf"))
         return parsed
     except json.JSONDecodeError:
         # Salvage path 1: totals cell — extract R/H/E/LOB from truncated JSON
@@ -288,17 +312,31 @@ def _parse_json_response(raw: str) -> dict | None:
         if totals_found:
             return {k: totals_found.get(k, 0) for k in totals_keys}
 
-        # Salvage path 2: PA cell — extract result/run/notes
+        # Salvage path 2: PA cell — extract result/run/notes/confidences
         r_m = re.search(r'"result"\s*:\s*(?:"([^"]*?)"|null)', raw)
         run_m = re.search(r'"run"\s*:\s*(true|false)', raw)
         notes_m = re.search(r'"notes"\s*:\s*(?:"([^"]*?)"|null)', raw)
+        rc_m = re.search(r'"result_conf"\s*:\s*(\d+)', raw)
+        runc_m = re.search(r'"run_conf"\s*:\s*(\d+)', raw)
         if r_m or run_m:
             return {
                 "result": (r_m.group(1) or None) if r_m else None,
                 "run": run_m.group(1) == "true" if run_m else False,
                 "notes": (notes_m.group(1) or None) if notes_m else None,
+                "result_conf": _coerce_conf(rc_m.group(1)) if rc_m else None,
+                "run_conf": _coerce_conf(runc_m.group(1)) if runc_m else None,
             }
         return None
+
+
+def _add_adjusted(cell: dict, flag: str) -> None:
+    """Record a structural confidence-lowering event on a cell, deduplicated.
+
+    Structural rules re-run on every --reuse-cache pass, so writers must be
+    add-if-absent rather than appending unconditionally (see #11 design)."""
+    adjusted = cell.setdefault("adjusted", [])
+    if flag not in adjusted:
+        adjusted.append(flag)
 
 
 def classify_cell(
@@ -323,6 +361,8 @@ def classify_cell(
 
         parsed = _parse_json_response(raw)
         if parsed is not None:
+            if attempt == 1:
+                _add_adjusted(parsed, "parse_retry")
             # Focused bottom-left crop for rbi_slot — more reliable than the general prompt
             if parsed.get("run"):
                 parsed["rbi_slot"] = _read_rbi_slot(crop, player_name, inning, client, model)
@@ -556,6 +596,7 @@ def _apply_batting_rules(
             cell = grid[ri][ci]
             if cell and cell.get("run") and _is_out(cell.get("result")):
                 cell["run"] = False
+                _add_adjusted(cell, "constraint:out->run=False")
                 _save(ri, ci)
                 click.echo(f"  [out-run] Player {ri+1} inn {inn} {cell['result']}: run forced False")
 
@@ -575,7 +616,14 @@ def _apply_batting_rules(
                 continue  # can't safely call this isolated
             if not _has_pa(prev_ri, ci) and not _has_pa(next_ri, ci):
                 old = grid[ri][ci].get("result")
-                grid[ri][ci] = {"result": None, "run": False, "notes": f"removed:isolated ({old})"}
+                # Keep non-structural keys (reread/adjusted/*_conf/rbi_slot) so a
+                # future restore (see the cache-load "removed:" handling) doesn't
+                # lose the evidence they record.
+                removed_cell = dict(grid[ri][ci] or {})
+                removed_cell["result"] = None
+                removed_cell["run"] = False
+                removed_cell["notes"] = f"removed:isolated ({old})"
+                grid[ri][ci] = removed_cell
                 _save(ri, ci)
                 click.echo(f"  [isolated] Player {ri+1} inn {inn} was {old}: removed")
 
@@ -605,7 +653,11 @@ def _apply_batting_rules(
                 continue
             if outs >= 3:
                 old = grid[ri][ci].get("result")
-                grid[ri][ci] = {"result": None, "run": False, "notes": f"removed:after_3_outs ({old})"}
+                removed_cell = dict(grid[ri][ci] or {})
+                removed_cell["result"] = None
+                removed_cell["run"] = False
+                removed_cell["notes"] = f"removed:after_3_outs ({old})"
+                grid[ri][ci] = removed_cell
                 _save(ri, ci)
                 click.echo(f"  [3-outs] Player {ri+1} inn {inn} col {ci+1} was {old}: removed")
             else:
@@ -681,6 +733,7 @@ def _reread_run_no_result_cells(
                 result = _parse_json_response(raw)
             if result and result.get("result") is not None:
                 result["run"] = True  # preserve the confirmed run
+                result["reread"] = "run"
                 grid[ri][ci] = result
                 cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
                 cf.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
@@ -787,6 +840,7 @@ def _reread_hole_cells(
                 result = _parse_json_response(raw)
             cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
             if result and result.get("result") is not None:
+                result["reread"] = "hole"
                 grid[ri][ci] = result
                 cf.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
                 click.echo(f"    → result: {result['result']}  run: {result.get('run', False)}")
@@ -805,7 +859,6 @@ def _enforce_pa_ordering(lineup: list) -> list[str]:
     excess PAs — lowest-confidence first, then highest inning (most likely a
     phantom from ink bleed or an off-by-one column assignment).
     """
-    conf_rank = {"low": 0, "high": 2}
     msgs: list[str] = []
     prev_cap: int | None = None
 
@@ -822,7 +875,7 @@ def _enforce_pa_ordering(lineup: list) -> list[str]:
             excess = count - prev_cap
             ranked = sorted(
                 pa_player,
-                key=lambda x: (conf_rank.get(x[0].confidence, 2), -x[0].inning),
+                key=lambda x: (x[0].confidence, -x[0].inning),
             )
             remove_ids = {id(pa) for pa, _ in ranked[:excess]}
             removed_strs = []
@@ -910,7 +963,9 @@ def _check_row(slot: int, name: str, cells: list[dict], gt: dict[int, tuple] | N
     click.echo(line.rstrip())
 
 
-def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> None:
+def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> set[str]:
+    """Print the per-inning check line and return which stats still mismatch
+    GT ({"R", "H"} — a subset), for #11's confidence scoring to consume."""
     r    = sum(1 for c in cells if c.get("run") and c.get("result") is not None)
     h    = sum(1 for c in cells if _is_hit(c.get("result")))
     outs = sum(1 for c in cells if _is_out(c.get("result")))
@@ -930,6 +985,13 @@ def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> No
         + _fmt_stat("Outs", outs, exp_outs, "exp")
     )
     click.echo(line.rstrip())
+    flags: set[str] = set()
+    if g is not None:
+        if r != g["R"]:
+            flags.add("R")
+        if h != g["H"]:
+            flags.add("H")
+    return flags
 
 
 def _check_pa_sequence(
@@ -984,6 +1046,7 @@ def _enforce_gt_runs(
         if gt_r == 0 and extracted:
             for ri, ci in extracted:
                 grid[ri][ci]["run"] = False
+                _add_adjusted(grid[ri][ci], "gt:run->False")
                 cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
                 cf.write_text(json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8")
                 click.echo(f"  [GT-R=0] Player {ri+1} inn {inn}: run forced False (GT=0 runs)")
@@ -1164,7 +1227,7 @@ def _enforce_constraints(
             if not is_error and _is_out(result) and run:
                 cell = dict(cell)
                 cell["run"] = False
-                cell["confidence"] = "low"
+                _add_adjusted(cell, "constraint:out->run=False")
                 notes = (cell.get("notes") or "").strip()
                 cell["notes"] = (notes + " [constraint: out→run=False]").strip()
                 grid[ri][ci] = cell
@@ -1178,6 +1241,7 @@ def _enforce_constraints(
             if result == "HR" and not run:
                 cell = dict(cell)
                 cell["run"] = True
+                _add_adjusted(cell, "constraint:HR->run=True")
                 notes = (cell.get("notes") or "").strip()
                 cell["notes"] = (notes + " [constraint: HR→run=True]").strip()
                 grid[ri][ci] = cell
@@ -1695,12 +1759,71 @@ def _make_summary(pas: list) -> "PASummary":
     return PASummary(PA=len(pas), AB=ab, H=h, R=r, RBI=rbi)
 
 
+_AMBIGUOUS_NOTES_RE = re.compile(r"ambig|unclear|guess|possibl|faint", re.IGNORECASE)
+
+
+def _score_cell(
+    cell: dict,
+    inning: int,
+    inning_flags: dict[int, set[str]] | None,
+) -> tuple[int, int, list[str]]:
+    """Derive (result_conf, run_conf, reasons) for one cell (see #11).
+
+    Starts from the VLM's own result_conf/run_conf self-report and adjusts it
+    with structural evidence gathered elsewhere in the pipeline: rereads,
+    rule corrections ("adjusted" flags), a run without a corroborating RBI
+    digit, and any inning-level GT mismatch that survives every enforcement
+    pass. Floors at 1, caps at 5.
+    """
+    reasons: list[str] = []
+
+    result_conf = cell.get("result_conf")
+    run_conf = cell.get("run_conf")
+    if result_conf is None or run_conf is None:
+        reasons.append("legacy")
+    if result_conf is None:
+        result_conf = 4
+    if run_conf is None:
+        run_conf = 4
+
+    reread = cell.get("reread")
+    if reread:
+        result_conf -= 1
+        run_conf -= 1
+        reasons.append(f"reread:{reread}")
+
+    for flag in cell.get("adjusted") or []:
+        run_conf -= 1
+        reasons.append(flag)
+
+    if cell.get("run") and cell.get("rbi_slot") is None:
+        run_conf -= 1
+        reasons.append("run_without_rbi_digit")
+
+    flags = (inning_flags or {}).get(inning) or set()
+    if "R" in flags:
+        run_conf -= 1
+        reasons.append("inning_R_mismatch")
+    if "H" in flags and _is_hit(cell.get("result")):
+        result_conf -= 1
+        reasons.append("inning_H_mismatch")
+
+    if _AMBIGUOUS_NOTES_RE.search(cell.get("notes") or ""):
+        result_conf -= 1
+        reasons.append("ambiguous_notes")
+
+    result_conf = max(1, min(5, result_conf))
+    run_conf = max(1, min(5, run_conf))
+    return result_conf, run_conf, reasons
+
+
 def _build_slot_data(
     grid: list[list[dict | None]],
     slot_info: list[dict],
     n_active_rows: int,
     n_phys_cols: int,
     col_to_inning: list[int],
+    inning_flags: dict[int, set[str]] | None = None,
 ) -> tuple[list[tuple], list[str]]:
     """Turn the cell grid into per-slot PlateAppearance lists with RBIs attributed.
 
@@ -1717,6 +1840,10 @@ def _build_slot_data(
         bottom-left of a HR cell), and for any other result it is impossible — a
         batter cannot drive themselves in without a HR — so it is reported instead.
         This self-reference was the cause of the 3-RBI-on-a-2-RBI-HR bug (#12).
+
+    ``inning_flags`` (optional; see #11 / ``_score_cell``) maps inning number to
+    the set of stats ({"R", "H"}) still mismatching GT after every pass — used
+    to dock confidence on cells in an inning whose totals still don't add up.
     """
     slot_data: list[tuple] = []
     warnings_out: list[str] = []
@@ -1736,17 +1863,21 @@ def _build_slot_data(
                 continue
             if isinstance(r, str) and r.strip().lower() == "null":
                 continue  # string "null" slipped through earlier normalization
+            inning = col_to_inning[ci]
+            result_conf, run_conf, conf_reasons = _score_cell(cell, inning, inning_flags)
             pa = PlateAppearance(
-                inning=col_to_inning[ci],
+                inning=inning,
                 result=r,
                 run_scored=bool(cell.get("run")),
                 notes=cell.get("notes") or "",
                 rbi=1 if (r or "").upper() == "HR" else 0,
                 sb=int(cell.get("sb_count") or 0),
                 cs=0,
-                confidence=cell.get("confidence", "high"),
+                confidence=min(result_conf, run_conf),
+                result_conf=result_conf,
+                run_conf=run_conf,
+                conf_reasons=conf_reasons,
             )
-            inning = col_to_inning[ci]
             owner_idx = 0
             for idx, (_, entry_inn) in enumerate(all_slots):
                 if entry_inn <= inning:
@@ -2135,11 +2266,12 @@ def main(
                     m_restore = re.match(r"removed:\S+\s*\((.+?)\)", notes)
                     if m_restore:
                         orig = m_restore.group(1).strip()
-                        cell = {
-                            "result": None if orig in ("null", "None") else orig,
-                            "run": False,
-                            "notes": None,
-                        }
+                        # Keep every other key (reread/adjusted/*_conf/rbi_slot) —
+                        # they describe VLM reads, not the rule's removal state.
+                        cell = dict(cell)
+                        cell["result"] = None if orig in ("null", "None") else orig
+                        cell["run"] = False
+                        cell["notes"] = None
                         cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
                 grid[ri][ci] = cell
                 cached_count += 1
@@ -2370,10 +2502,14 @@ def main(
         inn = col_to_inning[ci]
         for ri in range(n_active_rows):
             _inning_cells_check[inn].append(grid[ri][ci] or {})
+    # inning_flags feeds #11's confidence scoring (_score_cell): which stats
+    # still mismatch GT for a given inning, after every enforcement pass has
+    # had a chance to fix it. Overwritten below if reconciliation re-checks.
+    inning_flags: dict[int, set[str]] = {}
     for inn in sorted(_inning_cells_check):
         if inn > innings:
             continue  # buffer columns beyond the game length
-        _check_col(inn, _inning_cells_check[inn], gt_totals)
+        inning_flags[inn] = _check_col(inn, _inning_cells_check[inn], gt_totals)
 
     # ── Run reconciliation against GT inning totals ───────────────────────────
     # Only runs a focused re-check when we extracted FEWER runs than GT expects.
@@ -2422,6 +2558,7 @@ def main(
                     run = _recheck_run(crop, name, inn, client, model)
                     if run:
                         grid[ri][ci]["run"] = True
+                        _add_adjusted(grid[ri][ci], "recheck:run->True")
                         cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
                         cf.write_text(json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8")
                         run_issues.append(f"    -> P{ri+1} {name} inn {inn}: run corrected to True")
@@ -2435,7 +2572,7 @@ def main(
             for inn in sorted(_inning_cells_check):
                 if inn > innings:
                     continue
-                _check_col(inn, _inning_cells_check[inn], gt_totals)
+                inning_flags[inn] = _check_col(inn, _inning_cells_check[inn], gt_totals)
         else:
             click.echo("  Run totals: all match GT.")
 
@@ -2443,7 +2580,7 @@ def main(
     # Phases 1+2 (PA lists + RBI attribution) live in _build_slot_data so they
     # can be unit-tested without an image or API client.
     slot_data, rbi_warnings = _build_slot_data(
-        grid, slot_info, n_active_rows, n_phys_cols, col_to_inning
+        grid, slot_info, n_active_rows, n_phys_cols, col_to_inning, inning_flags
     )
     if rbi_warnings:
         click.echo("\n\n-- RBI attribution warnings " + "-" * 38)

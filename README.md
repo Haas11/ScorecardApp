@@ -110,9 +110,11 @@ If grid auto-detection produces a wrong column/row count or spacing, check the d
 
 **Interactive reviewer** (recommended for low-confidence flags):
 ```powershell
-uv run python review.py --game 2026-06-07          # only low-confidence flags
-uv run python review.py --game 2026-06-07 --all    # every PA in the game
+uv run python review.py --game 2026-06-07                    # only low-confidence flags
+uv run python review.py --game 2026-06-07 --max-conf 3        # widen to confidence <= 3
+uv run python review.py --game 2026-06-07 --all               # every PA in the game
 ```
+Each PA is tagged with its confidence (1-5) and why it was docked, e.g. `[conf 2/5: reread:hole; inning_R_mismatch]`.
 
 **Manual edit:** edit `Quick 2026/games/{stem}/{stem}_cells.json` directly, then:
 ```powershell
@@ -159,7 +161,7 @@ Output: `Quick 2026/Quick 2026 stats.xlsx`
 | Season Stats | Cumulative stats for all players, sorted by OPS |
 | Game Log | Per-player per-game line |
 | {Date} {Opponent} | Box score for each game |
-| Low Confidence | PAs flagged for review |
+| Low Confidence | PAs with confidence <= `review.threshold` (config.yml, default 2), with the reasons they were docked |
 
 Stats: PA, AB, H, 2B, 3B, HR, BB, K, R, RBI, SB, AVG, OBP, SLG, OPS, BABIP, ISO, BB%, K%, wOBA, RC, OPS+, AB/HR, BB/K. BB, HBP, SAC, and SF do not count as an AB.
 

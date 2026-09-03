@@ -42,7 +42,21 @@ class PlateAppearance(BaseModel):
     sb: int = 0
     cs: int = 0
     notes: str = ""
-    confidence: str = "high"
+    confidence: int = 5
+    result_conf: Optional[int] = None
+    run_conf: Optional[int] = None
+    conf_reasons: list[str] = []
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _coerce_confidence(cls, v):
+        """Old _cells.json files store "high"/"low"; map them onto the 1-5
+        scale so they still reimport without a re-extraction."""
+        if isinstance(v, str):
+            return {"high": 5, "low": 2}.get(v.lower(), 4)
+        if v is None:
+            return 4
+        return v
 
 
 class PlayerEntry(BaseModel):

@@ -14,7 +14,10 @@ from openpyxl.utils import get_column_letter
 
 import yaml
 
-from db import get_connection, init_db, get_data_root, get_db_path, DATA_ROOT_ENV_VAR, _CONFIG_PATH
+from db import (
+    get_connection, init_db, get_data_root, get_db_path, get_review_threshold,
+    DATA_ROOT_ENV_VAR, _CONFIG_PATH,
+)
 from stats import compute_all_stats, PlayerStats
 
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
@@ -51,7 +54,7 @@ GAME_LOG_COLS = [
     "Name", "Date", "Opponent", "PA", "AB", "H", "2B", "3B", "HR",
     "R", "RBI", "BB", "K", "SB", "AVG", "OBP",
 ]
-LOW_CONF_COLS = ["Player", "Date", "Opponent", "Inning", "Result", "Notes", "Reviewed"]
+LOW_CONF_COLS = ["Player", "Date", "Opponent", "Inning", "Result", "Confidence", "Reasons", "Notes", "Reviewed"]
 
 
 def _fmt(val, col: str):
@@ -421,14 +424,16 @@ def export_season(
     ws3 = wb.create_sheet("Low Confidence")
     _write_header(ws3, LOW_CONF_COLS)
 
+    review_threshold = get_review_threshold()
     lc_rows = conn.execute(
         """SELECT p.name, g.date, g.opponent, pa.inning,
-                  pa.result, pa.raw_notes, pa.reviewed
+                  pa.result, pa.confidence, pa.conf_reasons, pa.raw_notes, pa.reviewed
            FROM plate_appearances pa
            JOIN players p ON pa.player_id = p.player_id
            JOIN games g ON pa.game_id = g.game_id
-           WHERE pa.needs_review = 1
+           WHERE pa.confidence <= ?
            ORDER BY g.date ASC, p.name ASC""",
+        (review_threshold,),
     ).fetchall()
 
     for row_idx, r in enumerate(lc_rows, 2):
@@ -437,8 +442,10 @@ def export_season(
         ws3.cell(row=row_idx, column=3, value=r["opponent"])
         ws3.cell(row=row_idx, column=4, value=r["inning"])
         ws3.cell(row=row_idx, column=5, value=r["result"])
-        ws3.cell(row=row_idx, column=6, value=r["raw_notes"])
-        ws3.cell(row=row_idx, column=7, value="Yes" if r["reviewed"] else "No")
+        ws3.cell(row=row_idx, column=6, value=r["confidence"])
+        ws3.cell(row=row_idx, column=7, value=(r["conf_reasons"] or "").replace(";", "; "))
+        ws3.cell(row=row_idx, column=8, value=r["raw_notes"])
+        ws3.cell(row=row_idx, column=9, value="Yes" if r["reviewed"] else "No")
 
     _autofit(ws3)
 

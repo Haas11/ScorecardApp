@@ -22,7 +22,7 @@ Scan image (JPG/PNG)
         │                   independent of --reuse-cache — delete or use --reset-names to redo)
         ▼
 3. Per-cell VLM          extract_cells.py / classify_cell()
-        │                → one dict per cell: result, run, rbi_slot, confidence
+        │                → one dict per cell: result, run, rbi_slot, result_conf, run_conf
         │                   cached in games/{stem}/cells/r##_c##.json
         ▼
 4. RBI backfill          _backfill_rbi_cells()
@@ -83,16 +83,17 @@ Scan image (JPG/PNG)
 | `db.py` | SQLite layer: `init_db`, `write_game`, `find_duplicate_game`, fuzzy player matching. |
 | `stats.py` | Derived stat calculations: AVG, OBP, SLG, OPS, BABIP, ISO, wOBA, RC, OPS+, BB/K, AB/HR. SB counted; CS removed from schema. |
 | `export_season.py` | Reads DB, writes multi-sheet Excel workbook with color-scaled conditional formatting. No CS column. |
-| `reimport.py` | Reimport one `_cells.json` or all games (`--all`) into DB + regenerate HTML. `--sync-cells` reverse-writes a hand-edited `_cells.json` back into the per-cell cache (preserves `rbi_slot`) so `--reuse-cache` doesn't clobber manual fixes. |
+| `reimport.py` | Reimport one `_cells.json` or all games (`--all`) into DB + regenerate HTML. `--sync-cells` reverse-writes a hand-edited `_cells.json` back into the per-cell cache (preserves `rbi_slot`, `reread`, `adjusted`; writes back `result_conf`/`run_conf` if present) so `--reuse-cache` doesn't clobber manual fixes. |
 | `crawl.py` | Loops game folders under a games dir, re-running `extract_cells.py --reuse-cache --yes` per game (finds the scan in the sibling `scans/` folder). Use to backfill a newly-added field across already-analyzed games. |
-| `review.py` | Interactive CLI to review and correct low-confidence PAs. Patches `_cells.json` + DB. |
+| `review.py` | Interactive CLI to review and correct low-confidence PAs (default: `needs_review=1`; `--max-conf N` widens to any unreviewed PA with confidence <= N; `--all` shows every PA). Patches `_cells.json` + DB. |
 | `render_widget.py` | Standalone HTML widget renderer (color-coded scorecard grid + per-player stats + SB indicator). |
 | `publish.py` | Copies `*.html` (root + up to 2 subfolder levels) and the xlsx to a destination folder; auto-detects the xlsx if not passed. Must be run with `uv run` from `scorecard/`. |
 | `mark_reviewed.py` | Bulk-mark PAs as reviewed in the DB. |
 | `correct_date.py` | Fix a mistyped game date (e.g. month/day swapped) without re-extracting: renames the game folder, `_cells.json`, `.html`, and scan image, patches `game.date` in the JSON and the DB `games` row (`date` + `raw_json_path`), regenerates the widget. The per-cell cache in `cells/` moves automatically with the folder rename. Date only — it does not touch opponent or home/away. |
 | `manage_players.py` | CLI for fuzzy-matched player aliases (confirm, merge, list). |
-| `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, confidence, notes). |
+| `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, result_conf, run_conf, reread, adjusted, notes). |
 | `test_rbi_attribution.py` | Unit tests for `_build_slot_data()` (PA construction + RBI attribution). Run with `uv run python test_rbi_attribution.py` from `scorecard/`. No image or API needed. |
+| `test_confidence.py` | Unit tests for `_score_cell()` and its wiring into `_build_slot_data()` (see #11 below). Run with `uv run python test_confidence.py`. No image or API needed. |
 
 ---
 
@@ -118,6 +119,7 @@ The VLM prompt instructs: if the bottom-right quadrant alone is crossed out with
 Applied before structural rules, in order:
 1. **E (error) rule** — any result matching `^E\d*` is never an out.
 2. **Out-run rule** — if a cell is an out (and not an error), `run` is forced to False.
+3. **HR rule** — a `HR` result forces `run=True` (the batter always scores on his own home run); self-RBI is credited separately at PA construction (see RBI attribution below).
 
 ### Structural rules (batting rules)
 1. **Isolation rule** — a PA with neither predecessor nor successor in the same inning is removed unless a neighbor is uncertain.
@@ -130,6 +132,11 @@ A null cell sandwiched between two non-null cells in the same column is re-read 
 
 ### Ground-truth enforcement
 `_enforce_gt_runs()` runs after batting rules. For any inning where GT says R=0, all `run=True` cells are forced False. Over-counted innings are logged but not auto-corrected (needs a human to pick which cell is wrong).
+
+### Confidence scoring (#11)
+The VLM emits two integers per cell instead of a single "low"/"high" self-report: `result_conf` and `run_conf` (1-5, anchored rubric in `_CELL_SYSTEM` — 5 = every stroke unambiguous, 1 = barely legible). A survey of a full season's cache found the old binary field useless — 811/1413 cells had no confidence key at all, and every one of the remaining 602 said "high", including cells the pipeline itself had flagged as uncertain. `_score_cell()` (pure function, unit-tested in `test_confidence.py`) starts from that self-report — missing → 4, reason `"legacy"` — and docks it using evidence the pipeline already collects but used to discard: a successful hole/run reread (`cell["reread"]`, both -1), each structural rule correction (`cell["adjusted"]`, a deduplicated add-if-absent list written by `_enforce_constraints`, `_enforce_gt_runs`, `_apply_batting_rules`, the run-reconciliation `_recheck_run` call, and `classify_cell`'s `parse_retry`; each entry docks `run_conf` -1, except `parse_retry` which is itself an `adjusted` entry too), a `run=True` cell with no corroborating `rbi_slot` digit (`run_conf` -1), an inning whose R or H still mismatches GT after every pass (`inning_flags`, built from `_check_col()`'s final numbers and passed into `_build_slot_data()` — R mismatch docks `run_conf`, H mismatch docks `result_conf` on hit cells), and notes containing "ambig/unclear/guess/possibl/faint" (`result_conf` -1). Floors at 1, caps at 5. `PlateAppearance.confidence = min(result_conf, run_conf)`, plus the raw `result_conf`/`run_conf`/`conf_reasons` fields. `removed:`-tagged cells (isolation/3-out rules) and the cache-load restore path both now preserve these keys through a removal/restore cycle instead of dropping them — they describe VLM reads, not rule state.
+
+`db.write_game` sets `needs_review = confidence <= config.yml`'s `review.threshold` (default 2); `conf_reasons` is stored `;`-joined in its own column. Old string confidence values ("high"/"low") are mapped onto the scale (5/2) both on JSON reimport (`models.PlateAppearance` validator) and in the DB (`init_db`'s idempotent migration). `review.py`'s default filter is unchanged (`needs_review=1`); `--max-conf N` widens it to any unreviewed PA with `confidence <= N` regardless of the stored threshold. `export_season.py`'s "Low Confidence" sheet queries `confidence <= review.threshold` directly and adds Confidence/Reasons columns.
 
 ### PA cross-check identity
 For a completed inning: `PA = 3 (outs) + R (runs) + LOB`. Checked in `_check_col()` using ground-truth totals. `_check_col` and the run-reconciliation loop both only count a cell as a "run" if it has `run=True` **and** a non-null `result` — matching the final PlateAppearance filter (see above).
@@ -167,9 +174,9 @@ BB, HBP (both `HP` and `HBP`), SAC/SH, and SF do not count as an at-bat. `AB = P
 |---|---|
 | `games` | `game_id`, `date`, `opponent`, `game_number`, `raw_json_path` |
 | `players` | `player_id`, `name` |
-| `plate_appearances` | `pa_id`, `player_id`, `game_id`, `inning`, `batting_order`, `result`, `run_scored`, `rbi`, `sb`, `bb`, `hp`, `sac`, `sf`, `confidence`, `needs_review` |
+| `plate_appearances` | `pa_id`, `player_id`, `game_id`, `inning`, `batting_order`, `result`, `run_scored`, `rbi`, `sb`, `bb`, `hp`, `sac`, `sf`, `confidence` (INTEGER 1-5), `conf_reasons` (`;`-joined), `needs_review` |
 
-Duplicate detection: on reimport, any existing game with the same date + opponent is deleted before re-inserting. Fuzzy player matching uses `fuzzy.auto_match_threshold` in `config.yml`.
+Duplicate detection: on reimport, any existing game with the same date + opponent is deleted before re-inserting. Fuzzy player matching uses `fuzzy.auto_match_threshold` in `config.yml`. Review threshold (`needs_review` cutoff) uses `review.threshold` in `config.yml` — see [Confidence scoring (#11)](#confidence-scoring-11).
 
 ---
 

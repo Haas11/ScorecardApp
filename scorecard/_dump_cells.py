@@ -49,16 +49,22 @@ for f in cache_dir.glob("r??_c??.json"):
     ci = int(parts[1][1:])
     grid[(ri, ci)] = json.loads(f.read_text(encoding="utf-8"))
 
-rows = ["ri,ci,player,inning,result,run,confidence,notes"]
+rows = ["ri,ci,player,inning,result,run,result_conf,run_conf,reread,adjusted,notes"]
 for ri in range(1, 10):
     for ci in range(1, 10):
         c = grid.get((ri, ci), {})
         result = c.get("result", "")
         run = c.get("run", False)
-        confidence = c.get("confidence", "")
+        result_conf = c.get("result_conf", "")
+        run_conf = c.get("run_conf", "")
+        reread = c.get("reread", "")
+        adjusted = ";".join(c.get("adjusted") or [])
         notes = (c.get("notes") or "").replace(",", ";")
         player = players[ri - 1] if ri - 1 < len(players) else f"P{ri}"
-        rows.append(f"{ri},{ci},{player},{ci},{result},{run},{confidence},{notes}")
+        rows.append(
+            f"{ri},{ci},{player},{ci},{result},{run},{result_conf},{run_conf},"
+            f"{reread},{adjusted},{notes}"
+        )
 
 out_path = cache_dir / f"{stem}_cells.csv"
 out_path.write_text("\n".join(rows), encoding="utf-8")

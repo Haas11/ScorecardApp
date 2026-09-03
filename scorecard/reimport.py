@@ -34,7 +34,8 @@ def sync_cells_from_json(p: Path) -> int:
     editing _cells.json so that --reuse-cache picks up your changes instead of
     overwriting them from the old cell cache.
 
-    Keys only present in the cell cache (rbi_slot, confidence) are preserved.
+    Keys only present in the cell cache (rbi_slot, reread, adjusted) are
+    preserved; result_conf/run_conf are written back from the JSON if present.
     Returns the number of cell files written.
     """
     data = json.loads(p.read_text(encoding="utf-8"))
@@ -91,7 +92,10 @@ def sync_cells_from_json(p: Path) -> int:
             existing["result"] = pa.get("result")
             existing["run"] = bool(pa.get("run_scored"))
             existing["notes"] = pa.get("notes") or None
-            existing["confidence"] = pa.get("confidence", "high")
+            if pa.get("result_conf") is not None:
+                existing["result_conf"] = pa.get("result_conf")
+            if pa.get("run_conf") is not None:
+                existing["run_conf"] = pa.get("run_conf")
             existing["sb_count"] = int(pa.get("sb") or 0)
 
             cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")

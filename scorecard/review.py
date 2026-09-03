@@ -5,6 +5,10 @@ review.py — Interactive review and correction of plate appearances.
 Default mode: shows only low-confidence PAs (needs_review=1, not yet reviewed).
 --all flag:   shows EVERY PA for the game — use this to fix any wrong result
               you spotted by eye in the HTML.
+--max-conf N: widen the low-confidence filter to any unreviewed PA with
+              confidence <= N (1-5 scale; default filter uses the DB's
+              needs_review flag, which is confidence <= config.yml's
+              review.threshold).
 
 After each correction the DB, the game's _cells.json, and the HTML widget are
 all updated so everything stays in sync.
@@ -129,22 +133,28 @@ def _regenerate_html(json_path: Path) -> None:
 @click.option("--game", "game_date", default=None, help="Limit to a game date (YYYY-MM-DD)")
 @click.option("--all", "show_all", is_flag=True,
               help="Show every PA for the game, not just low-confidence flags.")
+@click.option("--max-conf", "max_conf", default=None, type=int,
+              help="Widen the filter to any unreviewed PA with confidence <= N (1-5).")
 @click.option("--db", "db_path", default=None)
 def main(game_id: int | None, game_date: str | None, show_all: bool,
-         db_path: str | None) -> None:
+         max_conf: int | None, db_path: str | None) -> None:
     from db import _DB_PATH
     path = Path(db_path) if db_path else _DB_PATH
     init_db(path)
     conn = get_connection(path)
 
     # --all with a game filter: show every PA so you can fix any wrong result.
-    # Without --all: only show flagged low-confidence PAs not yet reviewed.
+    # --max-conf N: any unreviewed PA with confidence <= N, wider than the
+    # DB's default needs_review flag (confidence <= config.yml review.threshold).
+    # Without either: only show flagged low-confidence PAs not yet reviewed.
     if show_all:
         where_clauses: list[str] = []
+    elif max_conf is not None:
+        where_clauses = ["pa.confidence <= ?", "pa.reviewed = 0"]
     else:
         where_clauses = ["pa.needs_review = 1", "pa.reviewed = 0"]
 
-    params: list = []
+    params: list = [max_conf] if (not show_all and max_conf is not None) else []
     if game_id is not None:
         where_clauses.append("pa.game_id = ?")
         params.append(game_id)
@@ -160,7 +170,8 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
     rows = conn.execute(
         f"""SELECT pa.pa_id, pa.batting_order, p.name, g.date, g.opponent,
                    pa.inning, pa.result, pa.run_scored, pa.raw_notes,
-                   pa.reviewed, pa.needs_review, g.raw_json_path, pa.game_id
+                   pa.reviewed, pa.needs_review, pa.confidence, pa.conf_reasons,
+                   g.raw_json_path, pa.game_id
              FROM plate_appearances pa
              JOIN players p ON pa.player_id = p.player_id
              JOIN games g ON pa.game_id = g.game_id
@@ -174,7 +185,12 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
         return
 
     total = len(rows)
-    mode = "all PAs" if show_all else "low-confidence flags"
+    if show_all:
+        mode = "all PAs"
+    elif max_conf is not None:
+        mode = f"confidence <= {max_conf}"
+    else:
+        mode = "low-confidence flags"
     click.echo(f"\n{'═'*60}")
     click.echo(f"  Review ({mode})  —  {total} PA(s)")
     click.echo(f"{'═'*60}")
@@ -196,14 +212,19 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
         notes       = (row["raw_notes"] or "").strip()
         already     = row["reviewed"]
         flagged     = row["needs_review"]
+        confidence  = row["confidence"]
+        conf_reasons = (row["conf_reasons"] or "").replace(";", "; ")
         json_path   = Path(row["raw_json_path"]) if row["raw_json_path"] else None
         gid         = row["game_id"]
 
         tag = ""
         if already:
             tag = "  [reviewed]"
-        if flagged:
-            tag += "  [low-confidence]"
+        if confidence is not None:
+            reason_part = f": {conf_reasons}" if conf_reasons else ""
+            tag += f"  [conf {confidence}/5{reason_part}]"
+        elif flagged:
+            tag += "  [low-confidence]"  # pre-#11 row with no int confidence yet
         click.echo(f"[{idx}/{total}]{tag}")
         click.echo(f"  #{bo} {name}  •  {date} vs {opp}  •  Inning {inning}")
         click.echo(f"  Result: {result:<8}  Run scored: {_fmt_run(run_scored)}")

@@ -17,3 +17,5 @@ stats:
   small_sample_threshold: 15
 fuzzy:
   auto_match_threshold: 60   # scores >= this auto-match silently; below = interactive prompt
+review:
+  threshold: 2   # PAs with confidence <= this (1-5 scale) are flagged needs_review

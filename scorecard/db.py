@@ -55,6 +55,11 @@ def _load_thresholds() -> int:
     return _load_config().get("fuzzy", {}).get("auto_match_threshold", 70)
 
 
+def get_review_threshold() -> int:
+    """PAs with confidence (1-5 scale) <= this are flagged needs_review."""
+    return _load_config().get("review", {}).get("threshold", 2)
+
+
 def normalize_name(name: str) -> str:
     name = name.lower().strip()
     name = re.sub(r"\s+", " ", name)
@@ -113,7 +118,7 @@ def init_db(db_path: Path | None = None) -> None:
             sac           INTEGER,
             sf            INTEGER,
             raw_notes     TEXT,
-            confidence    TEXT,
+            confidence    INTEGER,
             needs_review  INTEGER DEFAULT 0,
             reviewed      INTEGER DEFAULT 0
         );
@@ -141,6 +146,20 @@ def init_db(db_path: Path | None = None) -> None:
             match_type   TEXT
         );
     """)
+
+    # Migration: conf_reasons is new — older DBs pre-date confidence scoring.
+    cols = {row["name"] for row in conn.execute("PRAGMA table_info(plate_appearances)")}
+    if "conf_reasons" not in cols:
+        conn.execute("ALTER TABLE plate_appearances ADD COLUMN conf_reasons TEXT")
+
+    # Migration: confidence used to be TEXT ("high"/"low"); map onto the 1-5
+    # scale in place so old rows sort/filter the same way as new ones. Idempotent.
+    conn.execute(
+        "UPDATE plate_appearances SET confidence = "
+        "CASE confidence WHEN 'high' THEN 5 WHEN 'low' THEN 2 ELSE confidence END "
+        "WHERE typeof(confidence) = 'text'"
+    )
+
     conn.commit()
     conn.close()
 
@@ -393,6 +412,7 @@ def write_game(
     from datetime import datetime
 
     auto_thresh = _load_thresholds()
+    review_threshold = get_review_threshold()
 
     game = extraction.game
     date_val = date_override or game.date
@@ -426,24 +446,25 @@ def write_game(
             )
             for pa in player_entry.plate_appearances:
                 result = pa.result.upper().strip()
-                needs_review = 1 if pa.confidence == "low" else 0
+                needs_review = 1 if pa.confidence <= review_threshold else 0
                 bb = 1 if result == "BB" else 0
                 hp = 1 if result in ("HP", "HBP") else 0
                 sac = 1 if result in ("SAC", "SH") else 0
                 sf = 1 if result == "SF" else 0
                 sb = pa.sb
                 cs = pa.cs
+                conf_reasons = ";".join(pa.conf_reasons) if pa.conf_reasons else None
 
                 conn.execute(
                     """INSERT INTO plate_appearances
                        (player_id, game_id, inning, batting_order, result,
                         run_scored, rbi, sb, cs, bb, hp, sac, sf,
-                        raw_notes, confidence, needs_review)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        raw_notes, confidence, needs_review, conf_reasons)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         player_id, game_id, pa.inning, batting_order, result,
                         int(pa.run_scored), pa.rbi, sb, cs, bb, hp, sac, sf,
-                        pa.notes, pa.confidence, needs_review,
+                        pa.notes, pa.confidence, needs_review, conf_reasons,
                     ),
                 )
 

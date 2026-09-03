@@ -71,9 +71,114 @@ Order matters: investigate #12 first (may change the design), then #11 -> #7 -> 
         Implication for #7/#11/#1: rbi_slot reads are nondeterministic run-to-run; any
         rule that derives runs from rbi_slot must tolerate null and self-references.
 
-[ ] #11 Confidence field is inconsistent (sometimes present, sometimes not). Always emit it.
+[x] #11 Confidence field is inconsistent (sometimes present, sometimes not). Always emit it.
         Consider 1-5 scale instead of low/high so #1 can rank candidates. Must not blow up
         token use. Touches prompt, cache, models, DB, review.py, export.
+          Done 2026-09-03: implemented the design below as written (A-E). Added
+          test_confidence.py (12 tests, all pass); test_rbi_attribution.py (6) still pass
+          unaffected. Verified end-to-end on a scratch copy of a real game: legacy cache
+          (no result_conf/run_conf) scores confidence=4/"legacy" as designed; DB migration
+          (conf_reasons column + text->int confidence) applies cleanly; review.py --max-conf
+          and export_season.py's Low Confidence sheet both populate correctly. Render_widget
+          marker left undone (explicitly optional in the design). Rollout note (E) not run
+          against the real "Quick 2026" DB yet — `uv run python reimport.py --all "../Quick
+          2026/games"` still needs to be run once to migrate it and refresh the xlsx.
+
+        DESIGN (Fable, 2026-09-03) — implement with Sonnet, one commit, then mark [x].
+
+        Findings from the cache survey (1413 cells, Quick 2026):
+          - 811 cells have no confidence key at all (older prompt/format; salvage parser
+            in _parse_json_response also drops it).
+          - ALL 602 cells that have it say "high". Zero "low" in a whole season, including
+            a cell whose notes say "Ambiguous out mark ... defaulting to K". The binary
+            self-report is uncalibrated and carries no signal.
+          - Real uncertainty evidence exists but is discarded: hole re-read filled a cell
+            that read null first; run-reread; _recheck_run flipped run; constraint rule
+            flipped run; GT enforcement flipped run; run=True with rbi_slot null; inning
+            still mismatching GT after all passes; 2nd-attempt JSON parse.
+          - Consumers today: db.write_game needs_review = (confidence=="low") -> review.py
+            default filter + Excel "Low Confidence" sheet; _enforce_pa_ordering trims
+            lowest-confidence PA first; _enforce_constraints writes "low".
+
+        Decision: confidence = VLM self-report (two ints) ADJUSTED by structural evidence.
+
+        A. Prompt / VLM output (extract_cells.py _CELL_SYSTEM, classify_cell):
+           Replace the low/high line with two integer fields, flat keys (no nesting, so the
+           salvage parser can grab them with a regex like the existing ones):
+             "result_conf": 1-5   how sure of the PA result code
+             "run_conf":    1-5   how sure of the run flag (true OR false)
+           Anchored rubric in the prompt (this is what makes it calibrated — ask for the
+           alternative, not for a feeling):
+             5 every stroke unambiguous
+             4 clear, minor doubt on a detail (e.g. 1 vs 2 crossbars but count is visible)
+             3 plausible but a specific alternative reading exists -> NAME IT in notes
+             2 guessed between two readings -> name both in notes
+             1 barely legible
+           Examples in the prompt updated accordingly. Cost: ~10 output tokens per cell,
+           negligible next to the image. _parse_json_response salvage path 2 must also
+           extract result_conf/run_conf when present.
+           Missing/invalid value -> None (never fabricate).
+
+        B. Cache flags written by the passes (facts, stored in r##_c##.json):
+             "reread": "hole" | "run"          set by _reread_hole_cells / run-reread on success
+             "adjusted": [ ... ]               deduplicated list, values:
+                 "parse_retry"                 classify_cell succeeded only on attempt 2
+                 "constraint:out->run=False"   _enforce_constraints rule 2 (STOP writing "low")
+                 "constraint:HR->run=True"     rule 3
+                 "gt:run->False"               _enforce_gt_runs
+                 "recheck:run->True"           run reconciliation via _recheck_run
+           Rules are re-applied on every --reuse-cache run, so writers must add-if-absent.
+           When rules RESTORE a removed cell they keep these flags (they describe reads,
+           not rule state).
+
+        C. Scoring (pure function, extract_cells.py):
+             _score_cell(cell, inning_flags) -> (result_conf, run_conf, reasons: list[str])
+           - start from VLM values; None -> 4 with reason "legacy" (old caches: no re-read
+             needed, they just sit one notch below top)
+           - reread present            -> both -1        reason "reread:<kind>"
+           - each "adjusted" entry     -> run_conf -1    reason = the entry
+           - run=True and rbi_slot None-> run_conf -1    reason "run_without_rbi_digit"
+           - inning_flags[inn] has "R" -> run_conf -1    reason "inning_R_mismatch"
+           - inning_flags[inn] has "H" and _is_hit(result) -> result_conf -1  "inning_H_mismatch"
+           - notes contain ambig|unclear|guess|possibl|faint (case-insens.) -> result_conf -1
+           - floor 1, cap 5
+           inning_flags is built from the same numbers _check_col prints (which stats still
+           mismatch GT after all passes); pass it into _build_slot_data.
+           PlateAppearance gets: confidence = min(result_conf, run_conf), plus
+           result_conf, run_conf, conf_reasons (list[str]). Unit tests in
+           test_rbi_attribution.py (rename to test_assembly.py or add test_confidence.py).
+
+        D. Schema / consumers:
+           models.PlateAppearance.confidence: int = 5 with a before-validator mapping
+             "high"->5, "low"->2, None->4 so old _cells.json still reimport. Add
+             result_conf: int|None, run_conf: int|None, conf_reasons: list[str] = [].
+           db.py: column stays named confidence but holds INTEGER; init_db runs an
+             idempotent UPDATE mapping 'high'->5, 'low'->2 for rows where
+             typeof(confidence)='text'. needs_review = confidence <= review_threshold,
+             threshold from config.yml (review: {threshold: 2}, default 2). Store
+             conf_reasons joined with ";" in a new TEXT column conf_reasons
+             (CREATE ... IF NOT EXISTS + ALTER TABLE guarded by PRAGMA table_info).
+           review.py: tag shows "[conf 2/5: reread:hole; inning_R_mismatch]" instead of
+             "[low-confidence]"; add --max-conf N to widen the filter.
+           export_season.py: "Low Confidence" sheet -> WHERE confidence <= threshold, add
+             Confidence and Reasons columns.
+           reimport.py sync_cells_from_json: write result_conf/run_conf back, drop the
+             "high" default.
+           _enforce_pa_ordering: rank by int confidence ascending (drop conf_rank dict).
+           _dump_cells.py: print result_conf, run_conf, reread, adjusted.
+           render_widget.py: optional — small marker on PAs with confidence <= 2.
+           CLAUDE.md: replace mentions of low/high; document flags + scoring in one
+             paragraph; README: review.py section.
+
+        E. Rollout: no API calls needed. After the code change run
+             uv run python reimport.py --all "../Quick 2026/games"
+           so the DB migrates and the Excel sheet reflects int confidence. New extractions
+           populate result_conf/run_conf; old cells stay "legacy" until re-read for other
+           reasons (or a later crawl backfill, not part of this item).
+
+        Hand-off to #7/#1: run_conf on run=False, non-out cells is the ranking key for
+        adding a missing run; only auto-assign when the best candidate is >= 2 points
+        below (less certain about "no run") than the next one, else flag for review.
 
 [ ] #7  RBI <-> run coupling: an RBI read from bottom-left implies a run for that cell (check
         whether already implicit); a run=True cell should trigger the RBI backfill read.

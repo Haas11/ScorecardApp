@@ -24,7 +24,7 @@ EXTRACTION_MODEL=gemini-2.5-flash
 Quick 2026/
   games/
     2026-04-12 - Thamen (Home)/
-      cells/                    ← per-cell VLM cache (gitignored)
+      cells/                    ← per-cell VLM cache (TRACKED in git: holds hand-corrected cells)
       2026-04-12 - Thamen (Home)_cells.json   ← main output; edit to fix errors
       2026-04-12 - Thamen (Home)_grid_debug.png
       2026-04-12 - Thamen (Home).html         ← color-coded visual widget

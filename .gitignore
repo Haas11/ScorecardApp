@@ -20,9 +20,13 @@ __pycache__/
 *.sqlite3
 *.xlsx
 
-# Generated pipeline cache (fully regenerable — never edit anything in here)
+# NOTE: the per-cell cache (Quick 2026/games/*/cells/) is deliberately TRACKED —
+# it holds hand-corrected cells and is the source the pipeline rebuilds from.
+# (The old "Quick 2026 data/" pattern below never matched the current folder.)
 Quick 2026 data/games/*/cells/
 **/step2_debug.txt
+# Ad-hoc cache backups
+*/cache_backup_*.zip
 
 # OS / editor
 .DS_Store

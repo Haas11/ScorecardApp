@@ -109,6 +109,8 @@ Scan image (JPG/PNG)
 ### Per-cell caching
 Each cell result is persisted as `games/{stem}/cells/r{ri:02d}_c{ci:02d}.json` (1-based indices). `--reuse-cache` skips API calls for every cached cell. `api_error` cells always retry.
 
+**The cache is tracked in git, on purpose.** The `.gitignore` pattern for it names an old folder (`Quick 2026 data/`) and has never matched, and that turned out to be the right outcome: the user hand-corrects `r##_c##.json` files against the paper scorecard, and the cache is what every `--reuse-cache` run and `crawl.py` rebuild from. Consequences: (1) after any crawl, `git diff -- "Quick 2026/games"` shows every cache and `_cells.json` change a run made, and `git checkout` reverts a game; (2) commit the game folders after a manual correction session so the corrections are versioned; (3) passes that can overwrite a hand-edited cell without a VLM re-read of its result are the hole re-read (a manually nulled cell sandwiched between two PAs is re-read), the run-no-result re-read, and the GT run reconciliation (#1) — check the diff for those after a crawl.
+
 Cells removed by structural rules are stored as `removed:<rule> (<original_result>)`. On the next run they are **restored** to their original result so rules re-evaluate fresh — making rules stateless and idempotent.
 
 ### RBI slot detection

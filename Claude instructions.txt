@@ -36,6 +36,12 @@ GROUP 1 - QUICK WINS (no VLM changes, small isolated edits; cheaper model)
           via env var to its extract_cells.py subprocess so that write targets the same DB.
 
 
+[ ] #17 Store the innings count in cells/_layout.json and reuse it on --reuse-cache when
+        --innings is not given explicitly. Today a re-run with a different --innings than
+        the original silently re-detects and overwrites the layout and leaves stray cache
+        files (bitten during #12 on Urbanus, which was a 6-inning run).
+
+
 GROUP 2 - OPS TOOLING (cheaper model)
 -------------------------------------
 [x] #15 Fix mistyped game dates (month/day swapped) without re-extracting.
@@ -52,9 +58,18 @@ GROUP 3 - RUN / RBI CONSISTENCY (Fable designs, cheaper model implements)
 -------------------------------------------------------------------------
 Order matters: investigate #12 first (may change the design), then #11 -> #7 -> #1.
 
-[ ] #12 Player RBI totals sometimes wrong (Urbanus game: player 3 got 3 RBI in innings 3+4,
+[x] #12 Player RBI totals sometimes wrong (Urbanus game: player 3 got 3 RBI in innings 3+4,
         should be 2). Disappeared after clean-slate rerun -> suspect stale cache or a rule
         applied twice on --reuse-cache. Investigate before touching #7/#1.
+        Done 2026-09-03: not a cache/iteration bug but a double count. HR gives the batter
+        1 RBI at PA construction; if the VLM also read the batter's OWN slot digit in the
+        HR cell's bottom-left (scorers write it there), phase 2 added another. 1 + self +
+        runner-on-base = 3. Clean-slate run read null for that digit -> 2. Fix: phase 1+2
+        extracted into _build_slot_data(); rbi_slot == own slot is skipped (HR) or warned
+        (non-HR, impossible). Tests: scorecard/test_rbi_attribution.py (6 pass). Urbanus
+        totals unchanged (5 RBI for slot 3 = 2+2+1).
+        Implication for #7/#11/#1: rbi_slot reads are nondeterministic run-to-run; any
+        rule that derives runs from rbi_slot must tolerate null and self-references.
 
 [ ] #11 Confidence field is inconsistent (sometimes present, sometimes not). Always emit it.
         Consider 1-5 scale instead of low/high so #1 can rank candidates. Must not blow up
@@ -62,13 +77,14 @@ Order matters: investigate #12 first (may change the design), then #11 -> #7 -> 
 
 [ ] #7  RBI <-> run coupling: an RBI read from bottom-left implies a run for that cell (check
         whether already implicit); a run=True cell should trigger the RBI backfill read.
-
+		note that run doesnt always imply an RBI (could be PB, SB, E#, etc).
+		So RBIs <= Runs per inning. 
+		
 [ ] #1  Enforce run count == GT per inning, both directions. Today _enforce_gt_runs only
         zeroes runs for R=0 innings and logs overcounts. To ADD runs, rank candidate cells by
         confidence score (#11) and pick highest until GT is matched.
         CAUTION: adding a run to the wrong player fabricates stats. Only auto-assign when
-        there is a clear score gap between candidates; otherwise flag for review.py.
-
+        there is a clear score gap between candidates; otherwise flag for review.py.		
 
 GROUP 4 - VLM DETECTION QUALITY (build eval set first, then iterate prompts/crops)
 ----------------------------------------------------------------------------------

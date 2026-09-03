@@ -1695,6 +1695,102 @@ def _make_summary(pas: list) -> "PASummary":
     return PASummary(PA=len(pas), AB=ab, H=h, R=r, RBI=rbi)
 
 
+def _build_slot_data(
+    grid: list[list[dict | None]],
+    slot_info: list[dict],
+    n_active_rows: int,
+    n_phys_cols: int,
+    col_to_inning: list[int],
+) -> tuple[list[tuple], list[str]]:
+    """Turn the cell grid into per-slot PlateAppearance lists with RBIs attributed.
+
+    Returns ``(slot_data, warnings)`` where ``slot_data[ri] == (all_slots, pa_lists)``:
+    ``all_slots`` is ``[(player_tuple, entry_inning), ...]`` (starter has entry 0) and
+    ``pa_lists[k]`` holds the PlateAppearances of the k-th player in that slot.
+
+    RBI attribution rules:
+      * A HR credits its batter with 1 RBI at construction (they drove themselves in).
+      * Every run=True cell carrying an ``rbi_slot`` digit credits the batter in that
+        slot with 1 RBI on their PA in the same inning.
+      * If ``rbi_slot`` points at the runner's OWN slot, no extra RBI is added: for a
+        HR that RBI is already counted (scorers write the batter's own number in the
+        bottom-left of a HR cell), and for any other result it is impossible — a
+        batter cannot drive themselves in without a HR — so it is reported instead.
+        This self-reference was the cause of the 3-RBI-on-a-2-RBI-HR bug (#12).
+    """
+    slot_data: list[tuple] = []
+    warnings_out: list[str] = []
+
+    # Phase 1: build PA lists for every slot (HR self-RBI only).
+    for ri in range(n_active_rows):
+        info = slot_info[ri]
+        all_slots: list[tuple[tuple[str, int | None], int]] = [
+            (info["starter"], 0)
+        ] + [(p, inn) for p, inn in info["subs"]]
+        pa_lists: list[list[PlateAppearance]] = [[] for _ in all_slots]
+
+        for ci in range(n_phys_cols):
+            cell = grid[ri][ci] or {}
+            r = cell.get("result")
+            if r is None:
+                continue
+            if isinstance(r, str) and r.strip().lower() == "null":
+                continue  # string "null" slipped through earlier normalization
+            pa = PlateAppearance(
+                inning=col_to_inning[ci],
+                result=r,
+                run_scored=bool(cell.get("run")),
+                notes=cell.get("notes") or "",
+                rbi=1 if (r or "").upper() == "HR" else 0,
+                sb=int(cell.get("sb_count") or 0),
+                cs=0,
+                confidence=cell.get("confidence", "high"),
+            )
+            inning = col_to_inning[ci]
+            owner_idx = 0
+            for idx, (_, entry_inn) in enumerate(all_slots):
+                if entry_inn <= inning:
+                    owner_idx = idx
+            pa_lists[owner_idx].append(pa)
+
+        slot_data.append((all_slots, pa_lists))
+
+    # Phase 2: attribute RBIs from rbi_slot digits on run cells.
+    for ri_runner in range(n_active_rows):
+        for ci in range(n_phys_cols):
+            cell = grid[ri_runner][ci] or {}
+            if not cell.get("run") or cell.get("result") is None:
+                continue
+            rbi_slot = cell.get("rbi_slot")
+            if not isinstance(rbi_slot, int) or not 1 <= rbi_slot <= n_active_rows:
+                continue
+            ri_batter = rbi_slot - 1
+            inning = col_to_inning[ci]
+            if ri_batter == ri_runner:
+                if (cell.get("result") or "").upper() != "HR":
+                    warnings_out.append(
+                        f"  P{ri_runner+1} inn {inning}: rbi_slot={rbi_slot} points at the runner's "
+                        f"own slot on a {cell.get('result')} — impossible, RBI not credited"
+                    )
+                continue  # HR self-RBI already counted in phase 1
+            all_slots_b, pa_lists_b = slot_data[ri_batter]
+            owner_idx_b = 0
+            for idx, (_, entry_inn) in enumerate(all_slots_b):
+                if entry_inn <= inning:
+                    owner_idx_b = idx
+            target_pas = pa_lists_b[owner_idx_b]
+            credited = False
+            for pa in target_pas:
+                if pa.inning == inning:
+                    pa.rbi += 1
+                    credited = True
+                    break
+            if not credited and target_pas:
+                target_pas[-1].rbi += 1
+
+    return slot_data, warnings_out
+
+
 # ── Log tee ───────────────────────────────────────────────────────────────────
 
 class _TeeWriter:
@@ -2344,74 +2440,15 @@ def main(
             click.echo("  Run totals: all match GT.")
 
     # ── Assemble GameExtraction ───────────────────────────────────────────────
-    # Phase 1: build PA lists for every slot (no RBIs yet).
-    SlotData = tuple  # (all_slots, pa_lists)
-    slot_data: list[tuple] = []
-    for ri in range(n_active_rows):
-        info = slot_info[ri]
-        # all_slots: [(player_tuple, entry_inning), ...]; starter entry_inning=0
-        all_slots: list[tuple[tuple[str, int | None], int]] = [
-            (info["starter"], 0)
-        ] + [(p, inn) for p, inn in info["subs"]]
-
-        pa_lists: list[list[PlateAppearance]] = [[] for _ in all_slots]
-
-        for ci in range(n_phys_cols):
-            cell = grid[ri][ci] or {}
-            r = cell.get("result")
-            if r is None:
-                continue
-            if isinstance(r, str) and r.strip().lower() == "null":
-                continue  # string "null" slipped through earlier normalization
-            pa = PlateAppearance(
-                inning=col_to_inning[ci],
-                result=r,
-                run_scored=bool(cell.get("run")),
-                notes=cell.get("notes") or "",
-                rbi=1 if (r or "").upper() == "HR" else 0,
-                sb=int(cell.get("sb_count") or 0),
-                cs=0,
-                confidence=cell.get("confidence", "high"),
-            )
-            # Assign to last player whose entry_inning <= this inning
-            inning = col_to_inning[ci]
-            owner_idx = 0
-            for idx, (_, entry_inn) in enumerate(all_slots):
-                if entry_inn <= inning:
-                    owner_idx = idx
-            pa_lists[owner_idx].append(pa)
-
-        slot_data.append((all_slots, pa_lists))
-
-    # Phase 2: attribute RBIs.
-    # For each run cell that carries an rbi_slot digit, find the batter in that
-    # slot at that inning and increment rbi on their matching PA.
-    for ri_runner in range(n_active_rows):
-        for ci in range(n_phys_cols):
-            cell = grid[ri_runner][ci] or {}
-            if not cell.get("run"):
-                continue
-            rbi_slot = cell.get("rbi_slot")
-            if not isinstance(rbi_slot, int) or not 1 <= rbi_slot <= n_active_rows:
-                continue
-            ri_batter = rbi_slot - 1
-            inning = col_to_inning[ci]
-            all_slots_b, pa_lists_b = slot_data[ri_batter]
-            # Find which player (starter / sub) is active at this inning
-            owner_idx_b = 0
-            for idx, (_, entry_inn) in enumerate(all_slots_b):
-                if entry_inn <= inning:
-                    owner_idx_b = idx
-            # Credit the PA in that inning; fall back to the last PA if not found
-            target_pas = pa_lists_b[owner_idx_b]
-            credited = False
-            for pa in target_pas:
-                if pa.inning == inning:
-                    pa.rbi += 1
-                    credited = True
-                    break
-            if not credited and target_pas:
-                target_pas[-1].rbi += 1
+    # Phases 1+2 (PA lists + RBI attribution) live in _build_slot_data so they
+    # can be unit-tested without an image or API client.
+    slot_data, rbi_warnings = _build_slot_data(
+        grid, slot_info, n_active_rows, n_phys_cols, col_to_inning
+    )
+    if rbi_warnings:
+        click.echo("\n\n-- RBI attribution warnings " + "-" * 38)
+        for m in rbi_warnings:
+            click.echo(m)
 
     # Phase 3: build LineupSlots from the completed PA lists.
     lineup: list[LineupSlot] = []

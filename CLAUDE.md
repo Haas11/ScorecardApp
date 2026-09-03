@@ -92,6 +92,7 @@ Scan image (JPG/PNG)
 | `correct_date.py` | Fix a mistyped game date (e.g. month/day swapped) without re-extracting: renames the game folder, `_cells.json`, `.html`, and scan image, patches `game.date` in the JSON and the DB `games` row (`date` + `raw_json_path`), regenerates the widget. The per-cell cache in `cells/` moves automatically with the folder rename. Date only — it does not touch opponent or home/away. |
 | `manage_players.py` | CLI for fuzzy-matched player aliases (confirm, merge, list). |
 | `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, confidence, notes). |
+| `test_rbi_attribution.py` | Unit tests for `_build_slot_data()` (PA construction + RBI attribution). Run with `uv run python test_rbi_attribution.py` from `scorecard/`. No image or API needed. |
 
 ---
 
@@ -104,6 +105,8 @@ Cells removed by structural rules are stored as `removed:<rule> (<original_resul
 
 ### RBI slot detection
 After main classification, `_backfill_rbi_cells()` makes a focused VLM call on the bottom-left quadrant of every `run=True` cell. The quadrant contains either a single batting-order digit 1–9 (the batter who drove in the run) or a multi-character notation (SB/WP/PB/E# = no RBI). `thinking_budget=0` prevents Gemini thinking tokens from consuming the small `max_tokens` budget. On `--reuse-cache`, `rbi_slot: null` is valid cached data; only cells missing the key entirely are backfilled.
+
+**RBI attribution** happens in `_build_slot_data()` (pure function, unit-tested in `test_rbi_attribution.py`): a HR credits its batter 1 RBI at PA construction; every `run=True` cell with an `rbi_slot` digit credits the batter in that slot on their PA in the same inning. If `rbi_slot` equals the runner's **own** slot, nothing extra is credited: on a HR the scorer writes the batter's own number in the bottom-left, and that RBI is already counted (this self-reference produced 3 RBI on a 2-run HR — improvement #12; it only showed up when the VLM happened to read the digit, and vanished on a clean-slate run that read null). On a non-HR result a self-reference is impossible and is printed under "RBI attribution warnings" instead.
 
 ### Stolen base (SB) detection
 `_backfill_sb_cells()` targets reached-base, non-out cells missing `sb_count`. Counts SB notations in the top-left/top-right/bottom-left quadrants (never bottom-right, which is RBI/out territory). `PlateAppearance.sb = int(cell.get("sb_count") or 0)`. Flows through `stats.py SB` → `export_season.py` (gold-highlighted season leader column, included in per-game and game-log sheets). CS was removed from the schema/exports — SB only.
@@ -169,6 +172,10 @@ BB, HBP (both `HP` and `HBP`), SAC/SH, and SF do not count as an at-bat. `AB = P
 Duplicate detection: on reimport, any existing game with the same date + opponent is deleted before re-inserting. Fuzzy player matching uses `fuzzy.auto_match_threshold` in `config.yml`.
 
 ---
+
+## Re-running a game from cache
+
+Pass the **same `--innings N`** as the original run (visible in `{stem}_run.log`, e.g. Urbanus was `--innings 6`). A different value makes the column count differ from `cells/_layout.json`, which is then re-detected and **overwritten**, and stray `r##_c##.json` files are created for the extra columns. Player stats are unaffected (extra columns are empty) but the folder is left inconsistent.
 
 ## Known-stale things to watch for
 

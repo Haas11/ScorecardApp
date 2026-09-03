@@ -46,14 +46,80 @@ def _is_ab(r: str | None) -> bool:
     return r is not None and (r or "").upper() not in _NOT_AB
 
 
+def _conf_of(pa: dict) -> int | None:
+    """PA confidence on the 1-5 scale, or None when unknown.
+
+    New JSON carries an int; pre-#11 JSON carries "high"/"low" — "low" maps to 2,
+    "high" to None (it was never a real signal, so it gets no marker either way)."""
+    c = pa.get("confidence")
+    if isinstance(c, bool):
+        return None
+    if isinstance(c, int):
+        return c
+    if isinstance(c, str):
+        s = c.strip().lower()
+        if s.isdigit():
+            return int(s)
+        if s == "low":
+            return 2
+    return None
+
+
+def _review_threshold() -> int:
+    """confidence <= this gets the low-confidence marker (config.yml review.threshold)."""
+    try:
+        from db import get_review_threshold
+        return int(get_review_threshold())
+    except Exception:  # standalone use without config — same default as db.py
+        return 2
+
+
+def load_gt_totals_file(path: Path) -> dict[int, dict] | None:
+    """Parse a `{stem}_totals.txt` (inning R H E LOB per line, # comments) into
+    {inning: {"R","H","E","LOB"}}. Mirrors extract_cells._load_gt_totals without
+    importing that module (it pulls in cv2/anthropic)."""
+    if not path.exists():
+        return None
+    out: dict[int, dict] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        nums = [int(x) for x in re.findall(r"-?\d+", s)]
+        if len(nums) >= 5 and 1 <= nums[0] <= 20:
+            out[nums[0]] = {"R": nums[1], "H": nums[2], "E": nums[3], "LOB": nums[4]}
+    return out or None
+
+
+def _gt_from_game(game: dict) -> dict[int, dict] | None:
+    """GT totals embedded in the JSON by extract_cells (key gt_totals), if any."""
+    raw = game.get("gt_totals")
+    if not isinstance(raw, dict) or not raw:
+        return None
+    out: dict[int, dict] = {}
+    for k, v in raw.items():
+        try:
+            out[int(k)] = {"R": int(v["R"]), "H": int(v["H"]), "E": int(v.get("E", 0)), "LOB": int(v.get("LOB", 0))}
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out or None
+
+
 # ── Data computation ──────────────────────────────────────────────────────────
 
-def compute_stats(game: dict) -> dict:
+def compute_stats(game: dict, gt_totals: dict[int, dict] | None = None) -> dict:
     """
     Derive all display data from a parsed _cells.json dict.
     Returns a JSON-serialisable dict ready to embed in the HTML template.
+
+    ``gt_totals`` ({inning: {"R","H","E","LOB"}}) colours the Totals row: per
+    inning PA (= 3 + R + LOB), R and H are marked green when they match GT and
+    red when they don't. Defaults to the totals embedded in the JSON.
     """
     lineup = game.get("lineup", [])
+    if gt_totals is None:
+        gt_totals = _gt_from_game(game)
+    conf_threshold = _review_threshold()
 
     # ── Per-player data ───────────────────────────────────────────────────────
     players = []
@@ -64,11 +130,14 @@ def compute_stats(game: dict) -> dict:
             cells_by_inning: dict[str, list[dict]] = {}
             for pa in pas:
                 key = str(pa.get("inning", 0))
+                reasons = pa.get("conf_reasons") or []
                 cells_by_inning.setdefault(key, []).append({
-                    "r":   pa.get("result"),
-                    "run": bool(pa.get("run_scored")),
-                    "rbi": int(pa.get("rbi") or 0),
-                    "sb":  int(pa.get("sb") or 0),
+                    "r":    pa.get("result"),
+                    "run":  bool(pa.get("run_scored")),
+                    "rbi":  int(pa.get("rbi") or 0),
+                    "sb":   int(pa.get("sb") or 0),
+                    "conf": _conf_of(pa),
+                    "why":  "; ".join(str(x) for x in reasons) if isinstance(reasons, list) else str(reasons),
                 })
             summary = player.get("summary") or {}
             pa_count = len(pas)
@@ -131,13 +200,23 @@ def compute_stats(game: dict) -> dict:
                         r_count += 1
                     if _is_hit(pa.get("result")):
                         h_count += 1
+        g = (gt_totals or {}).get(inn)
         inning_data.append({
             "inn":  inn,
             "PA":   pa_count,
             "R":    r_count,
             "H":    h_count,
             "wrap": pa_count > n_slots,
+            # Expected values from GT: PA = 3 outs + R + LOB for a completed inning.
+            "gt":   {"PA": 3 + g["R"] + g["LOB"], "R": g["R"], "H": g["H"]} if g else None,
         })
+    gt_sum = None
+    if gt_totals:
+        gt_sum = {
+            "PA": sum(3 + g["R"] + g["LOB"] for g in gt_totals.values()),
+            "R":  sum(g["R"] for g in gt_totals.values()),
+            "H":  sum(g["H"] for g in gt_totals.values()),
+        }
 
     # ── Totals ────────────────────────────────────────────────────────────────
     total_pa  = sum(p["PA"] for p in players)
@@ -172,8 +251,11 @@ def compute_stats(game: dict) -> dict:
         "date":    date,
         "players": players,
         "innings": inning_data,
-        "totals":  {"PA": total_pa, "R": total_r, "H": total_h, "AB": total_ab, "AVG": avg, "OBP": obp, "SLG": slg},
+        "totals":  {"PA": total_pa, "R": total_r, "H": total_h, "AB": total_ab, "AVG": avg, "OBP": obp, "SLG": slg,
+                    "gt": gt_sum},
         "last_batter_by_inning": last_batter,
+        "conf_threshold": conf_threshold,
+        "has_gt": gt_totals is not None,
     }
 
 
@@ -253,6 +335,10 @@ thead th { background: var(--hdr); color: #fff; }
   border-radius: 2px; padding: 0 3px; display: inline-block; }
 .rok  { color: var(--s-tx); font-weight: 500; }
 .rzr  { color: var(--tx3); }
+.gok  { color: var(--s-tx); font-weight: 600; }
+.gbad { color: var(--d-tx); font-weight: 600; }
+.lowc { outline: 1.5px dashed var(--w-tx); outline-offset: -2px; cursor: help; }
+.cq   { color: var(--w-tx); font-size: 9px; font-weight: 700; vertical-align: super; margin-left: 1px; }
 .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--tx2); margin-top: 1rem; }
 .sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; vertical-align: middle; margin-right: 3px; }
 .note { font-size: 11px; color: var(--tx3); margin-top: 0.75rem; padding: 6px 10px;
@@ -282,6 +368,8 @@ thead th { background: var(--hdr); color: #fff; }
   <span><span class="sw" style="background:var(--bg-bench);border:0.5px solid var(--brd)"></span>Inactive (sub not entered / starter exited)</span>
   <span class="rok">&#x25CF; run scored</span>
   <span style="color:var(--w-tx)">&#x25C6; RBI</span>
+  <span><span class="sw" style="background:var(--bg2);outline:1.5px dashed var(--w-tx);outline-offset:-2px"></span><span id="lowc-legend">Low confidence</span> (hover for reasons)</span>
+  <span id="gt-legend" style="display:none">Totals row: <span class="gok">green</span> = matches ground truth, <span class="gbad">red</span> = mismatch (hover for GT)</span>
 </div>
 <p id="bugnote" style="display:none" class="note">
   &#x26A0; One or more cells show <s>null</s> — VLM returned string "null" instead of JSON null.
@@ -302,6 +390,14 @@ function ctype(r) {
   return 'out';
 }
 
+// Low-confidence marker (#11 scores): dashed outline + "?" with the reasons as tooltip.
+function isLow(p) { return p.conf != null && p.conf <= D.conf_threshold; }
+function lowAttr(p) {
+  if (!isLow(p)) return {cls: '', title: '', mark: ''};
+  const why = p.why ? `: ${String(p.why).replace(/"/g, '&quot;')}` : '';
+  return {cls: ' lowc', title: ` title="confidence ${p.conf}/5${why}"`, mark: '<sup class="cq">?</sup>'};
+}
+
 function paCell(pas, isSub, entryInning, inning, extraStyle, exitInning) {
   const s = extraStyle ? ` style="${extraStyle}"` : '';
   if (!pas || pas.length === 0) {
@@ -312,20 +408,20 @@ function paCell(pas, isSub, entryInning, inning, extraStyle, exitInning) {
     return `<td class="mpt"${s}><span class="etx">&#x2014;</span></td>`;
   }
   if (pas.length === 1) {
-    const p = pas[0], ct = ctype(p.r);
+    const p = pas[0], ct = ctype(p.r), lo = lowAttr(p);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
     const rdot = p.rbi ? ` <span class="rbi">${p.rbi > 1 ? p.rbi : ''}&#x25C6;</span>` : '';
     const sbdot = p.sb ? ` <span class="sb">${p.sb > 1 ? p.sb : ''}&#x21D7;</span>` : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<td class="${BGCLS[ct]}"${s}><span class="${TXCLS[ct]}">${txt}${dot}${rdot}${sbdot}</span></td>`;
+    return `<td class="${BGCLS[ct]}${lo.cls}"${s}${lo.title}><span class="${TXCLS[ct]}">${txt}${lo.mark}${dot}${rdot}${sbdot}</span></td>`;
   }
   const items = pas.map(p => {
-    const ct = ctype(p.r);
+    const ct = ctype(p.r), lo = lowAttr(p);
     const dot = p.run ? ' <span class="run">&#x25CF;</span>' : '';
     const rdot = p.rbi ? ` <span class="rbi">${p.rbi > 1 ? p.rbi : ''}&#x25C6;</span>` : '';
     const sbdot = p.sb ? ` <span class="sb">${p.sb > 1 ? p.sb : ''}&#x21D7;</span>` : '';
     const txt = p.r === 'null' ? '<s>null</s>' : (p.r || '—');
-    return `<div class="blk ${BGCLS[ct]}"><span class="${TXCLS[ct]}">${txt}${dot}${rdot}${sbdot}</span></div>`;
+    return `<div class="blk ${BGCLS[ct]}${lo.cls}"${lo.title}><span class="${TXCLS[ct]}">${txt}${lo.mark}${dot}${rdot}${sbdot}</span></div>`;
   }).join('');
   const baseStyle = extraStyle ? `padding:2px;${extraStyle}` : 'padding:2px';
   return `<td style="${baseStyle}"><div style="display:flex;flex-direction:column">${items}</div></td>`;
@@ -416,24 +512,35 @@ D.players.forEach((p, pi) => {
 });
 document.getElementById('sbody').innerHTML = body;
 
-// Footer
+// Footer — Totals row coloured against ground truth when available:
+// green = matches GT, red = mismatch (hover shows the GT value), neutral = no GT.
+function gtCls(v, g, fallback) { return g == null ? (fallback || '') : (v === g ? 'gok' : 'gbad'); }
+function gtTitle(v, g) { return g == null ? '' : ` title="GT ${g}${v === g ? '' : ' (got ' + v + ')'}"`; }
 let foot = '<tr style="border-top:2px solid var(--brd)"><td style="padding:2px"></td><td class="pl-td" style="font-weight:500;color:var(--tx2)">Totals</td>';
 D.innings.forEach(s => {
+  const g = s.gt || {};
   const rc = s.R > 0 ? 'rok' : 'rzr';
-  foot += `<td class="fcel"><div>PA${s.PA}</div><div class="${rc}">R${s.R}</div><div>H${s.H}</div></td>`;
+  foot += `<td class="fcel">`
+       +  `<div class="${gtCls(s.PA, g.PA)}"${gtTitle(s.PA, g.PA)}>PA${s.PA}</div>`
+       +  `<div class="${gtCls(s.R, g.R, rc)}"${gtTitle(s.R, g.R)}>R${s.R}</div>`
+       +  `<div class="${gtCls(s.H, g.H)}"${gtTitle(s.H, g.H)}>H${s.H}</div></td>`;
 });
-const t = D.totals;
+const t = D.totals, tg = t.gt || {};
 const ftd = 'width:30px;font-size:13px;text-align:center;padding:2px 3px;font-weight:500';
-foot += `<td style="${ftd};color:var(--tx2)">${t.PA}</td>`;
-foot += `<td style="${ftd};color:var(--tx2)">${t.H}</td>`;
+// No inline colour on PA/H when a GT class applies — inline style would win over the class.
+const neutral = (cls) => cls ? '' : ';color:var(--tx2)';
+foot += `<td style="${ftd}${neutral(gtCls(t.PA, tg.PA))}" class="${gtCls(t.PA, tg.PA)}"${gtTitle(t.PA, tg.PA)}>${t.PA}</td>`;
+foot += `<td style="${ftd}${neutral(gtCls(t.H, tg.H))}" class="${gtCls(t.H, tg.H)}"${gtTitle(t.H, tg.H)}>${t.H}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.AB}</td>`;
-foot += `<td style="${ftd}" class="rok">${t.R}</td>`;
+foot += `<td style="${ftd}" class="${gtCls(t.R, tg.R, 'rok')}"${gtTitle(t.R, tg.R)}>${t.R}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.AVG}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.OBP}</td>`;
 foot += `<td style="${ftd};color:var(--tx2)">${t.SLG}</td></tr>`;
 document.getElementById('sfoot').innerHTML = foot;
 
 if (hasBug) document.getElementById('bugnote').style.display = 'block';
+document.getElementById('lowc-legend').textContent = `Low confidence (≤ ${D.conf_threshold}/5)`;
+if (D.has_gt) document.getElementById('gt-legend').style.display = 'inline';
 
 if (D.debug_img_b64) {
   document.getElementById('dbgimg').innerHTML =
@@ -458,12 +565,25 @@ def render_html(stats: dict) -> str:
     )
 
 
-def render_widget_for_game(game: dict, out_path: Path, debug_img_path: Path | None = None) -> Path:
+def render_widget_for_game(
+    game: dict,
+    out_path: Path,
+    debug_img_path: Path | None = None,
+    gt_totals: dict[int, dict] | None = None,
+) -> Path:
     """
     Compute stats from a parsed _cells.json dict and write the HTML widget.
     Returns the output path.
+
+    GT inning totals for the Totals-row colouring come from, in order: the
+    ``gt_totals`` argument, the ``gt_totals`` key extract_cells embeds in the
+    JSON, or a ``{stem}_totals.txt`` next to the widget (older JSONs).
     """
-    stats = compute_stats(game)
+    if gt_totals is None:
+        gt_totals = _gt_from_game(game)
+    if gt_totals is None:
+        gt_totals = load_gt_totals_file(out_path.parent / f"{out_path.stem}_totals.txt")
+    stats = compute_stats(game, gt_totals)
     stats["debug_img_b64"] = None
     if debug_img_path and debug_img_path.exists():
         stats["debug_img_b64"] = base64.b64encode(debug_img_path.read_bytes()).decode()

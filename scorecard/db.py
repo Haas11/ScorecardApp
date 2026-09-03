@@ -160,6 +160,51 @@ def init_db(db_path: Path | None = None) -> None:
         "WHERE typeof(confidence) = 'text'"
     )
 
+    # Migration: a DB created before #11 declared confidence as TEXT. SQLite
+    # cannot change a column's type, and TEXT affinity keeps storing the 1-5
+    # ints as text ('5'), so rebuild the table with the current schema. Rows are
+    # copied with CAST so pa_ids, reviewed flags and conf_reasons all survive.
+    # Runs once: afterwards the declared type is INTEGER. Must come after the
+    # 'high'/'low' mapping above (CAST('high' AS INTEGER) would give 0).
+    decl = {
+        row["name"]: (row["type"] or "").upper()
+        for row in conn.execute("PRAGMA table_info(plate_appearances)")
+    }
+    if decl.get("confidence") == "TEXT":
+        conn.executescript("""
+            CREATE TABLE plate_appearances_new (
+                pa_id         INTEGER PRIMARY KEY,
+                player_id     INTEGER REFERENCES players(player_id),
+                game_id       INTEGER REFERENCES games(game_id),
+                inning        INTEGER,
+                batting_order INTEGER,
+                result        TEXT,
+                run_scored    INTEGER,
+                rbi           INTEGER,
+                sb            INTEGER,
+                cs            INTEGER,
+                bb            INTEGER,
+                hp            INTEGER,
+                sac           INTEGER,
+                sf            INTEGER,
+                raw_notes     TEXT,
+                confidence    INTEGER,
+                needs_review  INTEGER DEFAULT 0,
+                reviewed      INTEGER DEFAULT 0,
+                conf_reasons  TEXT
+            );
+            INSERT INTO plate_appearances_new
+                (pa_id, player_id, game_id, inning, batting_order, result, run_scored,
+                 rbi, sb, cs, bb, hp, sac, sf, raw_notes, confidence, needs_review,
+                 reviewed, conf_reasons)
+            SELECT pa_id, player_id, game_id, inning, batting_order, result, run_scored,
+                   rbi, sb, cs, bb, hp, sac, sf, raw_notes,
+                   CAST(confidence AS INTEGER), needs_review, reviewed, conf_reasons
+            FROM plate_appearances;
+            DROP TABLE plate_appearances;
+            ALTER TABLE plate_appearances_new RENAME TO plate_appearances;
+        """)
+
     conn.commit()
     conn.close()
 

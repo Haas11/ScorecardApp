@@ -36,10 +36,14 @@ GROUP 1 - QUICK WINS (no VLM changes, small isolated edits; cheaper model)
           via env var to its extract_cells.py subprocess so that write targets the same DB.
 
 
-[ ] #17 Store the innings count in cells/_layout.json and reuse it on --reuse-cache when
-        --innings is not given explicitly. Today a re-run with a different --innings than
+[ ] #17 Persist the run arguments in cells/_layout.json (innings, grid-start, grid-width,
+        left-skip, cell-height, n-player-rows) and reuse them on --reuse-cache when not
+        given explicitly on the command line. Today a re-run with a different --innings than
         the original silently re-detects and overwrites the layout and leaves stray cache
-        files (bitten during #12 on Urbanus, which was a 6-inning run).
+        files (bitten during #12 on Urbanus, a 6-inning run). Blocks crawl.py: it passes
+        only --reuse-cache --yes, so 4 of 15 games (Vennep Flyers 06-28: 10 innings + manual
+        grid overrides; Herons 07-03 and Grizzlies 07-12: 7; Urbanus 08-23: 6) would be
+        corrupted by a season crawl. Needed before the #11 re-score crawl (see #11 caveat).
 
 
 GROUP 2 - OPS TOOLING (cheaper model)
@@ -80,9 +84,18 @@ Order matters: investigate #12 first (may change the design), then #11 -> #7 -> 
           (no result_conf/run_conf) scores confidence=4/"legacy" as designed; DB migration
           (conf_reasons column + text->int confidence) applies cleanly; review.py --max-conf
           and export_season.py's Low Confidence sheet both populate correctly. Render_widget
-          marker left undone (explicitly optional in the design). Rollout note (E) not run
-          against the real "Quick 2026" DB yet — `uv run python reimport.py --all "../Quick
-          2026/games"` still needs to be run once to migrate it and refresh the xlsx.
+          marker left undone (explicitly optional in the design).
+          Rollout (E) done 2026-09-03 (Fable): reimport --all over 15 games OK. Found that the
+          live DB's confidence column still had TEXT affinity (table pre-dated #11, CREATE IF
+          NOT EXISTS can't retype), so ints were stored as text; added a one-shot table
+          rebuild migration in db.init_db (CAST, keeps pa_ids/reviewed). Now INTEGER, 614 PAs:
+          566x5, 32x4, 13x3, 3x2 -> 3 needs_review.
+          CAVEAT: reimport maps the old JSON "high" -> 5, so most games still show 5, not the
+          "legacy 4" + structural docks a re-score gives. Real scores need a crawl (re-run from
+          cache), which is UNSAFE until #17: crawl.py passes no --innings and no grid
+          overrides, and 4 games were not run with defaults (Vennep Flyers 2026-06-28 =
+          10 innings + --grid-start/--grid-width/--left-skip, Herons 7, Grizzlies 07-12 7,
+          Urbanus 6). Do #17 first, then crawl, then reimport + export.
 
         DESIGN (Fable, 2026-09-03) — implement with Sonnet, one commit, then mark [x].
 

@@ -48,8 +48,11 @@ Scan image (JPG/PNG)
 8. GT enforcement        _enforce_gt_runs()
         │                → fix impossible runs against ground-truth totals
         ▼
-9. Reconciliation        main loop
-        │                → focused re-check when extracted R < GT R
+9. Reconciliation        _reconcile_gt_runs()  (#1)
+        │                → extracted R < GT R: structurally forced runs (runner ahead of a
+        │                   scorer, all 3 outs are PA outs), then ranked VLM re-check
+        │                → extracted R > GT R: remove lowest-run_conf scorer only on a
+        │                   clear confidence gap; HR never removed; else flag for review
         ▼
 10. Integrity checks     _check_row(), _check_pa_sequence(), _check_col()
         │                → per-player and per-inning cross-checks printed to terminal
@@ -97,6 +100,7 @@ Scan image (JPG/PNG)
 | `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, result_conf, run_conf, reread, adjusted, notes). |
 | `test_rbi_attribution.py` | Unit tests for `_build_slot_data()` (PA construction + RBI attribution), `_check_rbi_leq_runs()`, and `classify_cell()`'s rbi_slot sentinel behavior (see #7). Run with `uv run python test_rbi_attribution.py` from `scorecard/`. No image needed; the two `classify_cell` tests monkeypatch `_call_api`/`_read_rbi_slot` instead of hitting the API. |
 | `test_confidence.py` | Unit tests for `_score_cell()` and its wiring into `_build_slot_data()` (see #11 below). Run with `uv run python test_confidence.py`. No image or API needed. |
+| `test_gt_runs.py` | Unit tests for `_reconcile_gt_runs()` (#1): forced runs, ranked re-check order, over-count gating, cyclic batting order. Uses a fake re-check callable; no image or API needed. Run with `uv run python test_gt_runs.py`. |
 
 ---
 
@@ -140,8 +144,15 @@ Applied before structural rules, in order:
 ### Hole detection & the null-result/run=True consistency rule
 A null cell sandwiched between two non-null cells in the same column is re-read (cyclic P9→P1 boundary suppressed — that's end-of-inning, not a hole). Separately, `_reread_hole_cells`-adjacent logic re-reads any `run=True, result=None` cell; **if the re-read still fails to produce a result, `run` is explicitly forced to `False`** in both the in-memory grid and the cache file. This matters because `PlateAppearance` construction (`extract_cells.py`, in the per-row PA-building loop) skips any cell with `result is None` entirely — such a cell contributes nothing to stats or the DB regardless of its `run` flag. Before this fix, a lingering `run=True/result=None` cell could make the per-inning integrity check report a phantom extra run that would never actually appear in the final output — always keep `run` and `result` consistent when hand-patching cells for this reason.
 
-### Ground-truth enforcement
-`_enforce_gt_runs()` runs after batting rules. For any inning where GT says R=0, all `run=True` cells are forced False. Over-counted innings are logged but not auto-corrected (needs a human to pick which cell is wrong).
+### Ground-truth enforcement and run reconciliation (#1)
+`_enforce_gt_runs()` runs after batting rules. For any inning where GT says R=0, all `run=True` cells are forced False. Every other mismatch is handled by `_reconcile_gt_runs()` (pure apart from grid/cache writes, unit-tested in `test_gt_runs.py` with a fake VLM re-check), which runs after the integrity checks and before the RBI backfill. It works on the inning's **batting sequence** (rows rotated to the lead-off batter from `last_batter_by_inning`, overflow columns appended) because baseball structure gives priors a per-cell read cannot:
+
+- **Under-count, tier 1 (forced).** Runners cannot pass each other, so a batter who reached base *ahead of the last scorer* must have scored or been retired on the bases. When the inning's 3 outs are all plate-appearance outs (no `DP`, no "runner out" note, lead-off batter known), nobody was retired on the bases, so those runners scored — assigned with no VLM call, tagged `gt:run->True(forced)`. If more runners are forced than runs are missing, a `run=True` cell is probably wrong instead: nothing is assigned, the inning is flagged.
+- **Under-count, tier 2 (ranked VLM re-check).** Remaining non-out, non-scoring cells are re-read with `_recheck_run` in order of lowest `run_conf` first (least sure of "no run"), then earliest in sequence. Only a positive re-read assigns (`recheck:run->True`).
+- **Under-count, tier 3.** Still short → candidates listed with their `run_conf`, nothing invented; the inning keeps its `R` flag so every cell in it is docked for review.
+- **Over-count.** Candidate scorers ranked by `run_conf` ascending; a `HR` is never a candidate; a scorer sitting behind a non-scoring runner in an airtight inning is ranked one notch lower. The lowest `m` are removed (`gt:run->False`) only when there is a gap of at least `_GT_RUN_REMOVE_GAP` (2) between the last removed and the first kept, or when every non-HR scorer has to go. Otherwise flagged. Legacy caches (no self-report, everything scores 4) therefore never auto-remove — by design.
+
+All flips go through `_add_adjusted`, so `_score_cell` docks them and `--reuse-cache` re-application is idempotent.
 
 ### Confidence scoring (#11)
 The VLM emits two integers per cell instead of a single "low"/"high" self-report: `result_conf` and `run_conf` (1-5, anchored rubric in `_CELL_SYSTEM` — 5 = every stroke unambiguous, 1 = barely legible). A survey of a full season's cache found the old binary field useless — 811/1413 cells had no confidence key at all, and every one of the remaining 602 said "high", including cells the pipeline itself had flagged as uncertain. `_score_cell()` (pure function, unit-tested in `test_confidence.py`) starts from that self-report — missing → 4, reason `"legacy"` — and docks it using evidence the pipeline already collects but used to discard: a successful hole/run reread (`cell["reread"]`, both -1), each structural rule correction (`cell["adjusted"]`, a deduplicated add-if-absent list written by `_enforce_constraints`, `_enforce_gt_runs`, `_apply_batting_rules`, the run-reconciliation `_recheck_run` call, and `classify_cell`'s `parse_retry`; each entry docks `run_conf` -1, except `parse_retry` which is itself an `adjusted` entry too), a `run=True` cell with no corroborating `rbi_slot` digit (`run_conf` -1), an inning whose R or H still mismatches GT after every pass (`inning_flags`, built from `_check_col()`'s final numbers and passed into `_build_slot_data()` — R mismatch docks `run_conf`, H mismatch docks `result_conf` on hit cells), and notes containing "ambig/unclear/guess/possibl/faint" (`result_conf` -1). Floors at 1, caps at 5. `PlateAppearance.confidence = min(result_conf, run_conf)`, plus the raw `result_conf`/`run_conf`/`conf_reasons` fields. `removed:`-tagged cells (isolation/3-out rules) and the cache-load restore path both now preserve these keys through a removal/restore cycle instead of dropping them — they describe VLM reads, not rule state.

@@ -198,11 +198,19 @@ Order matters: investigate #12 first (may change the design), then #11 -> #7 -> 
           reordering end-to-end on a scratch copy of a real game — all 12 run cells still get
           rbi_slot correctly.
 		
-[ ] #1  Enforce run count == GT per inning, both directions. Today _enforce_gt_runs only
+[x] #1  Enforce run count == GT per inning, both directions. Today _enforce_gt_runs only
         zeroes runs for R=0 innings and logs overcounts. To ADD runs, rank candidate cells by
         confidence score (#11) and pick highest until GT is matched.
         CAUTION: adding a run to the wrong player fabricates stats. Only auto-assign when
-        there is a clear score gap between candidates; otherwise flag for review.py.		
+        there is a clear score gap between candidates; otherwise flag for review.py.
+        Done 2026-09-03 (Fable): _reconcile_gt_runs() replaces the old unranked re-check loop.
+        Key idea beyond the confidence ranking: use the batting SEQUENCE. Runners can't pass
+        each other, so a runner who reached ahead of the last scorer must have scored when
+        all 3 outs are PA outs (no DP / runner-out note) -> assigned without a VLM call
+        ("gt:run->True(forced)"). Then ranked VLM re-check by run_conf (lowest first, then
+        earliest in sequence). Over-count: remove lowest run_conf non-HR scorer only with a
+        gap >= 2 to the next (legacy caches never auto-remove). Everything else is listed
+        for review, never invented. 17 tests in test_gt_runs.py. Details in CLAUDE.md.
 
 GROUP 4 - VLM DETECTION QUALITY (build eval set first, then iterate prompts/crops)
 ----------------------------------------------------------------------------------
@@ -211,7 +219,7 @@ Without a labelled set we cannot tell if a prompt change helped or moved errors 
 [ ] #0  Build eval set: ~50-100 cells with known result/run/rbi taken from games where GT
         already checks out. Script that reruns classify_cell on the set and reports accuracy.
 
-[ ] #3  HR detection: glyph is a backward capital E with a dot in the center. Add to prompt.
+[ ] #3  HR detection: glyph sometimes resembles a backward capital E with a dot in the center. Add to prompt.
 
 [ ] #5  RBI detection misses clear digits in bottom-left. Tune crop / prompt of
         _backfill_rbi_cells.

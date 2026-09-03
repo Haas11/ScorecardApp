@@ -26,6 +26,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from typing import Callable
 
 import anthropic
 import click
@@ -1057,8 +1058,212 @@ def _enforce_gt_runs(
                 click.echo(f"  [GT-R=0] Player {ri+1} inn {inn}: run forced False (GT=0 runs)")
         elif len(extracted) > gt_r:
             click.echo(
-                f"  [GT-R] Inn {inn}: {len(extracted)} runs extracted, GT={gt_r} — cannot auto-reduce"
+                f"  [GT-R] Inn {inn}: {len(extracted)} runs extracted, GT={gt_r} — see run reconciliation"
             )
+
+
+# ── GT run reconciliation (#1) ────────────────────────────────────────────────
+
+_GT_RUN_REMOVE_GAP = 2   # run_conf gap needed between the last removed and first kept scorer
+_RUNNER_OUT_RE = re.compile(
+    r"runner (was |got )?(out|retired|caught|thrown out)|caught stealing|\bCS\b|picked off|"
+    r"forced? out at|out at (2nd|3rd|home|second|third)",
+    re.IGNORECASE,
+)
+
+
+def _reconcile_gt_runs(
+    grid: list[list[dict | None]],
+    n_rows: int,
+    cols_by_inning: dict[int, list[int]],
+    gt_totals: dict[int, dict],
+    last_batter_by_inning: dict[int, int],
+    recheck: "Callable[[int, int, int], bool] | None",
+    cache_dir: Path | None,
+    names: list[str] | None = None,
+) -> list[str]:
+    """Make extracted runs per inning match the ground-truth total, both directions (#1).
+
+    Works inning by inning on the batting sequence (rows rotated to the inning's
+    lead-off batter, overflow columns appended), because baseball structure gives
+    strong priors that a per-cell read does not:
+
+    UNDER-COUNT (extracted R < GT R) — two tiers, then give up loudly:
+      1. Forced (structural): runners cannot pass each other, so every batter who
+         reached base AHEAD of the last scorer must have scored or been retired on
+         the bases. When all 3 outs of the inning are plate-appearance outs (no DP,
+         no runner-out note) nobody was retired on the bases, so those runners
+         scored. Assigned without a VLM call, tagged "gt:run->True(forced)". If more
+         runners are forced than runs are missing, one of the run=True cells is
+         probably wrong instead — nothing is assigned, the inning is flagged.
+      2. Ranked VLM re-check: remaining non-out, non-scoring cells are re-read via
+         ``recheck(ri, ci, inn)`` in order of lowest run_conf first (least sure of
+         "no run"), then earliest in the batting sequence (earlier runners score
+         first). Only a positive re-read assigns a run ("recheck:run->True").
+      3. Still short → listed for review.py; nothing is invented.
+
+    OVER-COUNT (extracted R > GT R, GT R > 0; GT R = 0 is handled earlier by
+    ``_enforce_gt_runs``): candidate scorers are ranked by run_conf ascending (a HR
+    is never a candidate — the batter always scores). A scorer that sits BEHIND a
+    non-scoring runner in an airtight inning is structurally suspect and ranked one
+    notch lower. The lowest ``m`` are removed only when there is a clear gap
+    (``_GT_RUN_REMOVE_GAP``) between the last removed and the first kept, or when
+    every non-HR scorer must go for the inning to add up. Otherwise flagged.
+
+    Mutates ``grid``, writes touched cells to ``cache_dir`` (if given) and returns
+    the messages to print. ``recheck`` may be None (no VLM available) — tier 2 is
+    then skipped. Pure apart from grid/cache mutation, so it is unit-testable with a
+    fake ``recheck``.
+    """
+    msgs: list[str] = []
+
+    def _name(ri: int) -> str:
+        return names[ri] if names and ri < len(names) else f"P{ri+1}"
+
+    def _save(ri: int, ci: int) -> None:
+        if cache_dir is not None:
+            cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+            cf.write_text(json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8")
+
+    def _run_conf(cell: dict, inn: int) -> int:
+        return _score_cell(cell, inn, None)[1]
+
+    for inn in sorted(cols_by_inning):
+        if inn not in gt_totals:
+            continue
+        gt_r = gt_totals[inn]["R"]
+        cols = cols_by_inning[inn]
+
+        # Batting sequence for this inning: rotate rows to the lead-off batter.
+        # Inning 1 starts at row 0; otherwise the batter after the previous inning's
+        # last batter (1-based slot in last_batter_by_inning). Unknown start (an
+        # earlier inning had unreadable cells) disables the structural tier.
+        if inn == 1:
+            start_ri, start_known = 0, True
+        elif (inn - 1) in last_batter_by_inning:
+            start_ri, start_known = last_batter_by_inning[inn - 1] % n_rows, True
+        else:
+            start_ri, start_known = 0, False
+        seq: list[tuple[int, int, int, dict]] = []   # (pos, ri, ci, cell)
+        pos = 0
+        for ci in cols:
+            for k in range(n_rows):
+                ri = (start_ri + k) % n_rows
+                cell = grid[ri][ci] or {}
+                if cell.get("result") is not None:
+                    seq.append((pos, ri, ci, cell))
+                pos += 1
+
+        scorers = [s for s in seq if s[3].get("run")]
+        extracted_r = len(scorers)
+        if extracted_r == gt_r:
+            continue
+
+        pa_outs = sum(1 for s in seq if _is_out(s[3].get("result")))
+        has_dp = any((s[3].get("result") or "").upper() == "DP" for s in seq)
+        airtight = start_known and pa_outs >= 3 and not has_dp
+        last_scorer_pos = max((s[0] for s in scorers), default=-1)
+
+        # ── Under-count ──────────────────────────────────────────────────────
+        if extracted_r < gt_r:
+            need = gt_r - extracted_r
+            msgs.append(f"  Inn {inn}: R={extracted_r} < GT={gt_r} — {need} missing run(s)")
+            eligible = [
+                s for s in seq
+                if not s[3].get("run") and not _is_out(s[3].get("result"))
+            ]
+
+            # Tier 1: structurally forced runs.
+            forced: list[tuple[int, int, int, dict]] = []
+            if airtight and scorers:
+                forced = [
+                    s for s in eligible
+                    if s[0] < last_scorer_pos and not _RUNNER_OUT_RE.search(s[3].get("notes") or "")
+                ]
+                if len(forced) > need:
+                    msgs.append(
+                        f"    !! {len(forced)} runner(s) ahead of the last scorer but only {need} "
+                        f"missing — a run=True cell is probably wrong; nothing assigned, review: "
+                        + ", ".join(f"P{ri+1} {c.get('result')}" for _, ri, _, c in forced)
+                    )
+                    forced = []
+            for _, ri, ci, cell in forced:
+                cell["run"] = True
+                _add_adjusted(cell, "gt:run->True(forced)")
+                grid[ri][ci] = cell
+                _save(ri, ci)
+                msgs.append(
+                    f"    -> P{ri+1} {_name(ri)} {cell.get('result')}: run forced True "
+                    f"(reached base ahead of a scorer; all 3 outs are PA outs)"
+                )
+            need -= len(forced)
+            forced_ids = {id(s[3]) for s in forced}
+
+            # Tier 2: ranked VLM re-check.
+            remaining = [s for s in eligible if id(s[3]) not in forced_ids]
+            remaining.sort(key=lambda s: (_run_conf(s[3], inn), s[0]))
+            if need > 0 and recheck is not None:
+                for _, ri, ci, cell in remaining:
+                    if need <= 0:
+                        break
+                    if recheck(ri, ci, inn):
+                        cell["run"] = True
+                        _add_adjusted(cell, "recheck:run->True")
+                        grid[ri][ci] = cell
+                        _save(ri, ci)
+                        msgs.append(f"    -> P{ri+1} {_name(ri)} {cell.get('result')}: run corrected to True (VLM re-check)")
+                        need -= 1
+
+            # Tier 3: give up loudly.
+            if need > 0:
+                still = [s for s in remaining if not s[3].get("run")]
+                cand = ", ".join(
+                    f"P{ri+1} {c.get('result')} (run_conf={_run_conf(c, inn)})"
+                    for _, ri, _, c in still[:5]
+                ) or "none"
+                msgs.append(f"    !! still {need} run(s) short — left for review. Candidates: {cand}")
+            continue
+
+        # ── Over-count ───────────────────────────────────────────────────────
+        m = extracted_r - gt_r
+        msgs.append(f"  Inn {inn}: R={extracted_r} > GT={gt_r} — {m} run(s) too many")
+        if gt_r == 0:
+            continue  # _enforce_gt_runs already cleared these
+        nonscoring_ahead = [
+            s[0] for s in seq
+            if not s[3].get("run") and not _is_out(s[3].get("result"))
+        ]
+        ranked: list[tuple[int, int, int, int, dict]] = []   # (key, pos, ri, ci, cell)
+        for p, ri, ci, cell in scorers:
+            if (cell.get("result") or "").upper() == "HR":
+                continue  # a HR always scores
+            key = _run_conf(cell, inn)
+            if airtight and any(q < p for q in nonscoring_ahead):
+                key -= 1  # behind a non-scoring runner: structurally suspect
+            ranked.append((key, p, ri, ci, cell))
+        # Lowest confidence first; among ties the later batter (the one behind
+        # non-scorers) is the more likely phantom.
+        ranked.sort(key=lambda t: (t[0], -t[1]))
+
+        if len(ranked) < m:
+            msgs.append(
+                f"    !! only {len(ranked)} removable scorer(s) (HR runs are fixed) — GT total "
+                f"contradicts the HR count; review"
+            )
+            continue
+        clear = len(ranked) == m or (ranked[m][0] - ranked[m - 1][0]) >= _GT_RUN_REMOVE_GAP
+        if not clear:
+            cand = ", ".join(f"P{ri+1} {c.get('result')} (run_conf={k})" for k, _, ri, _, c in ranked[: m + 2])
+            msgs.append(f"    !! no clear confidence gap between scorers — left for review. Candidates: {cand}")
+            continue
+        for _, _, ri, ci, cell in ranked[:m]:
+            cell["run"] = False
+            _add_adjusted(cell, "gt:run->False")
+            grid[ri][ci] = cell
+            _save(ri, ci)
+            msgs.append(f"    -> P{ri+1} {_name(ri)} {cell.get('result')}: run removed (lowest run_conf, clear gap)")
+
+    return msgs
 
 
 # ── RBI backfill ─────────────────────────────────────────────────────────────
@@ -2540,58 +2745,36 @@ def main(
             continue  # buffer columns beyond the game length
         inning_flags[inn] = _check_col(inn, _inning_cells_check[inn], gt_totals)
 
-    # ── Run reconciliation against GT inning totals ───────────────────────────
-    # Only runs a focused re-check when we extracted FEWER runs than GT expects.
-    # Over-counted innings are already handled by _enforce_gt_runs above.
+    # ── Run reconciliation against GT inning totals (#1) ─────────────────────
+    # Both directions: structurally forced runs + ranked VLM re-check when we
+    # extracted FEWER runs than GT, gated removal of the least-confident scorer
+    # when we extracted MORE. See _reconcile_gt_runs for the rules.
     # Aggregates across overflow columns (multiple cols may map to same inning).
     if gt_totals:
-        # Run reconciliation (folded into per-inning section — no separate header)
         from collections import defaultdict as _dd2
         _inning_col_map: dict[int, list[int]] = _dd2(list)
         for ci in range(n_phys_cols):
-            _inning_col_map[col_to_inning[ci]].append(ci)
+            if col_to_inning[ci] <= innings:
+                _inning_col_map[col_to_inning[ci]].append(ci)
 
-        run_issues: list[str] = []
-        for inn in sorted(_inning_col_map):
-            if inn not in gt_totals or inn > innings:
-                continue
-            gt_r = gt_totals[inn]["R"]
-            cols = _inning_col_map[inn]
-            extracted_r = sum(
-                1 for ci in cols for ri in range(n_active_rows)
-                if (grid[ri][ci] or {}).get("run") and (grid[ri][ci] or {}).get("result") is not None
-            )
-            if extracted_r == gt_r:
-                continue
-            if extracted_r > gt_r:
-                run_issues.append(f"  Inn {inn}: R={extracted_r} > GT={gt_r} (over-count; should be handled by GT enforcement)")
-                continue
-            # extracted_r < gt_r: re-examine non-run cells
-            run_issues.append(f"  Inn {inn}: R={extracted_r} < GT={gt_r} — rechecking {gt_r - extracted_r} missing run(s)…")
-            found = 0
-            for ci in cols:
-                for ri in range(n_active_rows):
-                    if found >= gt_r - extracted_r:
-                        break
-                    cell = grid[ri][ci] or {}
-                    if cell.get("result") is None or cell.get("run") or _is_out(cell.get("result")):
-                        continue
-                    name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
-                    y1 = max(0, row_tops[ri])
-                    y2 = row_bottoms[ri]
-                    x1 = max(0, col_lefts[ci])
-                    x2 = col_lefts[ci + 1]
-                    crop = img[y1:y2, x1:x2]
-                    if crop.size == 0:
-                        continue
-                    run = _recheck_run(crop, name, inn, client, model)
-                    if run:
-                        grid[ri][ci]["run"] = True
-                        _add_adjusted(grid[ri][ci], "recheck:run->True")
-                        cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
-                        cf.write_text(json.dumps(grid[ri][ci], ensure_ascii=False), encoding="utf-8")
-                        run_issues.append(f"    -> P{ri+1} {name} inn {inn}: run corrected to True")
-                        found += 1
+        _row_names_flat = [
+            active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
+            for ri in range(n_active_rows)
+        ]
+
+        def _recheck_cell(ri: int, ci: int, inn: int) -> bool:
+            y1, y2 = max(0, row_tops[ri]), row_bottoms[ri]
+            x1 = max(0, col_lefts[ci])
+            x2 = col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1]
+            crop = img[y1:y2, x1:x2]
+            if crop.size == 0:
+                return False
+            return _recheck_run(crop, _row_names_flat[ri], inn, client, model)
+
+        run_issues = _reconcile_gt_runs(
+            grid, n_active_rows, dict(_inning_col_map), gt_totals,
+            last_batter_by_inning, _recheck_cell, cache_dir, _row_names_flat,
+        )
         if run_issues:
             click.echo("\n  -- Run reconciliation:")
             for msg in run_issues:

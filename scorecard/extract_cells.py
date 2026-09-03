@@ -537,6 +537,34 @@ def _is_out(result: str | None) -> bool:
     return False
 
 
+_REMOVED_NOTE_RE = re.compile(r"removed:(\S+)\s*\((.+?)(?:,\s*run)?\)\s*$")
+
+
+def _removed_note(rule: str, cell: dict | None) -> str:
+    """Note stored on a cell removed by a structural rule: ``removed:<rule> (<result>[, run])``.
+
+    The original result AND run flag are recorded so the cache-load restore can
+    put both back and the rules re-evaluate from the true read. Before the run
+    flag was kept, a restored HR came back run=False, the HR constraint fired
+    on it and wrote an ``adjusted`` flag onto a cell that was then removed again
+    — and a removed-then-restored scorer lost its run for good.
+    """
+    c = cell or {}
+    return f"removed:{rule} ({c.get('result')}{', run' if c.get('run') else ''})"
+
+
+def _parse_removed_note(notes: str) -> tuple[str | None, bool] | None:
+    """Inverse of _removed_note → (original_result | None, run). Accepts the old
+    format without the run flag (run then defaults to True only for a HR)."""
+    m = _REMOVED_NOTE_RE.match(notes or "")
+    if not m:
+        return None
+    orig = m.group(2).strip()
+    result = None if orig in ("null", "None") else orig
+    run = notes.rstrip().endswith(", run)") or (result or "").upper() == "HR"
+    return result, run
+
+
 def _apply_batting_rules(
     grid: list[list[dict | None]],
     n_rows: int,
@@ -628,7 +656,7 @@ def _apply_batting_rules(
                 removed_cell = dict(grid[ri][ci] or {})
                 removed_cell["result"] = None
                 removed_cell["run"] = False
-                removed_cell["notes"] = f"removed:isolated ({old})"
+                removed_cell["notes"] = _removed_note("isolated", grid[ri][ci])
                 grid[ri][ci] = removed_cell
                 _save(ri, ci)
                 click.echo(f"  [isolated] Player {ri+1} inn {inn} was {old}: removed")
@@ -662,7 +690,7 @@ def _apply_batting_rules(
                 removed_cell = dict(grid[ri][ci] or {})
                 removed_cell["result"] = None
                 removed_cell["run"] = False
-                removed_cell["notes"] = f"removed:after_3_outs ({old})"
+                removed_cell["notes"] = _removed_note("after_3_outs", grid[ri][ci])
                 grid[ri][ci] = removed_cell
                 _save(ri, ci)
                 click.echo(f"  [3-outs] Player {ri+1} inn {inn} col {ci+1} was {old}: removed")
@@ -2067,8 +2095,14 @@ def _build_slot_data(
     n_phys_cols: int,
     col_to_inning: list[int],
     inning_flags: dict[int, set[str]] | None = None,
+    max_inning: int | None = None,
 ) -> tuple[list[tuple], list[str]]:
     """Turn the cell grid into per-slot PlateAppearance lists with RBIs attributed.
+
+    ``max_inning`` (the game's ``--innings``): cells in buffer columns that map to
+    an inning beyond it can only be misreads of the card's right-hand totals area
+    (a 9-inning game has no inning 11) — they are dropped with a warning instead
+    of becoming phantom plate appearances.
 
     Returns ``(slot_data, warnings)`` where ``slot_data[ri] == (all_slots, pa_lists)``:
     ``all_slots`` is ``[(player_tuple, entry_inning), ...]`` (starter has entry 0) and
@@ -2107,6 +2141,12 @@ def _build_slot_data(
             if isinstance(r, str) and r.strip().lower() == "null":
                 continue  # string "null" slipped through earlier normalization
             inning = col_to_inning[ci]
+            if max_inning is not None and inning > max_inning:
+                warnings_out.append(
+                    f"  P{ri+1} col {ci+1}: '{r}' read in a column beyond inning {max_inning} "
+                    f"(mapped to inning {inning}) — dropped, not a plate appearance"
+                )
+                continue
             result_conf, run_conf, conf_reasons = _score_cell(cell, inning, inning_flags)
             pa = PlateAppearance(
                 inning=inning,
@@ -2140,6 +2180,8 @@ def _build_slot_data(
                 continue
             ri_batter = rbi_slot - 1
             inning = col_to_inning[ci]
+            if max_inning is not None and inning > max_inning:
+                continue  # dropped in phase 1 — never credits anything
             if ri_batter == ri_runner:
                 if (cell.get("result") or "").upper() != "HR":
                     warnings_out.append(
@@ -2553,14 +2595,14 @@ def main(
                 # Restore cells previously removed by structural rules so they are
                 # re-evaluated fresh this run (other cells may have changed).
                 if cell.get("result") is None and notes.startswith("removed:"):
-                    m_restore = re.match(r"removed:\S+\s*\((.+?)\)", notes)
-                    if m_restore:
-                        orig = m_restore.group(1).strip()
+                    restored = _parse_removed_note(notes)
+                    if restored:
+                        orig_result, orig_run = restored
                         # Keep every other key (reread/adjusted/*_conf/rbi_slot) —
                         # they describe VLM reads, not the rule's removal state.
                         cell = dict(cell)
-                        cell["result"] = None if orig in ("null", "None") else orig
-                        cell["run"] = False
+                        cell["result"] = orig_result
+                        cell["run"] = orig_run
                         cell["notes"] = None
                         cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
                 grid[ri][ci] = cell
@@ -2866,7 +2908,8 @@ def main(
     # Phases 1+2 (PA lists + RBI attribution) live in _build_slot_data so they
     # can be unit-tested without an image or API client.
     slot_data, rbi_warnings = _build_slot_data(
-        grid, slot_info, n_active_rows, n_phys_cols, col_to_inning, inning_flags
+        grid, slot_info, n_active_rows, n_phys_cols, col_to_inning, inning_flags,
+        max_inning=innings,
     )
     if rbi_warnings:
         click.echo("\n\n-- RBI attribution warnings " + "-" * 38)

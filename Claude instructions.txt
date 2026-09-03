@@ -61,6 +61,27 @@ GROUP 1 - QUICK WINS (no VLM changes, small isolated edits; cheaper model)
           files. test_gt_runs.py (17) and the rest of the suite still pass unaffected.
 
 
+[ ] #18 Protect hand-corrected cells. (a) "manual": true flag on a cache cell that every pass
+        (hole re-read, run re-read, constraints, batting rules, GT reconciliation) leaves
+        untouched; (b) reimport.py --sync-cells sets it on every cell it writes; (c) a
+        `--lock` option on review.py so a reviewed PA is written back to the cache locked.
+        Motivation: the 2026-09-03 crawl regenerated Domstad Dodgers 03-29 from its cache and
+        dropped 7 PAs that only existed as hand edits in _cells.json (never synced). Also
+        consider persisting --active-players in _layout.json run_args after all (#17 left it
+        out; Domstad is a 10-player game).
+
+[x] #19 HTML widget: Totals row PA/R/H coloured green/red against GT (gt_totals embedded in
+        _cells.json by extract_cells, fallback to {stem}_totals.txt), low-confidence PAs get
+        a dashed outline + "?" with a reasons tooltip. Done 2026-09-03 (Fable), f4d4615.
+
+CRAWL LOG 2026-09-03 (post #17, first season re-score): 15/15 OK, 17 VLM calls (8 hole
+re-reads, 8 SB counts, 1 RBI digit). Cache outcome changes: 8 sb_count backfills, 1 forced
+run (Onze Gezellen Away inn 2, X. Dikkes E7, rbi_slot 2), 0 result changes. Season
+confidence after re-score: 526x4 (legacy), 77x3, 4x2 -> 4 needs_review (Urbanus 3, Domstad
+1). Domstad reverted to baseline (see #18). Two pipeline bugs found and fixed: removed-cell
+restore lost the run flag; buffer-column cells beyond --innings became phantom PAs (Almere).
+
+
 GROUP 2 - OPS TOOLING (cheaper model)
 -------------------------------------
 [x] #15 Fix mistyped game dates (month/day swapped) without re-extracting.

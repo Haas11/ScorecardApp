@@ -155,6 +155,31 @@ def test_build_slot_data_fallback_credit_can_trigger_rbi_leq_runs_warning():
     assert any("inn 2" in w and "RBI total 1 > runs scored 0" in w for w in warnings)
 
 
+# ── structural-rule removal / cache-restore round-trip ────────────────────────
+
+def test_removed_note_round_trips_result_and_run():
+    note = ec._removed_note("after_3_outs", {"result": "HR", "run": True})
+    assert note == "removed:after_3_outs (HR, run)"
+    assert ec._parse_removed_note(note) == ("HR", True)
+    note = ec._removed_note("isolated", {"result": "1B", "run": False})
+    assert note == "removed:isolated (1B)"
+    assert ec._parse_removed_note(note) == ("1B", False)
+
+
+def test_removed_note_keeps_run_of_non_hr_scorer():
+    # A removed-then-restored scorer must get its run back, not silently lose it.
+    note = ec._removed_note("isolated", {"result": "BB", "run": True})
+    assert ec._parse_removed_note(note) == ("BB", True)
+
+
+def test_parse_removed_note_accepts_legacy_format():
+    # Old caches have no run marker: only a HR is known to have scored.
+    assert ec._parse_removed_note("removed:after_3_outs (HR)") == ("HR", True)
+    assert ec._parse_removed_note("removed:isolated (6-3)") == ("6-3", False)
+    assert ec._parse_removed_note("removed:isolated (null)") == (None, False)
+    assert ec._parse_removed_note("not a removal") is None
+
+
 if __name__ == "__main__":
     import sys
     failed = 0

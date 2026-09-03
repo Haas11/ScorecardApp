@@ -8,5 +8,13 @@
     4,
     5,
     6
-  ]
+  ],
+  "run_args": {
+    "innings": 6,
+    "n_player_rows": null,
+    "left_skip_frac": null,
+    "grid_start": null,
+    "grid_width": null,
+    "cell_height": null
+  }
 }

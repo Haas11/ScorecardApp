@@ -176,7 +176,7 @@ For difficult scans (low-res, landscape, skewed, wide player-info columns), manu
 - `cell_height` / `--cell-height` — override the detected row height directly when bimodal detection still gets it wrong.
 - Left column extrapolation: if fewer inning columns are detected than expected, missing columns are synthesized by stepping backwards from the first detected column (not forwards from an assumed start — that produced gap mismatches).
 
-Example real override that was needed for a 1345×948px landscape/low-res scan (2026-28-06 Vennep Flyers): `--innings 10 --grid-start 455 --grid-width 75 --left-skip 0.35`.
+Example real override that was needed for a 1345×948px landscape/low-res scan (2026-28-06 Vennep Flyers): `--innings 10 --grid-start 455 --grid-width 75 --left-skip 0.35`. These overrides — and `--innings`/`--n-player-rows`/`--cell-height` — only need to be given once; see [Re-running a game from cache (#17)](#re-running-a-game-from-cache-17).
 
 ### VLM model
 Default: `gemini-2.5-flash` (set via `EXTRACTION_MODEL` env var or `--model`). The prompt describes all valid result codes, K-PB detection, voided-cell handling, and sub-cell notation conventions (WP/PB/SB = baserunner advancement, not PA result).
@@ -201,9 +201,11 @@ Duplicate detection: on reimport, any existing game with the same date + opponen
 
 ---
 
-## Re-running a game from cache
+## Re-running a game from cache (#17)
 
-Pass the **same `--innings N`** as the original run (visible in `{stem}_run.log`, e.g. Urbanus was `--innings 6`). A different value makes the column count differ from `cells/_layout.json`, which is then re-detected and **overwritten**, and stray `r##_c##.json` files are created for the extra columns. Player stats are unaffected (extra columns are empty) but the folder is left inconsistent.
+`--innings`, `--n-player-rows`, `--left-skip`, `--grid-start`, `--grid-width`, and `--cell-height` all default to `None` on the CLI now, not a hardcoded value. Whichever of them isn't given explicitly this run falls back to the value stored in `cells/_layout.json`'s `run_args` key from a *prior* run of this exact game, and only then to the hardcoded default (`innings=9`, `n_player_rows=10`, `left_skip_frac=0.05`, the rest `None`). Resolution happens before grid detection, so a bare `--reuse-cache --yes` (what `crawl.py` passes) reuses whatever this game actually needed — it no longer silently re-detects at the default and overwrites `_layout.json` + leaves stray `r##_c##.json` files for a game that needed `--innings 6` or a manual grid override. `run_args` is rewritten every run (not just when `col_to_inning` is freshly detected), so passing an explicit override this run updates what the *next* bare `--reuse-cache` run reuses. `--active-players` is deliberately **not** persisted this way — it legitimately varies per game (short lineup, etc.), unlike grid geometry.
+
+Before this fix, a bare `--reuse-cache` re-run without the original flags would make the column count differ from `_layout.json`, triggering a silent re-detect-and-overwrite plus stray cache files for the extra columns (safe for stats — the extra columns are empty — but left the folder inconsistent). That's what blocked `crawl.py` from running unattended over the whole season: 4 of 15 games (Vennep Flyers 2026-06-28: 10 innings + manual grid override; Herons 2026-07-03 and Grizzlies 2026-07-12: 7 innings; Urbanus 2026-08-23: 6 innings) needed a non-default flag. Their `_layout.json` files were backfilled with the correct `run_args` from their `_run_log`/this file's documented overrides so the fix protects them starting now, not only after their next manual re-run.
 
 ## Known-stale things to watch for
 

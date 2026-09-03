@@ -1,6 +1,7 @@
 {
   "col_to_inning": [
     1,
+    1,
     2,
     3,
     4,
@@ -11,11 +12,11 @@
     9
   ],
   "run_args": {
-    "innings": 7,
+    "innings": 10,
     "n_player_rows": null,
-    "left_skip_frac": null,
-    "grid_start": null,
-    "grid_width": null,
+    "left_skip_frac": 0.35,
+    "grid_start": 455,
+    "grid_width": 75,
     "cell_height": null
   }
 }

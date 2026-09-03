@@ -36,7 +36,7 @@ GROUP 1 - QUICK WINS (no VLM changes, small isolated edits; cheaper model)
           via env var to its extract_cells.py subprocess so that write targets the same DB.
 
 
-[ ] #17 Persist the run arguments in cells/_layout.json (innings, grid-start, grid-width,
+[x] #17 Persist the run arguments in cells/_layout.json (innings, grid-start, grid-width,
         left-skip, cell-height, n-player-rows) and reuse them on --reuse-cache when not
         given explicitly on the command line. Today a re-run with a different --innings than
         the original silently re-detects and overwrites the layout and leaves stray cache
@@ -44,6 +44,21 @@ GROUP 1 - QUICK WINS (no VLM changes, small isolated edits; cheaper model)
         only --reuse-cache --yes, so 4 of 15 games (Vennep Flyers 06-28: 10 innings + manual
         grid overrides; Herons 07-03 and Grizzlies 07-12: 7; Urbanus 08-23: 6) would be
         corrupted by a season crawl. Needed before the #11 re-score crawl (see #11 caveat).
+          Done 2026-09-03: all 6 click options now default to None; a resolver picks
+          explicit CLI value > value persisted in cells/_layout.json's new "run_args" key >
+          hardcoded default (innings=9, n_player_rows=10, left_skip_frac=0.05, the rest None),
+          resolved BEFORE grid detection so it actually controls detect_grid(). run_args is
+          rewritten every run (not just on fresh col_to_inning detection) so an explicit
+          override this run updates what the next --reuse-cache run without that flag reuses.
+          active_players stays a plain per-run flag, not persisted (legitimately varies).
+          Backfilled run_args into the 4 at-risk games' existing _layout.json from their
+          _run_log / CLAUDE.md-documented overrides (Vennep Flyers 06-28: innings=10,
+          left_skip_frac=0.35, grid_start=455, grid_width=75; Herons 07-03 and Grizzlies
+          07-12: innings=7; Urbanus 08-23: innings=6) so the #11 re-score crawl is safe on
+          the very next run, not just from here on. Verified end-to-end on a scratch copy of
+          Urbanus: a --reuse-cache --yes run with no --innings correctly resolved Innings: 6
+          (not the default 9), col_to_inning stayed the correct 8 entries, no stray cache
+          files. test_gt_runs.py (17) and the rest of the suite still pass unaffected.
 
 
 GROUP 2 - OPS TOOLING (cheaper model)

@@ -2206,9 +2206,13 @@ class _TeeWriter:
               type=click.Path(), help="Roster file (name, jersey per line, one per batting slot).")
 @click.option("--active-players", default=9, show_default=True,
               help="Number of active batting slots (subs share a slot, don't add rows).")
-@click.option("--innings", default=9, show_default=True, help="Innings played.")
-@click.option("--n-player-rows", default=10, show_default=True,
-              help="Physical grid rows for players (template size, usually 10).")
+@click.option("--innings", default=None, type=int,
+              help="Innings played. Default 9, unless a prior run of this game persisted a "
+                   "different value in cells/_layout.json (see #17) — pass this explicitly "
+                   "to override that persisted value instead of reusing it.")
+@click.option("--n-player-rows", default=None, type=int,
+              help="Physical grid rows for players (template size, usually 10). Default/"
+                   "persistence behaves like --innings.")
 @click.option("--model", default=None,
               help="Anthropic model (default: EXTRACTION_MODEL env or claude-sonnet-4-6).")
 @click.option("--workers", default=8, show_default=True, help="Parallel VLM calls.")
@@ -2222,16 +2226,19 @@ class _TeeWriter:
               help="Delete the _names.json cache before running so player names are re-detected from scratch.")
 @click.option("--gt-dir", default=None,
               help="Ground-truth directory (default: the game folder inside data_root/games/).")
-@click.option("--left-skip", "left_skip_frac", default=0.05, show_default=True, type=float,
+@click.option("--left-skip", "left_skip_frac", default=None, type=float,
               help="Fraction of image width to skip before V-line detection (skips player-info area). "
-                   "Increase to ~0.30–0.35 for landscape/low-res scans with wide player-info columns.")
+                   "Increase to ~0.30–0.35 for landscape/low-res scans with wide player-info columns. "
+                   "Default/persistence behaves like --innings.")
 @click.option("--grid-start", default=None, type=int,
               help="X pixel of the first inning's left edge. Bypasses V-line detection entirely "
-                   "when combined with --grid-width.")
+                   "when combined with --grid-width. Default/persistence behaves like --innings.")
 @click.option("--grid-width", default=None, type=int,
-              help="Pixel width of each inning column. Use with --grid-start to force a uniform grid.")
+              help="Pixel width of each inning column. Use with --grid-start to force a uniform grid. "
+                   "Default/persistence behaves like --innings.")
 @click.option("--cell-height", "cell_height", default=None, type=int,
-              help="Override detected row height in pixels. Use when bimodal H-line detection gives wrong cell_size.")
+              help="Override detected row height in pixels. Use when bimodal H-line detection gives wrong "
+                   "cell_size. Default/persistence behaves like --innings.")
 def main(
     image_path, players_file, active_players, innings,
     n_player_rows, model, workers,
@@ -2244,7 +2251,9 @@ def main(
     game_dir = data_root / "games" / img_path.stem
     game_dir.mkdir(parents=True, exist_ok=True)
 
-    # Tee console output to a log file in the game folder.
+    # Tee console output to a log file in the game folder. Set up before the
+    # run-args resolution below so its "Layout: reused ..." message (if any)
+    # lands in the log too.
     import atexit
     _log_path = game_dir / f"{img_path.stem}_run.log"
     _log_f = open(_log_path, "w", encoding="utf-8", errors="replace")
@@ -2260,6 +2269,47 @@ def main(
             pass
 
     atexit.register(_close_log)
+
+    # ── Cache dir + persisted run args (#17) ──────────────────────────────────
+    # Created early, before grid detection, so a --reuse-cache run that omits
+    # one of these flags reuses whatever a PRIOR run of this exact game used —
+    # instead of silently re-detecting at the hardcoded default and overwriting
+    # _layout.json + leaving stray cache files for games that needed an
+    # override (--innings, manual grid overrides, etc). Precedence: explicit
+    # CLI value > value persisted in cells/_layout.json > hardcoded default.
+    # Only innings/n_player_rows/left_skip_frac/grid_start/grid_width/cell_height
+    # are persisted this way — active_players legitimately varies per game.
+    cache_dir = game_dir / "cells"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    _layout_path = cache_dir / "_layout.json"
+    _persisted_run_args: dict = {}
+    if _layout_path.exists():
+        try:
+            _persisted_run_args = json.loads(_layout_path.read_text(encoding="utf-8")).get("run_args") or {}
+        except Exception:
+            _persisted_run_args = {}
+
+    def _resolve_run_arg(cli_value, key: str, default):
+        if cli_value is not None:
+            return cli_value
+        persisted = _persisted_run_args.get(key)
+        return persisted if persisted is not None else default
+
+    _run_arg_overrides = {
+        k: v for k, v in {
+            "innings": innings, "n_player_rows": n_player_rows,
+            "left_skip_frac": left_skip_frac, "grid_start": grid_start,
+            "grid_width": grid_width, "cell_height": cell_height,
+        }.items() if v is None and _persisted_run_args.get(k) is not None
+    }
+    innings = _resolve_run_arg(innings, "innings", 9)
+    n_player_rows = _resolve_run_arg(n_player_rows, "n_player_rows", 10)
+    left_skip_frac = _resolve_run_arg(left_skip_frac, "left_skip_frac", 0.05)
+    grid_start = _resolve_run_arg(grid_start, "grid_start", None)
+    grid_width = _resolve_run_arg(grid_width, "grid_width", None)
+    cell_height = _resolve_run_arg(cell_height, "cell_height", None)
+    if _run_arg_overrides:
+        click.echo(f"Layout: reused from _layout.json (not given on CLI): {_run_arg_overrides}")
 
     if model is None:
         model = os.environ.get("EXTRACTION_MODEL", "claude-sonnet-4-6")
@@ -2336,10 +2386,6 @@ def main(
 
     # col_to_inning is built after VLM classification; default to 1:1 for now
     col_to_inning: list[int] = list(range(1, n_phys_cols + 1))
-
-    # ── Cache directory ───────────────────────────────────────────────────────
-    cache_dir = game_dir / "cells"
-    cache_dir.mkdir(parents=True, exist_ok=True)
 
     # ── API client (needed for both name detection and cell classification) ───
     if model.startswith("gemini"):
@@ -2604,10 +2650,12 @@ def main(
             )
 
     # ── Inning wrap detection (post-VLM, pre-rules) ──────────────────────────
-    # _layout.json is written after every auto-detection so it can be inspected
-    # and edited.  If it already exists (from a prior run or manual edit) it is
-    # used as-is; delete the file to force re-detection.
-    _layout_path = cache_dir / "_layout.json"
+    # _layout.json is written after every run (col_to_inning after every
+    # auto-detection so it can be inspected and edited; run_args always, so an
+    # explicit override given this run — or an updated one — is what the next
+    # --reuse-cache run without that flag reuses, see #17). If col_to_inning
+    # already exists (from a prior run or manual edit) it is used as-is;
+    # delete the file to force re-detection.
     _layout_from_file = False
     if _layout_path.exists():
         try:
@@ -2626,16 +2674,29 @@ def main(
 
     if not _layout_from_file:
         col_to_inning, overflow_cols = _detect_wrap_from_grid(grid, n_active_rows, n_phys_cols)
-        _layout_path.write_text(
-            json.dumps({"col_to_inning": col_to_inning}, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
     else:
         overflow_cols = [
             ci + 1  # 1-based
             for ci in range(1, len(col_to_inning))
             if col_to_inning[ci] == col_to_inning[ci - 1]
         ]
+    _layout_path.write_text(
+        json.dumps(
+            {
+                "col_to_inning": col_to_inning,
+                "run_args": {
+                    "innings": innings,
+                    "n_player_rows": n_player_rows,
+                    "left_skip_frac": left_skip_frac,
+                    "grid_start": grid_start,
+                    "grid_width": grid_width,
+                    "cell_height": cell_height,
+                },
+            },
+            indent=2, ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
     if overflow_cols:
         for oc in overflow_cols:

@@ -106,6 +106,8 @@ If grid auto-detection produces a wrong column/row count or spacing, check the d
 | `--cell-height 74` | Bimodal H-line detection picks the wrong row height (e.g. sub-row divider height instead of full row) |
 | `--reset-names` | Delete the cached player names and re-detect from scratch (use with `--reuse-cache` to keep cell reads) |
 
+You only need to pass these (and `--innings`/`--n-player-rows`) once — they're persisted in `cells/_layout.json` and reused automatically on a later `--reuse-cache` run of the same game that omits them, so `crawl.py`'s plain `--reuse-cache --yes` still gets the right grid for a game that needed an override.
+
 ## Correcting a PA after extraction
 
 **Interactive reviewer** (recommended for low-confidence flags):

@@ -265,26 +265,186 @@ GROUP 4 - VLM DETECTION QUALITY (build eval set first, then iterate prompts/crop
 ----------------------------------------------------------------------------------
 Without a labelled set we cannot tell if a prompt change helped or moved errors around.
 
-[ ] #0  Build eval set: ~50-100 cells with known result/run/rbi taken from games where GT
+[x] #0  Build eval set: ~50-100 cells with known result/run/rbi taken from games where GT
         already checks out. Script that reruns classify_cell on the set and reports accuracy.
+          Done 2026-09-28 (Opus): eval_cells.py. Labels = per-cell cache of the 2 hand-verified
+          games (Grizzlies 07-12, Urbanus 08-23), 135 cells / 84 PAs / 32 runs / 29 RBI labels;
+          crops from grid_golden.json. --check (no API) also proves cache == _cells.json.
+          NOTE: Gemini output varies +-2-3 cells per run even at temperature 0 -- compare
+          runs, don't trust a single 1-cell difference. Baseline: result 77/84, run 80/84
+          (recall 28/32, 0 false), RBI 28/29, PA presence 133/135.
 
-[ ] #3  HR detection: glyph sometimes resembles a backward capital E with a dot in the center. Add to prompt.
+[x] #3  HR detection: glyph sometimes resembles a backward capital E with a dot in the center. Add to prompt.
+          Already in the prompt ("reverse E with dot"). Eval: every HR's result is read correctly;
+          its run is sometimes missed but the HR constraint forces run=True downstream.
+          Added: 3B looks like "E", count crossbars, HR spans all 4 quadrants.
 
-[ ] #5  RBI detection misses clear digits in bottom-left. Tune crop / prompt of
+[x] #5  RBI detection misses clear digits in bottom-left. Tune crop / prompt of
         _backfill_rbi_cells.
+          Measured 2026-09-28: 28/29 on the eval set -- not a real problem on clean scans.
+          No change to _read_rbi_slot. Revisit with photo games.
 
-[ ] #6  Run detection misses clear bottom-left mark + center dot. Tune main prompt / crop.
+[x] #6  Run detection misses clear bottom-left mark + center dot. Tune main prompt / crop.
+          Done 2026-09-28: the VLM missed clear dot + bottom-left digit. A focused centre-dot
+          crop was worse (11/32). Fix = bottom-left ink rule: _bottom_left_ink() (share of pen-
+          coloured pixels, grid lines are grey) > 2% on a non-out run=False cell triggers
+          _read_bottom_left_mark() (digit/notation/stray/blank); digit or notation -> run=True
+          + rbi_slot, adjusted "bl_ink:run->True". Offline: every run cell had >= 3.3% ink,
+          18/20 non-run non-out cells 0% (the 2 others are stray lines, which the reader
+          rejects). Reader: 30/31 correct on the trigger cells. Final eval: run 81/84 (both HR
+          misses are fixed by the HR constraint -> effectively 83/84), result 79/84, 0 false runs.
+          Only applies to NEW reads (classify_cell); cached cells unchanged unless re-read.
 
-[ ] #8  Sometimes a PA is read from a neighbouring cell instead of its own. Make the 2x2
+[x] #8  Sometimes a PA is read from a neighbouring cell instead of its own. Make the 2x2
         quadrant split more rigorous (relates to grid accuracy, #16).
+          Partly done 2026-09-28: prompt now says marks entering from the cell edge (cut-off
+          circles, connector curves, end-of-inning slashes, wavy braces) are never a PA, and
+          1B may look like an inverted T. Fixed both phantom PAs + the 1B->K read in the eval
+          (PA presence 135/135). Grid part: see #16.
+          OPEN: fielder-digit misreads (F8->K, F4->K: inflate strikeouts; F5->F8, E3->E4).
+          FIXED 2026-09-28: missing result_conf/run_conf was truncation (see #23).
+
+[x] #23 Reliability/efficiency round (2026-09-28, Opus), all measured on eval_cells.py:
+        1. Empty-cell skip: < 0.5% pen ink -> cached as empty, no API call. 38/135 cells
+           skipped, 0 PAs lost; disabled per game when < 3*innings cells are inked
+           (pencil/black-pen guard).
+        2. Gemini truncation: thinking tokens ate max_tokens=400, so ~every cell answer was
+           cut off mid-JSON. Now thinking_budget=1024 / max_tokens=1424 for classify_cell,
+           thinking_budget=0 on all short calls. _recheck_run (max_tokens=10) had always
+           returned False -> the #1 GT re-check never worked before this.
+        3. Out circle cross-check (_circle_state, Hough + circumference ink): disagreement
+           with the read -> one hinted re-read, else "circle_mismatch" (result_conf -2).
+        4. Per-player GT from card columns 11-12 (_detect_player_stats -> _stats.txt), kept
+           only when H/AB matches the written AVG; 18/18 slots right. Row mismatches dock
+           at-bat cells; row x inning H mismatch docks the crossing cell again.
+           FROZEN (user, same day): opt-in via --read-player-stats. Columns are often empty
+           and include sac flies, which we don't track yet. Revisit once SF is handled.
+        5. Second read of uncertain cells: self-conf <= 4 (the VLM never goes lower),
+           circle_mismatch, or at-bat in an inning with an H mismatch -> one more
+           classify_cell read (--verify-model, default same model; --no-verify to skip).
+           Verdict cached; disagreement docks conf -2 -> review, agreement +1. Eval: caught
+           4/4 errors among ~8 candidates/game, 1 false alarm. gemini-2.5-pro as verifier
+           gave no usable answers with current settings -> TODO if a stronger verifier is wanted.
+        Eval: result 77 -> 81/84, run 80 -> 84/84 (0 false), PA presence 135/135, conf 135/135.
+        Cached cells are unaffected; items 2-3 need a re-read to apply to old games. Item 5
+        on old (legacy) caches only fires on circle/H-mismatch evidence.
 
 
 GROUP 5 - GRID DETECTION REDESIGN (design session only, no coding spree)
 ------------------------------------------------------------------------
-[ ] #16 Grid detection misplaces lines even on clean aligned scans; eventual goal is normal
+[~] #16 Grid detection misplaces lines even on clean aligned scans; eventual goal is normal
         photos. Reconsider the approach (e.g. template/homography, line-model fitting,
         VLM-assisted corner finding) and agree on a design before implementing.
+          2026-09-28 (Opus): design proposed below, NOT implemented. Safety net built first:
+          test_grid.py + grid_golden.json snapshot the detected row/col boundaries of the two
+          hand-verified games (Grizzlies 07-12, Urbanus 08-23); any detector change must stay
+          within 4% of a cell (~5px) there. Offline, no API. `uv run python test_grid.py`.
 
+          WHY THE CURRENT APPROACH BREAKS: probe_grid projects the whole thresholded image onto
+          the x and y axes. That assumes (a) zero rotation/perspective (a 1 degree skew smears a
+          2700px line over ~47px of the other axis), (b) one global cell_size, (c) a fixed global
+          threshold of 180 (fails on shadows/uneven light), (d) heuristics for which peak is the
+          header (Layout A/B, bimodal gaps, pair-merging) that are tuned per card. Manual flags
+          (--grid-start/--grid-width/--left-skip/--cell-height) patch symptoms. None of this
+          can work on photos.
+
+          PROPOSED DESIGN: register against a known template instead of discovering the grid.
+          The KNBSB card is a fixed printed form, so the grid is known up to a warp.
+          1. Template (one-time): canonical card model in normalized units: batting-grid outer
+             rectangle, header half-row, 10 player rows (with sub-row line), 12 inning cols
+             (with sub-col line), 2 totals rows. Measured once from the Grizzlies scan.
+          2. Find the grid frame: grayscale -> adaptiveThreshold (lighting-robust) -> long-line
+             extraction (morphology in rotated kernels, or cv2 LSD) -> fit the 4 outer edges of
+             the inning grid (left edge of col 1, right edge of col 12, header top, totals
+             bottom) -> 4 corners. Fallbacks, in order: --corners x1,y1,...,x4,y4 manual
+             override (replaces the 4 current geometry flags), then optional VLM corner
+             query (one Gemini call per game).
+          3. Rectify: cv2.getPerspectiveTransform + warpPerspective to a canonical image
+             (e.g. 140 px per cell). All crops (cells, name strip, totals) are taken from the
+             rectified image, so skew/perspective disappears and the grid is known by
+             construction.
+          4. Refine locally: for each expected line in the rectified image, search +-15% of a
+             cell for the projection peak within that line's own band only, and snap. This
+             absorbs print tolerance and mild paper bend. Photos with a curled page may need
+             piecewise warps per row band (phase 3 only).
+          5. Validate, fail loudly: grid_score = share of expected lines found within
+             tolerance, plus spacing regularity. Below the threshold, stop and ask for --corners
+             (or the VLM fallback) instead of silently cropping wrong cells. Store the score in
+             _layout.json.
+          6. Persist corners + refined lines in _layout.json (run_args style, #17), so
+             --reuse-cache / crawl never re-detect differently.
+
+          PHASES (one per session): P1 frame+homography+validation on scans, keep old
+          detect_grid as fallback behind a flag; must pass test_grid.py (compare in original
+          image coords via the inverse homography). P2 local refinement, and add Vennep Flyers
+          06-28 (the manual-override game) to the golden once its grid is visually verified.
+          P3 phone photos (needs 2-3 sample photos). P4 VLM corner fallback.
+          Also helps #8 (neighbour-cell reads): rectified cells are exact squares, so the
+          2x2 quadrant split becomes reliable.
+
+          OPEN QUESTIONS FOR USER: (a) do you have phone-photo samples for P3? -> ANSWERED
+          2026-09-28: 2026-06-28 Vennep Flyers (Home) and 2026-09-04 Kinheim (Away) are phone
+          photos. (b) OK to send the full image for the VLM corner fallback? -> ANSWERED
+          2026-09-28: yes, Gemini calls for the corner fallback are approved. (c) After
+          P1, new extractions see slightly different crop pixels. Cached cells stay valid, so
+          no re-read is needed unless you want one.
+
+          IMPLEMENTED 2026-09-28 (Opus), P1+P2 in one go, differs from the plan above:
+          - rectify.py: adaptive threshold -> long-line mask -> fitLine per line -> quad from
+            the outermost long lines -> homography. Only applied when the corner shift is
+            > 5% of a cell (scans need <6px and stay byte-identical; photos: Kinheim 27px,
+            Vennep 10px). No corner template needed: any 2 H + 2 V printed lines define
+            the rectangle.
+          - fit_grid(): lattice fit on the LINE MASK (handwriting/lighting removed), not
+            per-line snapping. Rows = lines present in both the name strip (thirds) and the
+            inning area (halves), brute-force (y0, pitch) search. Cols: col 1 = leftmost
+            boundary (in header AND body) whose next half-step is a body-only sub-line.
+            That rule matters because the #/row-number columns are each ~half a cell wide.
+            Then step 2*q with snapping.
+          - Results: all 14 scans within 1-3px of the old detector with NO per-game flags
+            (Boekaniers too, which had no layout). Vennep photo within 6px of its manual
+            override. Kinheim photo (old detector: nonsense) fits cleanly, checked by eye.
+            Both photos added to grid_golden.json.
+          - extract_cells.py uses detect_grid_lattice() by default; legacy detect_grid is
+            used when --legacy-grid, when --grid-start/--grid-width/--cell-height are given
+            or persisted (e.g. Vennep 06-28 keeps its override), or when the fit score < 0.8.
+            Warped image saved as games/{stem}/{stem}_rectified.jpg; all crops come from it.
+          STILL OPEN: --corners manual override + VLM corner fallback (P4), piecewise warp
+          for page curl (Kinheim's bottom rows near the spiral bend slightly), and fit_score
+          in _layout.json. The Kinheim 09-04 end-to-end extraction has not been run (API cost).
+
+GROUP 6 - Useability
+------------------------------------------------------------------------
+[x] #20 allow paths to be to a game folder, and then find the appropriate file in that folder. so reimport will find the cells, 
+extract will find the debug image and/or cells inside the game folder (not only the original scan)
+        Done 2026-09-28: gamepaths.resolve_game() -- every per-game command (extract_cells,
+        reimport, render_widget, correct_date) accepts the game folder, any file inside it
+        (cells.json, html, debug png, cells/r##_c##.json), the scan, or just the game name
+        (looked up under the data root). extract always reads the scan in <root>/scans/.
+        reimport: --all needs no path now (defaults to <root>/games). test_gamepaths.py.
+
+[x] #21 improve the command names of all commands. make them more easy to interpret for someone not knowing the code. \
+(it's not inerintly clear what "extra cells" means for example. better smth like: extract_stats_from_image or smth )
+        Done 2026-09-28: scorecard.py = one entry point with plain-language subcommands
+        (read-scorecard, review-cells, reimport-game, sync-edits, reread-season, fix-date,
+        mark-reviewed, players, export-excel, publish, draw-widget, test-accuracy, run-tests).
+        Old script names keep working (no renames -> nothing breaks); modules load lazily.
+        README has a "Commands at a glance" table. Also: reread-season/crawl defaults to the
+        configured data root; render_widget writes into the game folder like the pipeline.
+
+[~] #22: what would be the most easy way to make a GUI for this application? give suggestions. 
+        Answered 2026-09-28 (not built). Recommendation: Streamlit, local only
+        (`uv run streamlit run app.py`, same venv, API key stays in .env). Pages:
+          1. Games: list games + status (read / needs review / GT mismatches), button
+             "read scorecard" with live log, shows grid debug image + widget.
+          2. Review: per low-confidence PA the cell crop next to the reading, its conf
+             reasons, dropdown/buttons to accept or correct -> writes _cells.json, then
+             sync-edits + reimport-game automatically (removes the JSON/cache sync trap).
+          3. Season: export Excel, publish, player alias merge.
+        The GUI calls the existing functions (scorecard.py commands) -- no logic copied.
+        Est. 300-500 lines. Alternatives: Gradio (quicker demo, weaker multi-page),
+        NiceGUI (nicer look, more work), FastAPI + editable HTML widget (most polished,
+        most work). Desktop toolkits (Tk/Qt) not recommended.
 
 DONE / DROPPED
 --------------

@@ -41,6 +41,7 @@ load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent))
 from probe_grid import detect_grid
+from rectify import detect_grid_lattice
 from models import (
     GameExtraction, GameInfo, LineupSlot, PlayerEntry,
     PlateAppearance, PASummary, InningTotals,
@@ -95,13 +96,17 @@ BOTTOM-RIGHT RESULT RULES:
   TWO ROUNDED HUMPS (no circle) = walk (BB)
 
   VERTICAL STROKE with horizontal crossbar(s) in BOTTOM-RIGHT = HIT:
-    1 crossbar or "i" written = single (1B) (can look like L or reversed L )
+    1 crossbar or "i" written = single (1B) (can look like L, reversed L, or an inverted T "⊥")
     2 crossbars = double (2B)
     3 crossbars = triple (3B)
     4 crossbars = home run (HR)  will cover all 4 cells (can look like reverse E with dot in center)
     HR crossbars will cover all 4 cells (and has a center run dot). 
 
     The crossbars are HORIZONTAL lines through the vertical stroke.
+    A 2B therefore looks like the letter "F" and a 3B like "E" — these are HITS.
+    A fly out is ALWAYS inside a LARGE CIRCLE and ALWAYS has a fielder digit (F7, F8...);
+    an uncircled "F" or "E" shape is a 2B or 3B. Never return a bare "F".
+    Count crossbars exactly: 3 = 3B. HR has 4 AND spans all four quadrants.
     A 2B or 3B can look like the letter K (same shape of strokes).
     DECISION RULE: if there is NO WP or PB notation anywhere in the cell,
     it CANNOT be K-PB — return 2B or 3B (count the crossbars carefully).
@@ -112,6 +117,11 @@ BOTTOM-RIGHT RESULT RULES:
 
   A single diagonal template line with NO other marks = NO plate appearance
   Completely blank cell                               = NO plate appearance
+  Marks that ENTER the cell from its edge belong to NEIGHBOURING cells or are inning markers,
+  never to this PA: part of a circle cut off by the cell border, a curved connector line,
+  a diagonal slash (end-of-inning marker), a wavy vertical line or brace (column separator).
+  If those are the only marks in the cell → NO plate appearance (result: null).
+  Read the result ONLY from the BOTTOM-RIGHT quadrant of THIS cell.
 
 VOIDED / MISSCORED CELLS — return null:
   If the BOTTOM-RIGHT quadrant (1st base / result area) is crossed out with
@@ -340,12 +350,24 @@ def _add_adjusted(cell: dict, flag: str) -> None:
         adjusted.append(flag)
 
 
+# Gemini 2.5 spends thinking tokens out of max_output_tokens. With the old
+# max_tokens=400 and default (dynamic) thinking, ~380 tokens went to thinking and
+# nearly every answer was cut off mid-JSON (finish_reason MAX_TOKENS): the salvage
+# parser recovered result/run but result_conf/run_conf were lost (only 28/135 had them).
+# Eval 2026-09-28 (eval_cells.py): budget 0 -> result 75/84, run 83/84;
+# budget 1024 -> result 79/84, run 84/84, conf on 135/135 (about 3x slower). Keep
+# max_tokens = budget + room for the JSON answer.
+_CELL_THINKING_BUDGET: int | None = 1024
+_CELL_MAX_TOKENS = _CELL_THINKING_BUDGET + 400
+
+
 def classify_cell(
     crop: np.ndarray,
     player_name: str,
     inning: int,
     client,
     model: str,
+    circle_check: bool = True,
 ) -> dict:
     """Classify one PA cell. Returns {"result": str|None, "run": bool, "notes": str|None},
     plus "rbi_slot": int|None but only when run=True (see #7 — the key's absence is a
@@ -357,7 +379,8 @@ def classify_cell(
     for attempt in range(2):  # retry once with stricter prompt on JSON parse failure
         extra = "" if attempt == 0 else " IMPORTANT: output ONLY the JSON object, nothing else."
         system = _CELL_SYSTEM + extra
-        raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=400)
+        raw = _call_api(client, model, img_bytes, media_type, user_text, system,
+                        max_tokens=_CELL_MAX_TOKENS, thinking_budget=_CELL_THINKING_BUDGET)
         if raw is None:
             return {"result": None, "run": False, "rbi_slot": None, "notes": "api_error: max retries exceeded"}
         if raw.startswith("api_error:"):
@@ -367,6 +390,38 @@ def classify_cell(
         if parsed is not None:
             if attempt == 1:
                 _add_adjusted(parsed, "parse_retry")
+            # Out cross-check: an out is always a large circle. When an image-only
+            # circle verdict contradicts the read, re-read once with that evidence;
+            # if it still contradicts, keep the read but flag it for review.
+            res = parsed.get("result")
+            circle = _circle_state(crop) if res and circle_check else "unsure"
+            if res and circle != "unsure" and _is_out(res) != (circle == "circle"):
+                hint = ("Image analysis found a LARGE CIRCLE in this cell." if circle == "circle"
+                        else "Image analysis found NO large circle in this cell.")
+                raw2 = _call_api(client, model, img_bytes, media_type,
+                                 f"{user_text}\nNote: {hint} Re-check whether this PA is an out.",
+                                 _CELL_SYSTEM, max_tokens=_CELL_MAX_TOKENS,
+                                 thinking_budget=_CELL_THINKING_BUDGET)
+                second = _parse_json_response(raw2) if raw2 and not raw2.startswith("api_error:") else None
+                if second and second.get("result") and _is_out(second["result"]) == (circle == "circle"):
+                    if "adjusted" in parsed:
+                        second["adjusted"] = parsed["adjusted"]  # keep parse_retry
+                    parsed = second
+                    _add_adjusted(parsed, f"circle:{res}->{parsed['result']}")
+                else:
+                    _add_adjusted(parsed, "circle_mismatch")
+            # #6: the VLM misses clear run dots. Ink in the bottom-left (home-plate)
+            # quadrant means the runner reached home; stray strokes from neighbouring
+            # cells also land there, so ink only triggers a focused read that decides.
+            res = parsed.get("result")
+            if (res and not parsed.get("run") and not _is_out(res)
+                    and _bottom_left_ink(crop) > _BL_INK_TRIGGER):
+                mark, digit = _read_bottom_left_mark(crop, player_name, inning, client, model)
+                if mark in ("digit", "notation"):
+                    parsed["run"] = True
+                    parsed["rbi_slot"] = digit
+                    _add_adjusted(parsed, "bl_ink:run->True")
+                    return parsed
             # Focused bottom-left crop for rbi_slot — more reliable than the general prompt.
             # Only set the key when run=True: a run=False cell has nothing to read (#7),
             # and leaving the key absent (rather than None) lets a later pass that flips
@@ -378,6 +433,115 @@ def classify_cell(
         if attempt == 0:
             continue
     return {"result": None, "run": False, "rbi_slot": None, "notes": f"parse_error: {raw[:120]}"}
+
+
+# Share of pen-ink pixels in the bottom-left quadrant (inner 76%) above which a
+# non-out cell the VLM called run=False gets a focused re-read. On the verified
+# eval set every run cell had >= 3.3%, 18/20 non-run non-out cells had 0%.
+_BL_INK_TRIGGER = 0.02
+
+
+def _pen_ink(region: np.ndarray, margin: float) -> float:
+    """Fraction of saturated (coloured pen) pixels in region's inner part; printed grid lines are grey."""
+    h, w = region.shape[:2]
+    r = region[int(h * margin):int(h * (1 - margin)), int(w * margin):int(w * (1 - margin))]
+    if r.size == 0:
+        return 0.0
+    hsv = cv2.cvtColor(r, cv2.COLOR_BGR2HSV)
+    return float(((hsv[..., 1] > 60) & (hsv[..., 2] < 230)).mean())
+
+
+def _bottom_left_ink(crop: np.ndarray, margin: float = 0.12) -> float:
+    h, w = crop.shape[:2]
+    return _pen_ink(crop[h // 2:, :w // 2], margin)
+
+
+# Out circle detector: HoughCircles on the pen-ink mask, then the share of the
+# best centre-enclosing circle's circumference that is actually inked. Eval set
+# (84 PAs), with these cut-offs: 0 contradictions, 23/32 outs and 51/52
+# non-outs decided, the rest "unsure" (no signal).
+_CIRCLE_YES = 0.74
+_CIRCLE_NO = 0.55
+_CIRCLE_ENCLOSE = 0.06    # circle must contain the cell centre with this margin (x cell size)
+
+
+def _circle_state(crop: np.ndarray) -> str:
+    """"circle" | "none" | "unsure": is there a large hand-drawn circle (= an out) in the cell?"""
+    h, w = crop.shape[:2]
+    s = min(h, w)
+    if s < 20:
+        return "unsure"
+    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+    ink = (((hsv[..., 1] > 60) & (hsv[..., 2] < 230)) * 255).astype(np.uint8)
+    cs = cv2.HoughCircles(cv2.GaussianBlur(ink, (5, 5), 0), cv2.HOUGH_GRADIENT, dp=1.5,
+                          minDist=s / 8, param1=100, param2=15,
+                          minRadius=int(s * 0.22), maxRadius=int(s * 0.5))
+    best = 0.0
+    if cs is not None:
+        dil = cv2.dilate(ink, np.ones((5, 5), np.uint8))
+        t = np.linspace(0, 2 * np.pi, 90, endpoint=False)
+        for x, y, r in cs[0][:10]:
+            # An out circle surrounds the whole PA, so it encloses the cell centre.
+            # A runner-out circle sits in one quadrant and doesn't (Kinheim
+            # 2026-09-04 P2 inn 1: circled "64" top-right + 1B -> read as 6-4).
+            if r - np.hypot(x - w / 2, y - h / 2) < _CIRCLE_ENCLOSE * s:
+                continue
+            px, py = (x + r * np.cos(t)).astype(int), (y + r * np.sin(t)).astype(int)
+            ok = (px >= 0) & (px < w) & (py >= 0) & (py < h)
+            best = max(best, float((dil[py[ok], px[ok]] > 0).sum()) / len(t))
+    if best >= _CIRCLE_YES:
+        return "circle"
+    return "none" if best < _CIRCLE_NO else "unsure"
+
+
+# Empty-cell skip: a cell whose inner 84% has < 0.5% pen ink is written as empty
+# without an API call. Eval set: every PA cell had >= 3.1% ink, 38/51 empty cells
+# < 0.5% (the rest -- slashes, braces, spill -- still go to the VLM).
+_EMPTY_INK_MAX = 0.005
+_PA_INK_MIN = 0.03
+
+
+def _read_bottom_left_mark(
+    crop: np.ndarray,
+    player_name: str,
+    inning: int,
+    client,
+    model: str,
+) -> tuple[str, int | None]:
+    """Classify the bottom-left quadrant: ("digit", n) | ("notation", None) | ("stray", None) | ("blank", None)."""
+    h, w = crop.shape[:2]
+    bl = crop[h // 2:, :w // 2]
+    if bl.size == 0:
+        return "blank", None
+    img_bytes, media_type = _encode_cell(bl, scale=12)
+    system = (
+        "You are reading the BOTTOM-LEFT quadrant of a Dutch KNBSB baseball scorecard cell. "
+        "Classify what is written there as exactly one of: "
+        '  "digit": a single handwritten batting-order digit 1-9 (who drove the run in); '
+        '  "notation": a written abbreviation such as SB, WP, PB, FC, or E followed by digits; '
+        '  "stray": ONLY a long line crossing in from the quadrant border -- a diagonal slash, a '
+        "curve, part of a circle, a wavy line along the edge -- and NO written character at all; "
+        '  "blank": nothing. '
+        "If ANY written character is present, answer digit or notation, even when a stray line "
+        "is also visible (ignore wavy/curved lines along the border -- they belong to other cells). "
+        "Handwritten digits: 1 may be a single short upright stroke, possibly with a dot like 'i'; "
+        "8 may look like two loops or an S with a closing stroke; 6 and 9 are a loop with a tail. "
+        "A short upright stroke that sits INSIDE the quadrant is the digit 1, not a stray line. "
+        'Return ONLY JSON: {"mark": "digit", "digit": 4} or {"mark": "notation", "digit": null} etc.'
+    )
+    user_text = f"Player: {player_name}  Inning: {inning}\nWhat is in this quadrant?"
+    raw = _call_api(client, model, img_bytes, media_type, user_text, system,
+                    max_tokens=60, thinking_budget=0)
+    parsed = _parse_json_response(raw) if raw and not raw.startswith("api_error:") else None
+    if not isinstance(parsed, dict):
+        return "blank", None
+    mark = str(parsed.get("mark") or "blank").lower()
+    d = parsed.get("digit")
+    try:
+        d = int(d) if d is not None else None
+    except (TypeError, ValueError):
+        d = None
+    return mark, (d if mark == "digit" and d and 1 <= d <= 9 else None)
 
 
 def _read_rbi_slot(
@@ -500,7 +664,8 @@ def _recheck_run(
         "Either indicates a run scored. Respond with exactly: true or exactly: false"
     )
     user_text = f"Player: {player_name}  Inning: {inning}\nRun scored?"
-    raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=10)
+    raw = _call_api(client, model, img_bytes, media_type, user_text, system, max_tokens=10,
+                    thinking_budget=0)
     if raw and not raw.startswith("api_error:"):
         return raw.lower().startswith("true")
     return False
@@ -949,7 +1114,8 @@ def _load_gt_totals(path: Path, innings: int) -> dict[int, dict]:
 
 
 def _load_gt_stats(path: Path) -> dict[int, tuple[int, int]]:
-    """Returns {batting_slot: (H, AB)}; first entry wins for duplicates (starter)."""
+    """Returns {batting_slot: (H, AB)} — the slot's total over starter + subs, as
+    written by _write_stats_txt. First entry wins for duplicate slots."""
     out: dict[int, tuple[int, int]] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         s = line.strip()
@@ -981,12 +1147,17 @@ def _fmt_stat(name: str, value: int, expected: int | None, label: str = "GT") ->
     return s.ljust(_STAT_COL_WIDTH - 2) + "  "
 
 
-def _check_row(slot: int, name: str, cells: list[dict], gt: dict[int, tuple] | None) -> None:
+def _check_row(slot: int, name: str, cells: list[dict], gt: dict[int, tuple] | None) -> set[str]:
+    """Print one row check; return the stats ("H", "AB") that mismatch the row GT.
+
+    GT (from _stats.txt) is the whole slot's total, starter + subs, so pass all of
+    the slot's cells when giving gt."""
     pa = sum(1 for c in cells if c.get("result") is not None)
     h  = sum(1 for c in cells if _is_hit(c.get("result")))
     ab = sum(1 for c in cells if _is_ab(c.get("result")))
     r  = sum(1 for c in cells if c.get("run"))
     gt_h, gt_ab = gt[slot] if (gt and slot in gt) else (None, None)
+    flags = {k for k, v, g in (("H", h, gt_h), ("AB", ab, gt_ab)) if g is not None and v != g}
     line = (
         f"  [Slot {slot:2d}] {name:<22}  "
         + _fmt_stat("PA", pa, None)
@@ -995,6 +1166,7 @@ def _check_row(slot: int, name: str, cells: list[dict], gt: dict[int, tuple] | N
         + _fmt_stat("R", r, None)
     )
     click.echo(line.rstrip())
+    return flags
 
 
 def _check_col(inning: int, cells: list[dict], gt: dict[int, dict] | None) -> set[str]:
@@ -1295,6 +1467,135 @@ def _reconcile_gt_runs(
 
 
 # ── RBI backfill ─────────────────────────────────────────────────────────────
+
+# ── Second read of uncertain cells (suggestion 5) ─────────────────────────────
+# Gemini gives different answers for 2-3 of 135 cells between identical runs, so
+# disagreement between two reads is a cheap uncertainty signal. Only cells some
+# check already doubts are re-read; the verdict is cached on the cell.
+# The VLM almost never self-reports below 4 (eval: result_conf 4-5 on ~all reads),
+# so 4 is its real "some doubt" signal. Eval over 3 runs (2026-09-28): 51 candidates
+# (~8/game), a same-model second read disagreed on 5 -> 4/4 real errors among the
+# candidates caught, 1 false alarm. gemini-2.5-pro as verifier returned no usable
+# answer with the current call settings (skipped as api/parse error) -- untested.
+_VERIFY_CONF_MAX = 4      # self-reported result_conf/run_conf at or below this
+_VERIFY_MAX_CELLS = 30    # per game, lowest confidence first
+
+
+def _stat_class(result: str | None) -> str | None:
+    """What the stats see: hit type, BB/HP/K/..., errors without fielder, outs by kind
+    without fielder digits (F7 vs F8 is not a disagreement worth a review)."""
+    r = (result or "").strip().upper()
+    if not r:
+        return None
+    r = {"HBP": "HP", "SH": "SAC"}.get(r, r)
+    if re.match(r"^E\d*$", r):
+        return "E"
+    if re.match(r"^F\d+$", r):
+        return "FLY"
+    if re.match(r"^\d(-\d)+$", r) or re.match(r"^\d$", r):
+        return "GROUND"
+    return r
+
+
+def _verify_agreement(cell: dict) -> tuple[bool | None, bool | None]:
+    """(agree_result, agree_run) of cell["verify"] vs the cell's CURRENT values, so a
+    hand correction or a later pass never leaves a stale verdict. agree_run is None
+    when a later pass changed the run flag (HR rule, GT reconciliation, ink
+    trigger): it is no longer the VLM's claim, so there is nothing to compare."""
+    v = cell.get("verify")
+    if not v:
+        return None, None
+    agree_result = _stat_class(v.get("result")) == _stat_class(cell.get("result"))
+    if any("run->" in f for f in cell.get("adjusted") or []):
+        return agree_result, None
+    return agree_result, bool(v.get("run")) == bool(cell.get("run"))
+
+
+def _verify_candidates(
+    grid: list[list[dict | None]],
+    n_rows: int,
+    n_cols: int,
+    col_to_inning: list[int],
+    innings: int,
+    inning_flags: dict[int, set[str]] | None,
+    verify_model: str,
+) -> list[tuple[int, int, str]]:
+    """Cells worth a second read -> [(ri, ci, why)], lowest confidence first, capped.
+
+    Legacy cells without a self-report are only picked by circle/GT evidence, so a
+    re-run over old games doesn't re-read everything."""
+    out = []
+    for ri in range(n_rows):
+        for ci in range(n_cols):
+            cell = grid[ri][ci] or {}
+            res = cell.get("result")
+            inn = col_to_inning[ci]
+            if not res or inn > innings:
+                continue
+            if (cell.get("verify") or {}).get("model") == verify_model:
+                continue  # already verified with this model (cached verdict)
+            why = []
+            rc, uc = cell.get("result_conf"), cell.get("run_conf")
+            if (rc is not None and rc <= _VERIFY_CONF_MAX) or (uc is not None and uc <= _VERIFY_CONF_MAX):
+                why.append(f"conf {rc}/{uc}")
+            if "circle_mismatch" in (cell.get("adjusted") or []):
+                why.append("circle_mismatch")
+            if "H" in ((inning_flags or {}).get(inn) or set()) and _is_ab(res):
+                why.append("inning_H_mismatch")
+            if why:
+                conf = min(c for c in (rc, uc, 4) if c is not None)
+                out.append((conf, ri, ci, ", ".join(why)))
+    out.sort()
+    return [(ri, ci, why) for _, ri, ci, why in out[:_VERIFY_MAX_CELLS]]
+
+
+def _verify_uncertain_cells(
+    img: np.ndarray,
+    grid: list[list[dict | None]],
+    candidates: list[tuple[int, int, str]],
+    row_tops: list[int],
+    row_bottoms: list[int],
+    col_lefts: list[int],
+    col_to_inning: list[int],
+    row_names: list[dict],
+    client,
+    verify_model: str,
+    cache_dir: Path,
+) -> tuple[int, int]:
+    """Second classify_cell read per candidate. Stores cell["verify"] = {model, result,
+    run, agree_result, agree_run} (cache too); _score_cell turns it into confidence.
+    The first read is never replaced. Returns (n_agree, n_disagree)."""
+    n_agree = n_dis = 0
+    for ri, ci, why in candidates:
+        cell = grid[ri][ci]
+        inn = col_to_inning[ci]
+        info = row_names[ri] if ri < len(row_names) else {}
+        names = info.get("players") or []
+        name = names[0] if names else f"P{ri+1}"
+        for k, si in enumerate(info.get("sub_innings") or [], 1):
+            if inn >= si and k < len(names):
+                name = names[k]
+        crop = img[max(0, row_tops[ri]):row_bottoms[ri],
+                   max(0, col_lefts[ci]):col_lefts[ci + 1] if ci + 1 < len(col_lefts) else img.shape[1]]
+        if crop.size == 0:
+            continue
+        # Plain read, no circle hint: a hint-induced flip in the first read must
+        # show up as a disagreement, not be repeated (Kinheim 09-04 P2 inn 1).
+        second = classify_cell(crop, name, inn, client, verify_model, circle_check=False)
+        if str(second.get("notes") or "").startswith(("api_error", "parse_error")):
+            continue
+        cell["verify"] = {"model": verify_model, "result": second.get("result"),
+                          "run": bool(second.get("run"))}
+        cf = cache_dir / f"r{ri+1:02d}_c{ci+1:02d}.json"
+        cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
+        agree_result, agree_run = _verify_agreement(cell)
+        ok = agree_result and agree_run is not False
+        n_agree += ok
+        n_dis += not ok
+        verdict = "agree" if ok else f"DISAGREE -> {second.get('result')}/run={bool(second.get('run'))}"
+        click.echo(f"  P{ri+1} inn {inn}: {cell.get('result')}/run={bool(cell.get('run'))} ({why}): {verdict}")
+    return n_agree, n_dis
+
 
 def _backfill_rbi_cells(
     img: np.ndarray,
@@ -1608,7 +1909,7 @@ def _detect_inning_totals(
             raw = _call_api(
                 client, model, img_bytes, media_type,
                 "Read the four quadrant values. Return JSON only.",
-                _TOTALS_ROW_SYSTEM, max_tokens=512, temperature=0.0,
+                _TOTALS_ROW_SYSTEM, max_tokens=512, temperature=0.0, thinking_budget=0,
             )
             if raw and not raw.startswith("api_error:"):
                 parsed = _parse_json_response(raw)
@@ -1690,6 +1991,97 @@ def _write_totals_txt(game_dir: Path, stem: str, totals: dict[int, dict], inning
     return path
 
 
+# ── Per-player GT: card columns 11 (H-AB) and 12 (AVG) ────────────────────────
+
+_PLAYER_STATS_SYSTEM = (
+    "You are reading the per-player totals of ONE batting slot on a Dutch KNBSB baseball scorecard. "
+    "The crop shows two columns: LEFT = hits and at-bats written as \"H-AB\" (e.g. \"2-4\", \"0-3\"); "
+    "RIGHT = batting average (e.g. \".500\", \"250\", \"1.000\", \"0\"). "
+    "If a substitute also batted in this slot there are TWO lines: starter on top, substitute below. "
+    'Return ONLY JSON, lines top to bottom: {"lines": [{"h": 2, "ab": 4, "avg": ".500"}]} '
+    'or {"lines": []} when both columns are empty.'
+)
+
+
+def _parse_avg(v) -> float | None:
+    """'.500' / '500' / '1.000' / '0' -> 0.5 / 0.5 / 1.0 / 0.0; None if unreadable."""
+    s = str(v or "").strip().replace(",", ".")
+    if not s:
+        return None
+    try:
+        if "." in s:
+            return float(s)
+        n = int(s)
+    except ValueError:
+        return None
+    return n / 1000 if n > 1 else float(n)  # "1" = 1.000, "0" = 0, "250" = .250
+
+
+def _stats_line_ok(h: int, ab: int, avg: float | None) -> bool:
+    """A read H-AB is trusted only when it is consistent with the written average."""
+    if ab < 0 or h < 0 or h > ab:
+        return False
+    if avg is None:
+        return False
+    if ab == 0:
+        return avg == 0
+    return abs(h / ab - avg) <= 0.0015  # scorers truncate or round (.666 / .667)
+
+
+def _detect_player_stats(
+    img: np.ndarray,
+    row_tops: list[int],
+    row_bottoms: list[int],
+    col_lefts: list[int],
+    n_rows: int,
+    client,
+    model: str,
+) -> dict[int, tuple[int, int]]:
+    """Read card columns 11-12 per batting slot -> {slot: (H, AB)} summed over the
+    slot's lines (starter + subs). A slot is dropped when any of its lines' H/AB
+    disagrees with the written AVG, so a misread never becomes ground truth."""
+    if len(col_lefts) < 12:
+        click.echo("  Stats columns 11-12 not in the detected grid — skipped.")
+        return {}
+    x1 = col_lefts[10]
+    x2 = col_lefts[12] if len(col_lefts) > 12 else img.shape[1]
+    out: dict[int, tuple[int, int]] = {}
+    for ri in range(n_rows):
+        crop = img[max(0, row_tops[ri]):row_bottoms[ri], max(0, x1):x2]
+        if crop.size == 0 or _pen_ink(crop, 0.05) < _EMPTY_INK_MAX:
+            continue
+        img_bytes, media_type = _encode_cell(crop, scale=3)
+        raw = _call_api(client, model, img_bytes, media_type,
+                        "Read the H-AB and AVG lines. Return JSON only.",
+                        _PLAYER_STATS_SYSTEM, max_tokens=150, thinking_budget=0)
+        parsed = _parse_json_response(raw) if raw and not raw.startswith("api_error:") else None
+        lines = parsed.get("lines") if isinstance(parsed, dict) else None
+        if not lines:
+            continue
+        try:
+            vals = [(int(l["h"]), int(l["ab"]), _parse_avg(l.get("avg"))) for l in lines]
+        except (KeyError, TypeError, ValueError):
+            click.echo(f"  Slot {ri+1}: unreadable stats {lines} — skipped")
+            continue
+        if not all(_stats_line_ok(h, ab, avg) for h, ab, avg in vals):
+            click.echo(f"  Slot {ri+1}: H-AB inconsistent with AVG {vals} — skipped")
+            continue
+        out[ri + 1] = (sum(v[0] for v in vals), sum(v[1] for v in vals))
+    return out
+
+
+def _write_stats_txt(game_dir: Path, stem: str, stats: dict[int, tuple[int, int]]) -> Path:
+    path = game_dir / f"{stem}_stats.txt"
+    lines = [
+        "# Per batting slot, card columns 11-12 — auto-extracted from scan, only lines whose",
+        "# H-AB matched the written AVG. Totals over starter + subs. Edit if needed, then re-run.",
+        "# slot  H  AB",
+    ] + [f"{slot}\t{h}\t{ab}" for slot, (h, ab) in sorted(stats.items())]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    click.echo(f"  Written: {path.name}")
+    return path
+
+
 def _detect_row_names(
     img: np.ndarray,
     row_tops: list[int],
@@ -1750,7 +2142,7 @@ def _detect_row_names(
         raw = _call_api(
             client, model, img_bytes, media_type,
             f"Read ALL player names in this strip (top to bottom). Return JSON only.{roster_hint}",
-            _NAME_SYSTEM, max_tokens=300, temperature=1.0,
+            _NAME_SYSTEM, max_tokens=300, temperature=1.0, thinking_budget=0,
         )
         if raw and not raw.startswith("api_error:"):
             parsed = _parse_json_response(raw)
@@ -1784,7 +2176,7 @@ def _detect_row_names(
                 s_raw = _call_api(
                     client, model, buf2.tobytes(), "image/jpeg",
                     f"What is the player name written in this row?{hint_text}",
-                    _SINGLE_NAME_SYSTEM, max_tokens=60, temperature=1.0,
+                    _SINGLE_NAME_SYSTEM, max_tokens=60, temperature=1.0, thinking_budget=0,
                 )
                 if s_raw and not s_raw.startswith("api_error:") and s_raw.strip().lower() != "null":
                     sub_names.append(s_raw.strip())
@@ -1982,7 +2374,7 @@ def _detect_sub_inning_vlm(
     raw = _call_api(
         client, model, img_bytes, media_type,
         f"This row has {innings} inning columns. Find the squiggly sub line. Return JSON only.",
-        _SUB_INNING_SYSTEM, max_tokens=30,
+        _SUB_INNING_SYSTEM, max_tokens=30, thinking_budget=0,
     )
     if raw and not raw.startswith("api_error:"):
         parsed = _parse_json_response(raw)
@@ -2008,6 +2400,7 @@ def _score_cell(
     cell: dict,
     inning: int,
     inning_flags: dict[int, set[str]] | None,
+    slot_flags: set[str] | None = None,
 ) -> tuple[int, int, list[str]]:
     """Derive (result_conf, run_conf, reasons) for one cell (see #11).
 
@@ -2035,7 +2428,13 @@ def _score_cell(
         reasons.append(f"reread:{reread}")
 
     for flag in cell.get("adjusted") or []:
-        run_conf -= 1
+        # Circle flags question the result (out vs not-out), not the run.
+        if flag == "circle_mismatch":
+            result_conf -= 2
+        elif flag.startswith("circle:"):
+            result_conf -= 1
+        else:
+            run_conf -= 1
         reasons.append(flag)
 
     if cell.get("run") and cell.get("rbi_slot") is None:
@@ -2049,6 +2448,29 @@ def _score_cell(
     if "H" in flags and _is_hit(cell.get("result")):
         result_conf -= 1
         reasons.append("inning_H_mismatch")
+
+    # Row GT (card column 11, H-AB per slot). A hit/out misread breaks H or AB in
+    # both its row and its inning, so the crossing cell is the prime suspect.
+    sflags = slot_flags or set()
+    if sflags and _is_ab(cell.get("result")):
+        result_conf -= 1
+        reasons.append("slot_" + "_".join(sorted(sflags)) + "_mismatch")
+        if "H" in sflags and "H" in flags:
+            result_conf -= 1
+            reasons.append("row_and_inning_H_mismatch")
+
+    # Second read (suggestion 5): a disagreeing read is strong doubt; an agreeing
+    # one is mild support (same crop, possibly same model -> correlated errors).
+    agree_result, agree_run = _verify_agreement(cell)
+    if agree_result is False:
+        result_conf -= 2
+        reasons.append(f"verify:result {cell.get('result')}|{cell['verify'].get('result')}")
+    if agree_run is False:
+        run_conf -= 2
+        reasons.append("verify:run")
+    if agree_result and agree_run is not False:
+        result_conf += 1
+        reasons.append("verify:agree")
 
     if _AMBIGUOUS_NOTES_RE.search(cell.get("notes") or ""):
         result_conf -= 1
@@ -2096,6 +2518,7 @@ def _build_slot_data(
     col_to_inning: list[int],
     inning_flags: dict[int, set[str]] | None = None,
     max_inning: int | None = None,
+    row_flags: dict[int, set[str]] | None = None,
 ) -> tuple[list[tuple], list[str]]:
     """Turn the cell grid into per-slot PlateAppearance lists with RBIs attributed.
 
@@ -2147,7 +2570,8 @@ def _build_slot_data(
                     f"(mapped to inning {inning}) — dropped, not a plate appearance"
                 )
                 continue
-            result_conf, run_conf, conf_reasons = _score_cell(cell, inning, inning_flags)
+            result_conf, run_conf, conf_reasons = _score_cell(
+                cell, inning, inning_flags, (row_flags or {}).get(ri + 1))
             pa = PlateAppearance(
                 inning=inning,
                 result=r,
@@ -2243,7 +2667,7 @@ class _TeeWriter:
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 @click.command()
-@click.argument("image_path", type=click.Path(exists=True))
+@click.argument("image_path", metavar="GAME")
 @click.option("--players", "players_file", default="players.txt",
               type=click.Path(), help="Roster file (name, jersey per line, one per batting slot).")
 @click.option("--active-players", default=9, show_default=True,
@@ -2281,15 +2705,40 @@ class _TeeWriter:
 @click.option("--cell-height", "cell_height", default=None, type=int,
               help="Override detected row height in pixels. Use when bimodal H-line detection gives wrong "
                    "cell_size. Default/persistence behaves like --innings.")
+@click.option("--legacy-grid", is_flag=True, default=False,
+              help="Use the old projection-based grid detector instead of the lattice fit (#16). "
+                   "Implied by --grid-start/--grid-width/--cell-height.")
+@click.option("--read-player-stats", is_flag=True, default=False,
+              help="Read per-player H-AB from card columns 11-12 into _stats.txt when it doesn't exist. "
+                   "Off by default: the columns are often empty and include sac flies, which the "
+                   "pipeline doesn't track yet. An existing _stats.txt is always used.")
+@click.option("--verify-model", default=None,
+              help="Model for the second read of uncertain cells (default: same as --model). "
+                   "E.g. a stronger model such as gemini-2.5-pro.")
+@click.option("--no-verify", is_flag=True, default=False,
+              help="Skip the second read of uncertain cells.")
 def main(
     image_path, players_file, active_players, innings,
     n_player_rows, model, workers,
     reuse_cache, dry_run, auto_yes, gt_dir, left_skip_frac,
-    grid_start, grid_width, cell_height, reset_names,
+    grid_start, grid_width, cell_height, reset_names, legacy_grid,
+    read_player_stats, verify_model, no_verify,
 ):
-    """Cell-based scorecard extraction — inning from column position, not VLM guessing."""
-    img_path = Path(image_path).resolve()
-    data_root = img_path.parent.parent   # Quick 2026 data/ (image lives in data_root/scans/)
+    """Cell-based scorecard extraction — inning from column position, not VLM guessing.
+
+    GAME is the scan image, the game folder, any file inside it, or just the game
+    name (looked up under the data root). The scan in <data root>/scans/ is always
+    what gets read."""
+    from db import get_data_root
+    from gamepaths import GameNotFound, find_scan, resolve_game
+    try:
+        data_root, game_name = resolve_game(image_path, get_data_root())
+    except GameNotFound as exc:
+        raise click.UsageError(str(exc))
+    found = find_scan(data_root, game_name)
+    if found is None:
+        raise click.UsageError(f"No scan image for {game_name!r} in {data_root / 'scans'}")
+    img_path = found.resolve()
     game_dir = data_root / "games" / img_path.stem
     game_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2407,17 +2856,34 @@ def main(
     # ── Grid detection ────────────────────────────────────────────────────────
     click.echo("\nDetecting grid...")
     debug_img = str(game_dir / f"{img_path.stem}_grid_debug.png")
-    row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size = detect_grid(
-        str(img_path),
-        n_player_rows=n_player_rows,
-        n_inning_cols=innings,
-        left_skip_frac=left_skip_frac,
-        grid_start=grid_start,
-        grid_col_width=grid_width,
-        cell_height=cell_height,
-        debug_out=debug_img,
-    )
-    img = cv2.imread(str(img_path))
+    # Lattice fit (#16) handles skewed/perspective photos and needs no per-game
+    # flags; manual geometry overrides mean the user tuned the legacy detector.
+    manual_grid = grid_start is not None or grid_width is not None or cell_height is not None
+    lattice = None
+    if not (legacy_grid or manual_grid):
+        lattice = detect_grid_lattice(
+            str(img_path),
+            n_player_rows=n_player_rows,
+            rectified_out=str(game_dir / f"{img_path.stem}_rectified.jpg"),
+            debug_out=debug_img,
+        )
+        if lattice is None:
+            click.echo("  Falling back to legacy grid detector.")
+    if lattice is not None:
+        row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size, crop_path, _ = lattice
+    else:
+        row_tops, row_bottoms, extra_tops, extra_bottoms, col_lefts, cell_size = detect_grid(
+            str(img_path),
+            n_player_rows=n_player_rows,
+            n_inning_cols=innings,
+            left_skip_frac=left_skip_frac,
+            grid_start=grid_start,
+            grid_col_width=grid_width,
+            cell_height=cell_height,
+            debug_out=debug_img,
+        )
+        crop_path = str(img_path)
+    img = cv2.imread(crop_path)
     n_active_rows = min(active_players, len(row_tops))
     # Physical columns to read: all detected scoring columns, capped at
     # game innings + 2 (enough buffer for any wrap columns).
@@ -2610,8 +3076,35 @@ def main(
             else:
                 to_process.append((ri, ci, cf))
 
+    # ── Skip ink-free cells (no API call) ──────────────────────────────────────
+    # Pencil or black pen has no colour, so every cell would look empty: only
+    # skip when the game shows at least the minimum number of PAs (3 per inning)
+    # as clearly inked cells.
+    def _cell_crop(ri: int, ci: int) -> np.ndarray:
+        return img[max(0, row_tops[ri]):row_bottoms[ri], max(0, col_lefts[ci]):col_lefts[ci + 1]]
+    cell_ink = {(ri, ci): _pen_ink(_cell_crop(ri, ci), 0.08)
+                for ri in range(n_active_rows) for ci in range(n_phys_cols)}
+    n_inked = sum(v >= _PA_INK_MIN for v in cell_ink.values())
+    skipped_empty = 0
+    if n_inked >= 3 * innings:
+        keep = []
+        for ri, ci, cf in to_process:
+            if cell_ink[(ri, ci)] < _EMPTY_INK_MAX:
+                cell = {"result": None, "run": False, "result_conf": 5, "run_conf": 5,
+                        "notes": "no_ink"}
+                cf.write_text(json.dumps(cell, ensure_ascii=False), encoding="utf-8")
+                grid[ri][ci] = cell
+                skipped_empty += 1
+            else:
+                keep.append((ri, ci, cf))
+        to_process = keep
+    else:
+        click.echo(f"  Ink check: only {n_inked} clearly inked cells (< {3 * innings}) -- "
+                   "pencil/black pen? Empty-cell skip disabled, every cell goes to the VLM.")
+
     total_cells = n_active_rows * n_phys_cols
-    click.echo(f"\nCells : {total_cells} total | {cached_count} cached | {len(to_process)} to classify")
+    click.echo(f"\nCells : {total_cells} total | {cached_count} cached | "
+               f"{skipped_empty} empty (no ink, skipped) | {len(to_process)} to classify")
 
     # ── Classify ──────────────────────────────────────────────────────────────
     if to_process:
@@ -2766,6 +3259,19 @@ def main(
         else:
             click.echo("  Could not detect totals row — cross-checks will run without GT.")
 
+    # ── Auto-detect per-player H-AB (card columns 11-12) if no _stats.txt ─────
+    if gt_stats is None and read_player_stats:
+        click.echo("\n\n-- Auto-detecting per-player H-AB from scan " + "-" * 21)
+        detected_stats = _detect_player_stats(
+            img, row_tops, row_bottoms, col_lefts, n_active_rows, client, model,
+        )
+        if detected_stats:
+            click.echo(f"  Read H-AB for {len(detected_stats)} slot(s) (AVG-consistent only).")
+            _write_stats_txt(game_dir, img_path.stem, detected_stats)
+            gt_stats = detected_stats
+        else:
+            click.echo("  No usable H-AB column — row checks will run without GT.")
+
     # ── Re-read cells where run=True but result=None ─────────────────────────
     n_reread = _reread_run_no_result_cells(
         img, grid, n_active_rows, n_phys_cols,
@@ -2812,11 +3318,16 @@ def main(
 
     # ── Integrity checks ──────────────────────────────────────────────────────
     click.echo("\n\n-- Per-player (row) check " + "-" * 40)
+    # row_flags feeds _score_cell like inning_flags: which of H/AB still
+    # mismatch the slot's column-11 total. Buffer columns beyond the game are excluded.
+    row_flags: dict[int, set[str]] = {}
     for ri in range(n_active_rows):
         info = slot_info[ri] if ri < len(slot_info) else None
-        if not info:
-            name = active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}"
-            _check_row(ri + 1, name, [grid[ri][ci] or {} for ci in range(n_phys_cols)], gt_stats)
+        row_cells = [grid[ri][ci] or {} for ci in range(n_phys_cols) if col_to_inning[ci] <= innings]
+        if not info or not info["subs"]:
+            name = (info["starter"][0] if info else
+                    active_roster[ri][0] if ri < len(active_roster) else f"P{ri+1}")
+            row_flags[ri + 1] = _check_row(ri + 1, name, row_cells, gt_stats)
             continue
         # Starter + any subs, each gets cells only for the innings they played.
         all_players = [(info["starter"], 0)] + [(p, inn) for p, inn in info["subs"]]
@@ -2827,7 +3338,8 @@ def main(
                 if entry_inn <= col_to_inning[ci] < exit_inn
             ]
             prefix = "  ↳ " if pi > 0 else ""
-            _check_row(ri + 1, f"{prefix}{pname}", player_cells, gt_stats if pi == 0 else None)
+            _check_row(ri + 1, f"{prefix}{pname}", player_cells, None)
+        row_flags[ri + 1] = _check_row(ri + 1, "  = slot total", row_cells, gt_stats)
 
     click.echo("\n\n-- PA sequence check " + "-" * 45)
     _check_pa_sequence(grid, n_active_rows, n_phys_cols, active_roster)
@@ -2891,6 +3403,28 @@ def main(
         else:
             click.echo("  Run totals: all match GT.")
 
+    # ── Second read of uncertain cells (suggestion 5) ────────────────────────
+    # After reconciliation so inning_flags are final. Flags only: the first read
+    # is kept, a disagreement docks confidence so review.py picks the cell up.
+    if not no_verify:
+        v_model = verify_model or model
+        cands = _verify_candidates(grid, n_active_rows, n_phys_cols, col_to_inning,
+                                   innings, inning_flags, v_model)
+        if cands:
+            click.echo(f"\n\n-- Second read: {len(cands)} uncertain cell(s) with {v_model} " + "-" * 10)
+            if v_model.startswith("gemini") == model.startswith("gemini"):
+                v_client = client
+            elif v_model.startswith("gemini"):
+                from google import genai as google_genai
+                v_client = google_genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+            else:
+                v_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+            n_ok, n_bad = _verify_uncertain_cells(
+                img, grid, cands, row_tops, row_bottoms, col_lefts, col_to_inning,
+                row_names, v_client, v_model, cache_dir,
+            )
+            click.echo(f"  Second read: {n_ok} agree, {n_bad} disagree (-> review)")
+
     # ── RBI backfill: re-read every cell that ended up run=True but never got
     # an rbi_slot read (#7). Deliberately runs LAST, after every pass that can
     # flip run False→True (hole-reread, HR constraint, GT reconciliation) —
@@ -2909,7 +3443,7 @@ def main(
     # can be unit-tested without an image or API client.
     slot_data, rbi_warnings = _build_slot_data(
         grid, slot_info, n_active_rows, n_phys_cols, col_to_inning, inning_flags,
-        max_inning=innings,
+        max_inning=innings, row_flags=row_flags,
     )
     if rbi_warnings:
         click.echo("\n\n-- RBI attribution warnings " + "-" * 38)

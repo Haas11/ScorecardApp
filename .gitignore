@@ -35,3 +35,6 @@ Thumbs.db
 .idea/
 ~$*
 ~$$*
+
+# eval_cells.py predictions and error crops (regenerable)
+scorecard/eval_out/

@@ -30,13 +30,12 @@ if hasattr(sys.stdout, "reconfigure"):
 @click.option("--game", "game_filter", default=None,
               help="Only process folders whose name contains this string.")
 @click.option("--data-root", "data_root_opt", default=None, envvar=DATA_ROOT_ENV_VAR,
-              help="Season data root; used as <data_root>/games when GAMES_DIR is omitted, "
+              help="Season data root; <data_root>/games is used when GAMES_DIR is omitted (default: config.yml), "
                    f"e.g. \"Quick 2026 - Ex Spring Training\". Also settable via {DATA_ROOT_ENV_VAR}.")
 def main(games_dir: str | None, game_filter: str | None, data_root_opt: str | None) -> None:
     """Re-run extract_cells --reuse-cache for every game folder under GAMES_DIR."""
     if games_dir is None:
-        if data_root_opt is None:
-            raise click.UsageError("Pass GAMES_DIR or --data-root.")
+        # --data-root > env var > config.yml, same as every other command.
         games_dir = str(get_data_root(data_root_opt) / "games")
     root = Path(games_dir).resolve()
     if not root.is_dir():

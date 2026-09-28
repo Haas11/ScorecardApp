@@ -1,10 +1,11 @@
 """
 Reimport a _cells.json (or all of them) into the season DB and regenerate HTML widgets.
 
-Usage:
-  uv run python reimport.py "Quick 2026/games/2026-04-12 - Thamen (Home)/2026-04-12 - Thamen (Home)_cells.json"
-  uv run python reimport.py --all "Quick 2026/games"
-  uv run python reimport.py --sync-cells "Quick 2026/games/2026-04-12 - Thamen (Home)/2026-04-12 - Thamen (Home)_cells.json"
+Usage (GAME = game folder, any file in it, its scan, or just the game name):
+  uv run python reimport.py "2026-04-12 - Thamen (Home)"
+  uv run python reimport.py "../Quick 2026/games/2026-04-12 - Thamen (Home)"
+  uv run python reimport.py --all                      # every game under <data root>/games
+  uv run python reimport.py --sync-cells "2026-04-12 - Thamen (Home)"
 
 After this, run export_season.py to refresh the season xlsx.
 """
@@ -23,6 +24,7 @@ from db import (
     get_connection, init_db, find_duplicate_game, delete_game, write_game,
     get_data_root, get_db_path, DATA_ROOT_ENV_VAR,
 )
+from gamepaths import GameNotFound, cells_json, resolve_game
 from models import GameExtraction
 from render_widget import render_widget_for_game
 
@@ -126,30 +128,48 @@ def reimport_one(p: Path, conn) -> str:
 
 
 @click.command()
-@click.argument("path", type=click.Path(exists=True))
+@click.argument("path", metavar="GAME", required=False, default=None)
 @click.option("--all", "reimport_all", is_flag=True,
-              help="Treat PATH as a games directory and reimport every _cells.json found.")
+              help="Reimport every game: GAME is then a games directory "
+                   "(default: <data root>/games).")
 @click.option("--sync-cells", "do_sync_cells", is_flag=True,
               help="Write cell cache files from the _cells.json instead of reimporting to DB.")
 @click.option("--data-root", "data_root_opt", default=None, envvar=DATA_ROOT_ENV_VAR,
               help="Season data root whose DB to write to (default: config.yml paths.data_root), "
                    f"e.g. \"Quick 2026 - Ex Spring Training\". Also settable via {DATA_ROOT_ENV_VAR}.")
 def main(path: str, reimport_all: bool, do_sync_cells: bool, data_root_opt: str | None) -> None:
-    """Reimport one or all _cells.json files into the DB and regenerate HTML widgets."""
+    """Reimport one or all _cells.json files into the DB and regenerate HTML widgets.
+
+    GAME is the game folder, any file inside it (e.g. its _cells.json), its scan
+    image, or just the game name (looked up under the data root)."""
+    data_root = get_data_root(data_root_opt)
+    if not reimport_all:
+        if path is None:
+            raise click.UsageError("Give a GAME, or --all to reimport every game.")
+        try:
+            root, name = resolve_game(path, data_root)
+        except GameNotFound as exc:
+            raise click.UsageError(str(exc))
+        single = cells_json(root, name)
+        if not single.exists():
+            raise click.UsageError(f"No _cells.json for {name!r} at {single}")
 
     if do_sync_cells:
-        p = Path(path).resolve()
+        if reimport_all:
+            raise click.UsageError("--sync-cells works on one game at a time; drop --all.")
+        p = single
         n = sync_cells_from_json(p)
         click.echo(f"Synced {n} cell cache file(s) from {p.name}")
-        click.echo("Now run crawl.py --reuse-cache to backfill without overwriting your edits.")
+        click.echo("Now re-run from cache (crawl.py, or: scorecard.py reread-season) "
+                   "without overwriting your edits.")
         return
 
-    db_path = get_db_path(get_data_root(data_root_opt))
+    db_path = get_db_path(data_root)
     init_db(db_path)
     conn = get_connection(db_path)
 
     if reimport_all:
-        games_dir = Path(path).resolve()
+        games_dir = Path(path).resolve() if path else data_root / "games"
         cells_files = sorted(games_dir.glob("*/*_cells.json"))
         if not cells_files:
             click.echo(f"No *_cells.json files found under {games_dir}")
@@ -167,8 +187,7 @@ def main(path: str, reimport_all: bool, do_sync_cells: bool, data_root_opt: str 
                 failed += 1
         click.echo(f"\n{ok} imported, {failed} failed.")
     else:
-        p = Path(path).resolve()
-        status = reimport_one(p, conn)
+        status = reimport_one(single, conn)
         click.echo(f"DB+HTML: {status}")
 
     conn.close()

@@ -596,18 +596,24 @@ def render_widget_for_game(
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: render_widget.py <path_to_cells.json> [--no-open]", file=sys.stderr)
+        print("Usage: render_widget.py <GAME: folder, any file in it, scan, or name> [--no-open]",
+              file=sys.stderr)
         sys.exit(1)
 
-    json_path = Path(sys.argv[1])
+    from db import get_data_root
+    from gamepaths import GameNotFound, cells_json, resolve_game
+    try:
+        json_path = cells_json(*resolve_game(sys.argv[1], get_data_root()))
+    except GameNotFound as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
     if not json_path.exists():
         print(f"ERROR: {json_path} not found", file=sys.stderr)
         sys.exit(1)
 
     game = json.loads(json_path.read_text(encoding="utf-8"))
-    out_dir  = json_path.parent.parent / "widgets"
     stem     = json_path.stem.removesuffix("_cells")
-    out_path = out_dir / f"{stem}.html"
+    out_path = json_path.parent / f"{stem}.html"   # same place the pipeline and reimport write it
     debug_img = json_path.parent / f"{stem}_grid_debug.png"
 
     render_widget_for_game(game, out_path, debug_img_path=debug_img)

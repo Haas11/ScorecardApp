@@ -12,8 +12,9 @@ Developer/agent reference for the scorecard digitization pipeline. For run instr
 Scan image (JPG/PNG)
         │
         ▼
-1. Grid detection        probe_grid.py / detect_grid()
-        │                → row + column boundaries (or manual override, see below)
+1. Grid detection        rectify.py / detect_grid_lattice()  (legacy: probe_grid.py / detect_grid())
+        │                → straighten photo if skewed, lattice-fit row + column boundaries
+        │                   (legacy detector on manual override / --legacy-grid / low fit score)
         ▼
 2. Name detection        extract_cells.py / _detect_row_names()
         │                → VLM reads left info strip per row, fuzzy-matched to roster
@@ -22,6 +23,8 @@ Scan image (JPG/PNG)
         │                   independent of --reuse-cache — delete or use --reset-names to redo)
         ▼
 3. Per-cell VLM          extract_cells.py / classify_cell()
+        │                → ink-free cells skipped (no API); out-circle cross-check and
+        │                   bottom-left-ink run trigger inside classify_cell (see Reliability checks)
         │                → one dict per cell: result, run, rbi_slot (run=True cells only,
         │                   see #7 below), result_conf, run_conf
         │                   cached in games/{stem}/cells/r##_c##.json
@@ -59,6 +62,9 @@ Scan image (JPG/PNG)
         │                → run counts here EXCLUDE cells with result=None even if run=True,
         │                   matching what actually reaches PlateAppearance/stats
         ▼
+10b. Second read         _verify_candidates() / _verify_uncertain_cells()
+        │                → uncertain cells re-read once; disagreement docks confidence
+        ▼
 11. RBI backfill         _backfill_rbi_cells()
         │                → focused VLM call on bottom-left quadrant of run=True cells
         │                   missing an rbi_slot key, to identify which batting slot drove
@@ -83,8 +89,11 @@ Scan image (JPG/PNG)
 
 | File | Role |
 |---|---|
+| `scorecard.py` | Single entry point (#21): plain-language subcommands mapped lazily onto the scripts below (`read-scorecard`→extract_cells, `reimport-game`→reimport, `sync-edits`→reimport --sync-cells, `reread-season`→crawl, `review-cells`, `fix-date`, `players`, `export-excel`, `publish`, `draw-widget`, `test-accuracy`→eval_cells, `run-tests`). Add new user-facing commands to its `_COMMANDS` table. |
+| `gamepaths.py` | `resolve_game()` (#20): every per-game command accepts the game folder, any file inside it, the scan, or just the game name. Use it for any new per-game command. |
 | `extract_cells.py` | Main pipeline entry point. Grid → names → VLM → backfills → constraints → rules → checks → JSON → DB → HTML. |
-| `probe_grid.py` | OpenCV grid detector: finds row separators and inning column boundaries; supports manual overrides. |
+| `rectify.py` | Default grid detector (#16): perspective/skew rectification + lattice fit on a printed-line mask. Works on phone photos. See [Grid detection](#grid-detection-rectifypy-default-probe_gridpy-legacy). |
+| `probe_grid.py` | Legacy OpenCV grid detector: finds row separators and inning column boundaries; supports manual overrides. Used only as fallback. |
 | `models.py` | Pydantic models: `GameExtraction`, `LineupSlot`, `PlateAppearance`, `InningTotals`, etc. |
 | `db.py` | SQLite layer: `init_db`, `write_game`, `find_duplicate_game`, fuzzy player matching. |
 | `stats.py` | Derived stat calculations: AVG, OBP, SLG, OPS, BABIP, ISO, wOBA, RC, OPS+, BB/K, AB/HR. SB counted; CS removed from schema. |
@@ -100,6 +109,9 @@ Scan image (JPG/PNG)
 | `_dump_cells.py` | Debug helper: prints cell cache as CSV (ri, ci, player, result, run, result_conf, run_conf, reread, adjusted, notes). |
 | `test_rbi_attribution.py` | Unit tests for `_build_slot_data()` (PA construction + RBI attribution), `_check_rbi_leq_runs()`, and `classify_cell()`'s rbi_slot sentinel behavior (see #7). Run with `uv run python test_rbi_attribution.py` from `scorecard/`. No image needed; the two `classify_cell` tests monkeypatch `_call_api`/`_read_rbi_slot` instead of hitting the API. |
 | `test_confidence.py` | Unit tests for `_score_cell()` and its wiring into `_build_slot_data()` (see #11 below). Run with `uv run python test_confidence.py`. No image or API needed. |
+| `eval_cells.py` | VLM eval set (#0): re-reads every cell of the hand-verified games (Grizzlies 2026-07-12, Urbanus 2026-08-23) with the current prompts and reports result/run/RBI/presence accuracy against their cache labels. `--check` = no API (label stats and a cache vs `_cells.json` consistency check). Predictions go to `eval_out/` (gitignored). Gemini varies by 2–3 cells between runs, so compare more than one run. Run it before and after any prompt/crop change. |
+| `test_grid.py` | Grid-geometry regression (#16): runs `detect_grid()` on the hand-verified baseline games (Grizzlies 2026-07-12, Urbanus 2026-08-23) and compares row/col boundaries to `grid_golden.json` (tolerance 4% of a cell). `--update` rewrites the golden — only do that after visually checking the debug images. No API. Run with `uv run python test_grid.py`. |
+| `test_gamepaths.py` | Unit tests for `gamepaths.resolve_game()` (#20) on a temp folder layout. **Run all offline tests at once with `uv run python scorecard.py run-tests`** (also runs `eval_cells.py --check`). |
 | `test_gt_runs.py` | Unit tests for `_reconcile_gt_runs()` (#1): forced runs, ranked re-check order, over-count gating, cyclic batting order. Uses a fake re-check callable; no image or API needed. Run with `uv run python test_gt_runs.py`. |
 
 ---
@@ -129,6 +141,16 @@ Cells in buffer columns whose inning maps beyond `--innings` (a 9-inning game ha
 
 ### Stolen base (SB) detection
 `_backfill_sb_cells()` targets reached-base, non-out cells missing `sb_count`. Counts SB notations in the top-left/top-right/bottom-left quadrants (never bottom-right, which is RBI/out territory). `PlateAppearance.sb = int(cell.get("sb_count") or 0)`. Flows through `stats.py SB` → `export_season.py` (gold-highlighted season leader column, included in per-game and game-log sheets). CS was removed from the schema/exports — SB only.
+
+### Reliability checks added 2026-09-28 (all measured with `eval_cells.py`)
+- **Gemini thinking budget.** Gemini 2.5 spends thinking tokens out of `max_output_tokens`. With the old `max_tokens=400` and dynamic thinking, nearly every cell answer was cut off mid-JSON (`finish_reason=MAX_TOKENS`). The salvage parser recovered result/run but lost `result_conf`/`run_conf`: only 28/135 reads had them, so #11 scoring was mostly "legacy". `classify_cell` now uses `_CELL_THINKING_BUDGET=1024`, `_CELL_MAX_TOKENS=1424`. Evaluation: results 79→81/84 and runs 84/84 (with the checks below), conf on 135/135, about 3× slower per call. Every other short Gemini call (`_recheck_run`, totals, names, sub-inning) passes `thinking_budget=0`. **`_recheck_run` (max_tokens=10) could previously only ever return False**, so the GT run re-check (#1) never fired before this fix. **Always pass `thinking_budget` on new Gemini calls.**
+- **Empty-cell skip.** Before classification, cells whose inner 84% has < `_EMPTY_INK_MAX` (0.5%) coloured-pen pixels (`_pen_ink`) are cached as `{"result": null, "notes": "no_ink"}` with no API call. Evaluation set: 38/135 skipped, 0 real PAs lost (every PA has ≥ 3.1% ink); `eval_cells.py --check` re-verifies this offline. Guard: skipping is disabled for the game when fewer than 3 × innings cells are clearly inked (≥ 3%), e.g. a pencil or black-pen card with no coloured ink. The hole re-read is still the safety net.
+- **Out circle cross-check.** `_circle_state()` (HoughCircles on the pen-ink mask + inked share of the circumference) returns `circle` / `none` / `unsure`. Only circles that **enclose the cell centre** by ≥ `_CIRCLE_ENCLOSE` (0.06 × cell) count: a runner-out circle sits in one quadrant. Without this rule, Kinheim 2026-09-04 P2 inn 1 (a circled "64" top-right plus a 1B) was flipped from a correct 1B to 6-4. Cut-offs 0.74/0.55 gave 0 contradictions on the evaluation set, deciding 23/32 outs and 51/52 non-outs. When it contradicts the read's out/not-out, `classify_cell` re-reads once with the finding as a hint. If the re-read agrees it is taken (`circle:<old>-><new>`, result_conf -1); otherwise the first read is kept with `circle_mismatch` (result_conf -2 → review). New reads only.
+- **Second read of uncertain cells (suggestion 5).** After run reconciliation, `_verify_candidates()` picks PA cells whose self-reported `result_conf` or `run_conf` is ≤ `_VERIFY_CONF_MAX` (4, because the VLM almost never reports lower), cells with `circle_mismatch`, and at-bat cells in an inning whose H still mismatches GT. Legacy cells with no self-report are only picked by the last two. It sorts them lowest confidence first, caps at 30 per game, and `_verify_uncertain_cells()` re-reads each with a plain `classify_cell(..., circle_check=False)` (no circle hint, so a hint-induced flip in the first read shows up as a disagreement instead of being repeated), using `--verify-model` (default: `--model`). Only `cell["verify"] = {model, result, run}` is stored, in the grid and the cache, and the first read is never replaced. `_verify_agreement()` compares at scoring time against the cell's current values, so a hand correction or a later pass never leaves a stale verdict. It compares on `_stat_class`: fielder digits are ignored, hit type/K/fly/ground/E are not. Run is not compared when a later pass changed it (`run->` in `adjusted`). In `_score_cell`, a disagreement gives result_conf -2 (`verify:result <first>|<second>`) or run_conf -2 (`verify:run`), which usually lands in review; agreement gives result_conf +1 (`verify:agree`). Cells already verified with the same model are skipped, so re-runs cost nothing. `--no-verify` disables the pass. Evaluation over 3 runs: 51 candidates (about 8 per game); the second read disagreed on 5, catching 4/4 real errors among them, with 1 false alarm. `gemini-2.5-pro` as verifier returned nothing usable with the current call settings (failed reads are skipped), so it is untested.
+- **Per-player GT (card columns 11–12): opt-in (`--read-player-stats`), off by default.** The columns are often empty and include sac flies, which the pipeline doesn't track yet. An existing `_stats.txt` is always loaded. With the flag, if no `{stem}_stats.txt` exists, `_detect_player_stats()` reads each slot's H-AB and AVG lines (one call per slot, `thinking_budget=0`). It keeps a slot only when every line's H/AB matches the written AVG (`_stats_line_ok`), sums starter + subs, and writes `_stats.txt` (`slot H AB`; edit to correct). It read 18/18 slots correctly on the two verified games. `_check_row` now returns the mismatching stats, and for subbed slots also prints a `= slot total` line checked against the GT. `row_flags` goes into `_build_slot_data(row_flags=...)` → `_score_cell(..., slot_flags)`: at-bat cells in a mismatching slot get result_conf -1 (`slot_H_mismatch`/`slot_AB_mismatch`), and -1 more where a slot H mismatch crosses an inning H mismatch (`row_and_inning_H_mismatch`), which is the likely misread cell.
+
+### Bottom-left ink run trigger (#6)
+The VLM misses clear run dots. The bottom-left (home-plate) quadrant records how a runner reached home, so pen ink there means a run. In `classify_cell()`, a non-out cell the VLM read as `run=False` with `_bottom_left_ink()` > `_BL_INK_TRIGGER` (2% saturated pixels; printed grid lines are grey) gets one focused `_read_bottom_left_mark()` call. A `digit` or `notation` answer sets `run=True`, `rbi_slot` = the digit, and adds the `bl_ink:run->True` adjusted flag. A `stray` answer (slash or connector line from another cell) or `blank` leaves the cell unchanged. This applies only to new reads.
 
 ### Voided / misscored cells
 The VLM prompt instructs: if the bottom-right quadrant alone is crossed out with diagonal lines, or all four quadrants are crossed out, the PA was scored in the wrong cell — return `result: null` rather than guessing.
@@ -171,7 +193,10 @@ The left info strip of each row is cropped and sent to the VLM. The active playe
 
 `players.txt` is appended to when a new player is chosen interactively; the append now guards against a missing trailing newline on the existing file (a prior bug concatenated a new name onto the last line, then repeated appends across sessions produced a badly duplicated roster — always eyeball `players.txt` after a bulk name-correction session).
 
-### Grid detection (probe_grid.py)
+### Grid detection (rectify.py default, probe_grid.py legacy)
+**Default: `rectify.detect_grid_lattice()` (#16).** (1) Adaptive threshold → long-line mask (short morphological kernels, so a few degrees of tilt survive) → `polyfit` per line component → quad from the outermost long H/V lines → homography. The image is warped only when the corner shift exceeds 5% of a cell. Clean scans need < 6px, so they are left untouched; the warped image is saved as `games/{stem}/{stem}_rectified.jpg` and **all crops come from it**. (2) `fit_grid()` fits a lattice to the line mask (handwriting and lighting are gone there). Rows: the name strip is split in thirds and the inning area in halves, so row boundaries are exactly the lines present in both. A brute-force `(y0, pitch)` search over their product finds the 11 boundaries, and each is snapped to the raw inning-area profile. Columns: the `#` and row-number columns left of inning 1 are each about half a cell wide and mimic the half-pitch pattern, so column 1 is found by a discrete rule. It is the leftmost boundary (a line in both the header band and the body) whose next half-step is a body-only sub-column line; from there it steps by 2 × the half-pitch and snaps. A fit score below 0.8 falls back to the legacy detector. `test_grid.py` guards it: the two hand-verified games must match their legacy geometry within 4% of a cell, and the two phone photos (Vennep 06-28, Kinheim 09-04) their visually checked fits.
+
+**Legacy: `probe_grid.detect_grid()`**, used with `--legacy-grid`, with any of `--grid-start`/`--grid-width`/`--cell-height` (given or persisted in `run_args`), or on a rejected lattice fit.
 V-line and H-line detection use OpenCV projection + gap analysis, with a bimodal check (full-row vs sub-row divider gaps in ~2:1 ratio). The bimodal cell-size is computed as `lower_med * 2` (sub-row divider height × 2), **not** `upper_med` — the upper cluster can undershoot when some full-row gaps are noisy or partially missed. Outlier full-row gaps (>3× median, from missed H-lines) fall back to the median instead of dominating the estimate.
 
 For difficult scans (low-res, landscape, skewed, wide player-info columns), manual overrides bypass detection:

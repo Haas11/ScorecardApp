@@ -21,6 +21,7 @@ from pathlib import Path
 import click
 
 from db import get_connection, get_data_root, get_db_path, DATA_ROOT_ENV_VAR
+from gamepaths import GameNotFound, game_folder, resolve_game
 from render_widget import render_widget_for_game
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -31,17 +32,15 @@ _STEM_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})(.*)$")
 
 
 def _resolve_game_folder(game_path: Path, data_root_opt: str | None) -> Path:
-    """GAME may be a game folder, a _cells.json path, or a bare folder name
-    (resolved under <data_root>/games/)."""
-    if game_path.is_dir():
-        return game_path
-    if game_path.is_file() and game_path.name.endswith("_cells.json"):
-        return game_path.parent
-    if not game_path.is_absolute() and not game_path.exists():
-        candidate = get_data_root(data_root_opt) / "games" / game_path
-        if candidate.is_dir():
-            return candidate
-    raise click.UsageError(f"Could not resolve a game folder from {game_path}")
+    """GAME may be a game folder, any file inside it, its scan, or a bare game name."""
+    try:
+        root, name = resolve_game(game_path, get_data_root(data_root_opt))
+    except GameNotFound as exc:
+        raise click.UsageError(str(exc))
+    folder = game_folder(root, name)
+    if not folder.is_dir():
+        raise click.UsageError(f"No game folder for {name!r} at {folder}")
+    return folder
 
 
 @click.command()

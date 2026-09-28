@@ -1,0 +1,1 @@
+{"result": "1B", "run": true, "result_conf": 4, "run_conf": 5, "notes": "E6 in bottom-left is supplementary, not the PA result. The PA result is read from the bottom-right, which shows a 1B. The run dot is clear.", "rbi_slot": null, "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "1B", "run": true}}

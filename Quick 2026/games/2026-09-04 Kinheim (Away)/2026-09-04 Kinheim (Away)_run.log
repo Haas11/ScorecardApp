@@ -1,0 +1,99 @@
+Layout: reused from _layout.json (not given on CLI): {'n_player_rows': None, 'left_skip_frac': None}
+Image : 2026-09-04 Kinheim (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 8
+Date  : 2026-09-04   Opponent: Kinheim
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Rectify: warped (corner shift 26.8px, 25 H / 34 V lines)
+Lattice fit: score=1.0  cell=123px  col_width=122.0px
+Row tops:    [163, 292, 418, 542, 663, 784, 905, 1027, 1148, 1271]
+Col lefts:   [894, 1015, 1137, 1260, 1382, 1505, 1628, 1750, 1873, 1996, 2119, 2242, 2363]
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-09-04 Kinheim (Away)\2026-09-04 Kinheim (Away)_grid_debug.png
+Grid  : 10 player rows x 12 cols, cell=123px
+Active: first 9 rows (8 game innings, 10 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-09-04 Kinheim (Away)\2026-09-04 Kinheim (Away)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Gelaudi
+     2.  J. Bradwell
+     3.  V. V. Spaandonk
+     4.  G. Suarez
+     5.  S. Bakker
+     6.  N. Specht
+     7.  X. Dikkes  |  C. Trehy
+     8.  D. Mabushi
+     9.  N. Wisse
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Gelaudi' → M. Gelaudi (#98)
+  Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 3 starter: 'V. V. Spaandonk' → V. van Spaandonk (#24)
+  Row 4 starter: 'G. Suarez' → G. Suares (#2)
+  Row 5 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 6 starter: 'N. Specht' → N. Specht (#0)
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 7 sub1: 'C. Trehy' → C. Trehy (#6)
+  Row 7: sub1 inning from cache: 7
+  Row 8 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 9 starter: 'N. Wisse' → N. Wisse (#57)
+GT    : 2026-09-04 Kinheim (Away)_totals.txt loaded
+
+Cells : 90 total | 90 cached | 0 empty (no ink, skipped) | 0 to classify
+Wrap  : none detected (from file)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P1 inn 3: still null between P9 and P2 after re-read
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA=5            AB=5            H=1             R=1
+  [Slot  2] J. Bradwell             PA=5            AB=5            H=2             R=1
+  [Slot  3] V. van Spaandonk        PA=5            AB=4            H=1             R=1
+  [Slot  4] G. Suares               PA=5            AB=5            H=2             R=1
+  [Slot  5] S. Bakker               PA=5            AB=5            H=2             R=1
+  [Slot  6] N. Specht               PA=4            AB=4            H=1             R=1
+  [Slot  7] X. Dikkes               PA=3            AB=3            H=1             R=0
+  [Slot  7]   ↳ C. Trehy            PA=1            AB=1            H=0             R=0
+  [Slot  7]   = slot total          PA=4            AB=4            H=1             R=0
+  [Slot  8] D. Mabushi              PA=4            AB=3            H=2             R=0
+  [Slot  9] N. Wisse                PA=4            AB=4            H=0             R=0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 4 ≥ 4 ≥ 4 ≥ 4
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=4            R=0             H=1             E=0             Outs=2 (exp=3)
+  [Inn 2 ]  PA=6            R=2             H=2             E=0 (GT=1)      Outs=3
+  [Inn 3 ]  PA=8            R=3             H=4             E=1 (GT=2)      Outs=2 (exp=3)
+  [Inn 4 ]  PA=6            R=1             H=1             E=1             Outs=3
+  [Inn 5 ]  PA=4            R=0             H=1             E=0             Outs=3
+  [Inn 6 ]  PA=4            R=0             H=1             E=0             Outs=3
+  [Inn 7 ]  PA=4            R=0             H=1             E=0             Outs=3
+  [Inn 8 ]  PA=5            R=0             H=1             E=0             Outs=3
+  Run totals: all match GT.
+
+
+-- Second read: 1 uncertain cell(s) with gemini-2.5-flash ----------
+  P2 inn 1: 1B/run=False (conf 4/5): agree
+  Second read: 1 agree, 0 disagree (-> review)
+
+-- RBI: 6 run cell(s) — rbi_slot already read for all (no backfill needed)
+
+Saved : 2026-09-04 Kinheim (Away)_cells.json
+Total : 41 PA extracted   6 runs
+GT    : 6 runs expected
+Widget: 2026-09-04 Kinheim (Away).html
+
+DB    : Replacing existing game (id=94)...
+DB    : Written as game id=94
+Log   : 2026-09-04 Kinheim (Away)_run.log

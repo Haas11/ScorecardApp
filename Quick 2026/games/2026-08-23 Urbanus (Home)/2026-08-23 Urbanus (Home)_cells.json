@@ -25,12 +25,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
+              "confidence": 4,
               "result_conf": 4,
-              "run_conf": 3,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch"
+                "legacy"
               ]
             },
             {
@@ -41,13 +40,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
-              "result_conf": 3,
-              "run_conf": 3,
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch",
-                "inning_H_mismatch"
+                "legacy"
               ]
             },
             {
@@ -70,7 +67,7 @@
               "result": "BB",
               "run_scored": true,
               "rbi": 0,
-              "sb": 0,
+              "sb": 1,
               "cs": 0,
               "notes": "",
               "confidence": 4,
@@ -148,31 +145,27 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 2,
+              "confidence": 3,
               "result_conf": 4,
-              "run_conf": 2,
+              "run_conf": 3,
               "conf_reasons": [
                 "legacy",
-                "run_without_rbi_digit",
-                "inning_R_mismatch"
+                "run_without_rbi_digit"
               ]
             },
             {
               "inning": 1,
               "result": "1B",
-              "run_scored": true,
+              "run_scored": false,
               "rbi": 0,
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": 2,
-              "result_conf": 3,
-              "run_conf": 2,
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "run_without_rbi_digit",
-                "inning_R_mismatch",
-                "inning_H_mismatch"
+                "legacy"
               ]
             },
             {
@@ -239,7 +232,7 @@
           "summary": {
             "PA": 6,
             "AB": 4,
-            "R": 4,
+            "R": 3,
             "H": 3,
             "two_B": null,
             "three_B": null,
@@ -273,13 +266,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
-              "result_conf": 3,
-              "run_conf": 3,
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch",
-                "inning_H_mismatch"
+                "legacy"
               ]
             },
             {
@@ -290,12 +281,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
+              "confidence": 4,
               "result_conf": 4,
-              "run_conf": 3,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch"
+                "legacy"
               ]
             },
             {
@@ -398,12 +388,11 @@
               "sb": 1,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
+              "confidence": 4,
               "result_conf": 4,
-              "run_conf": 3,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch"
+                "legacy"
               ]
             },
             {
@@ -505,13 +494,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
-              "result_conf": 3,
-              "run_conf": 3,
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch",
-                "inning_H_mismatch"
+                "legacy"
               ]
             },
             {
@@ -612,12 +599,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
+              "confidence": 4,
               "result_conf": 4,
-              "run_conf": 3,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch"
+                "legacy"
               ]
             },
             {
@@ -712,19 +698,18 @@
           "plate_appearances": [
             {
               "inning": 1,
-              "result": "E7",
+              "result": "2B",
               "run_scored": true,
               "rbi": 1,
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 2,
+              "confidence": 3,
               "result_conf": 4,
-              "run_conf": 2,
+              "run_conf": 3,
               "conf_reasons": [
                 "legacy",
-                "run_without_rbi_digit",
-                "inning_R_mismatch"
+                "run_without_rbi_digit"
               ]
             },
             {
@@ -792,7 +777,7 @@
             "PA": 5,
             "AB": 4,
             "R": 2,
-            "H": 1,
+            "H": 2,
             "two_B": null,
             "three_B": null,
             "HR": null,
@@ -825,12 +810,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
+              "confidence": 4,
               "result_conf": 4,
-              "run_conf": 3,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch"
+                "legacy"
               ]
             },
             {
@@ -931,13 +915,11 @@
               "sb": 0,
               "cs": 0,
               "notes": "",
-              "confidence": 3,
-              "result_conf": 3,
-              "run_conf": 3,
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
               "conf_reasons": [
-                "legacy",
-                "inning_R_mismatch",
-                "inning_H_mismatch"
+                "legacy"
               ]
             },
             {
@@ -1051,7 +1033,7 @@
   "pitching": [],
   "inning_totals": {
     "runs_per_inning": [
-      9,
+      8,
       0,
       5,
       3,

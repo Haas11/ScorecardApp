@@ -1,0 +1,1 @@
+{"result": "E6", "run": false, "result_conf": 5, "run_conf": 5, "notes": null, "adjusted": ["circle_mismatch"], "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "E6", "run": false}}

@@ -1,0 +1,8 @@
+# Team viewer look. Script-level config: read when running viewer/streamlit_app.py,
+# locally and on Streamlit Cloud.
+[theme]
+base = "light"
+baseFontSize = 17
+
+[browser]
+gatherUsageStats = false

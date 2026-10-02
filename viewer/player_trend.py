@@ -70,13 +70,14 @@ def render(games: pd.DataFrame, team_avg: float) -> None:
     })
     label = (
         alt.Chart(label_df)
-        .mark_text(align="left", dx=6, dy=-6, color="grey", fontSize=11)
+        .mark_text(align="left", dx=6, dy=-6, color="grey", fontSize=13)
         .encode(x="x:T", y=alt.Y("y:Q", scale=y_scale), text="label:N")
     )
 
     chart = (
         alt.layer(rule, line, label)
         .properties(height=300, width="container", background="transparent")
+        .configure_axis(labelFontSize=13, titleFontSize=14)
         .configure_view(strokeWidth=0)
     )
     st.altair_chart(chart, width="stretch")

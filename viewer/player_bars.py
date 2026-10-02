@@ -16,8 +16,8 @@ import streamlit as st
 import players
 import season_table
 
-_X_DOMAIN = [0, 125]
-_VALUE_X = 108
+_X_DOMAIN = [0, 107]   # bars run 0-100; a little room so the circle at 100 isn't clipped
+_VALUE_GAP = 70        # px between the stat name and the bars, where the value is drawn
 
 _PCT_STATS = {"BB%", "K%"}
 _RATE_STATS = {"AVG", "OBP", "SLG", "OPS", "wOBA", "ISO", "BABIP"}
@@ -76,13 +76,15 @@ def render(values: dict[str, float | None], ratings_row: dict[str, int | None]) 
 
     df = pd.DataFrame(rows)
     stat_order = df["stat"].tolist()
-    df["x0"], df["x1"], df["zero"], df["value_x"] = 0, 100, 0, _VALUE_X
+    df["x0"], df["x1"], df["zero"] = 0, 100, 0
     bar_df = df[df["rating"].notna()].copy()
 
     y_enc = alt.Y(
         "stat:N",
         sort=stat_order,
-        axis=alt.Axis(title=None, labelFontSize=13, grid=False, domain=False, ticks=False),
+        # labelPadding leaves room between the stat name and the bars for the value text.
+        axis=alt.Axis(title=None, labelFontSize=15, labelPadding=_VALUE_GAP, grid=False,
+                      domain=False, ticks=False),
     )
     tooltip = [
         alt.Tooltip("stat:N", title="Stat"),
@@ -101,24 +103,24 @@ def render(values: dict[str, float | None], ratings_row: dict[str, int | None]) 
         color=alt.Color("color:N", scale=None),
         tooltip=tooltip,
     )
-    circle = alt.Chart(bar_df).mark_circle(size=650, opacity=1, stroke="white", strokeWidth=2).encode(
+    circle = alt.Chart(bar_df).mark_circle(size=760, opacity=1, stroke="white", strokeWidth=2).encode(
         x=hidden_x("rating"), y=y_enc,
         color=alt.Color("color:N", scale=None),
         tooltip=tooltip,
     )
-    number = alt.Chart(bar_df).mark_text(fontWeight="bold", fontSize=12).encode(
+    number = alt.Chart(bar_df).mark_text(fontWeight="bold", fontSize=13).encode(
         x=hidden_x("rating"), y=y_enc,
         text="rating_label:N",
         color=alt.Color("num_color:N", scale=None),
     )
-    value_text = alt.Chart(df).mark_text(align="left", fontSize=13).encode(
-        x=hidden_x("value_x"), y=y_enc,
+    value_text = alt.Chart(df).mark_text(align="right", dx=-14, fontSize=15).encode(
+        x=hidden_x("x0"), y=y_enc,
         text="value_text:N",
     )
 
     chart = (
         alt.layer(track, bar, circle, number, value_text)
-        .properties(height=34 * len(df), background="transparent")
+        .properties(height=38 * len(df), background="transparent")
         .configure_view(strokeWidth=0)
     )
     st.altair_chart(chart, width="stretch")

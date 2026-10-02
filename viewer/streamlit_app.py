@@ -8,6 +8,8 @@ the pipeline (scorecard/), which publishes here with `scorecard.py publish`.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 import data
@@ -45,4 +47,7 @@ if season is not None:
         for name in ranked["Name"]
     ]
 page = st.navigation(pages, position="sidebar")
+# Club logo in the top right corner of every page.
+with st.container(horizontal=True, horizontal_alignment="right"):
+    st.image(str(Path(__file__).parent / "quicklogo.png"), width=360)
 page.run()

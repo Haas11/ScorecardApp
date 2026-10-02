@@ -29,8 +29,15 @@ def using_drive() -> bool:
     return bool(_secret("drive") and _secret("gcp_service_account"))
 
 
-@st.cache_resource
 def _drive_service():
+    acct = _secret("gcp_service_account")
+    return _drive_service_for(acct.get("client_email", ""), acct.get("private_key_id", ""))
+
+
+@st.cache_resource(max_entries=2)
+def _drive_service_for(client_email: str, key_id: str):
+    # Keyed on account + key id: edited Secrets give a new login instead of the
+    # cached one from the previous key.
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
     creds = service_account.Credentials.from_service_account_info(

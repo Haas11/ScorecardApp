@@ -1,5 +1,7 @@
 # KNBSB Scorecard Pipeline
 
+Baseball Team & Player Stat Tracker.
+
 Digitizes Dutch KNBSB baseball scorecards into structured JSON, a SQLite database, an Excel workbook, and a color-coded HTML widget — using Gemini 2.5 Flash as the VLM backbone.
 
 For pipeline architecture and internals, see [CLAUDE.md](CLAUDE.md).

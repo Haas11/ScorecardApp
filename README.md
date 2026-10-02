@@ -28,7 +28,7 @@ Or use the GUI: `uv run streamlit run app.py` (see [GUI](#gui)).
 
 **GAME** — every per-game command accepts the full game name (`"2026-09-27 Herons (Home)"`), the scan, the game folder, or any file in it. `review-cells` and `mark-reviewed` also take a fragment such as the date.
 
-**Season folder** — commands target `paths.data_root` in `scorecard/config.yml` (now `../Quick 2026`). For another season pass `--data-root "Quick 2026 - Ex Spring Training"` where offered, or set it for the whole PowerShell session with `$env:SCORECARD_DATA_ROOT = "Quick 2026 - Ex Spring Training"`. A relative folder is looked up from where you run the command, then the project folder, then `scorecard/`; a folder that doesn't exist is an error. See [Multiple teams / seasons](#multiple-teams--seasons).
+**Season folder** — commands target `paths.data_root` in `scorecard/config.yml` (now `../Quick 2026 - Ex Spring Training`). For another season pass `--data-root "Quick 2026 - Ex Spring Training"` where offered, or set it for the whole PowerShell session with `$env:SCORECARD_DATA_ROOT = "Quick 2026 - Ex Spring Training"`. A relative folder is looked up from where you run the command, then the project folder, then `scorecard/`; a folder that doesn't exist is an error. See [Multiple teams / seasons](#multiple-teams--seasons).
 
 ## Commands
 
@@ -175,6 +175,19 @@ uv run python scorecard.py publish "../Quick 2026" "G:\My Drive\Quick 2026"
 `run-tests` — all offline tests (no API calls), including `test-accuracy --check`.
 
 ---
+
+## Team viewer (read-only web app)
+
+`viewer/` is a separate Streamlit app for the team: the season stats table (with a workbook download) and one page per game showing its widget. It reads the **published folder**, the Google Drive folder that `publish` writes, and never changes data.
+
+```powershell
+cd viewer
+uv run --project ../scorecard streamlit run streamlit_app.py      # local: reads G:\My Drive\Quick 2026
+```
+
+Set `VIEWER_DATA_DIR` to read another local folder. On Streamlit Community Cloud it reads the Drive folder through a service account (Secrets: `[drive] folder_id` and `[gcp_service_account]`). New games show up after `export-excel` + `publish`, within 5 minutes.
+
+`publish` re-renders each game widget with the grid debug image scaled to 1600 px (JPEG), about 0.5 MB instead of 5–8 MB. The full-size widgets stay in the game folders.
 
 ## Setup
 
@@ -369,7 +382,7 @@ Stats: PA, AB, H, 2B, 3B, HR, BB, K, R, RBI, SB, AVG, OBP, SLG, OPS, BABIP, ISO,
 
 ## Multiple teams / seasons
 
-By default every command targets the season folder in `scorecard/config.yml` (`paths.data_root`, now `"../Quick 2026"`). To target another folder (another team, or spring training games kept apart from the regular season) without editing `config.yml`, pass `--data-root` to `export-excel`, `reimport-game`, `sync-edits`, `reread-season`, `fix-date` or `publish`:
+By default every command targets the season folder in `scorecard/config.yml` (`paths.data_root`, now `"../Quick 2026 - Ex Spring Training"`). To target another folder (another team, or spring training games kept apart from the regular season) without editing `config.yml`, pass `--data-root` to `export-excel`, `reimport-game`, `sync-edits`, `reread-season`, `fix-date` or `publish`:
 
 ```powershell
 uv run python scorecard.py reimport-game --all --data-root "Quick 2026 - Ex Spring Training"

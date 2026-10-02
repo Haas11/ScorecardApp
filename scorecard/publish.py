@@ -1,8 +1,10 @@
 """
 Copy game HTML files and the season stats xlsx to a destination folder.
 
-Searches the source folder and one level of subfolders for *.html files,
-then copies them alongside the xlsx stats file.
+Searches the source folder and up to two subfolder levels for *.html files and
+publishes them alongside the xlsx stats file. Game widgets are re-rendered from
+their _cells.json with the grid debug image scaled to PUBLISH_IMG_WIDTH (JPEG),
+so the published copies stay small; other HTML files are copied as-is.
 
 Usage:
   uv run python publish.py "Quick 2026 data" "C:/Shares/Quick/stats"
@@ -11,6 +13,7 @@ Usage:
 """
 from __future__ import annotations
 
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -18,6 +21,9 @@ from pathlib import Path
 import click
 
 from db import get_data_root, DATA_ROOT_ENV_VAR
+from render_widget import render_widget_for_game
+
+PUBLISH_IMG_WIDTH = 1600  # px; the local widgets keep the full-size debug image
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -37,8 +43,16 @@ def publish(source: Path, dest: Path, xlsx: Path | None) -> None:
         click.echo("No HTML files found.")
     for src in sorted(html_files):
         target = dest / src.name
-        shutil.copy2(src, target)
-        click.echo(f"  copied  {src.relative_to(source.parent)}  →  {target.name}")
+        cells = src.with_name(f"{src.stem}_cells.json")
+        if cells.exists():
+            # Game widget: re-rendered with a smaller debug image (full size stays local).
+            render_widget_for_game(json.loads(cells.read_text(encoding="utf-8")), target,
+                                   debug_img_path=src.with_name(f"{src.stem}_grid_debug.png"),
+                                   img_max_width=PUBLISH_IMG_WIDTH)
+            click.echo(f"  rendered {src.name}  ({target.stat().st_size // 1024} KB)")
+        else:
+            shutil.copy2(src, target)
+            click.echo(f"  copied  {src.relative_to(source.parent)}  →  {target.name}")
 
     # Copy xlsx
     if xlsx:

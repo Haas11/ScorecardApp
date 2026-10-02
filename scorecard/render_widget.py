@@ -554,7 +554,7 @@ if (D.has_gt) document.getElementById('gt-legend').style.display = 'inline';
 if (D.debug_img_b64) {
   document.getElementById('dbgimg').innerHTML =
     '<p style="font-size:11px;color:var(--tx3);margin-bottom:6px">Grid detection debug</p>' +
-    `<img src="data:image/png;base64,${D.debug_img_b64}" style="max-width:100%;border-radius:var(--rad);border:0.5px solid var(--brd)">`;
+    `<img src="data:${D.debug_img_mime || 'image/png'};base64,${D.debug_img_b64}" style="max-width:100%;border-radius:var(--rad);border:0.5px solid var(--brd)">`;
 }
 </script>
 </body>
@@ -593,6 +593,7 @@ def render_widget_for_game(
     out_path: Path,
     debug_img_path: Path | None = None,
     gt_totals: dict[int, dict] | None = None,
+    img_max_width: int | None = None,
 ) -> Path:
     """
     Compute stats from a parsed _cells.json dict and write the HTML widget.
@@ -601,6 +602,9 @@ def render_widget_for_game(
     GT inning totals for the Totals-row colouring come from, in order: the
     ``gt_totals`` argument, the ``gt_totals`` key extract_cells embeds in the
     JSON, or a ``{stem}_totals.txt`` next to the widget (older JSONs).
+
+    img_max_width embeds the debug image as a JPEG scaled down to that width
+    (published copies: ~10x smaller, still readable for cross-checking).
     """
     if gt_totals is None:
         gt_totals = _gt_from_game(game)
@@ -609,7 +613,17 @@ def render_widget_for_game(
     stats = compute_stats(game, gt_totals)
     stats["debug_img_b64"] = None
     if debug_img_path and debug_img_path.exists():
-        stats["debug_img_b64"] = base64.b64encode(debug_img_path.read_bytes()).decode()
+        if img_max_width:
+            import cv2
+            img = cv2.imread(str(debug_img_path))
+            if img.shape[1] > img_max_width:
+                f = img_max_width / img.shape[1]
+                img = cv2.resize(img, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
+            stats["debug_img_b64"] = base64.b64encode(
+                cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])[1].tobytes()).decode()
+            stats["debug_img_mime"] = "image/jpeg"
+        else:
+            stats["debug_img_b64"] = base64.b64encode(debug_img_path.read_bytes()).decode()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(render_html(stats), encoding="utf-8")
     return out_path

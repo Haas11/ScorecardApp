@@ -2,6 +2,8 @@
 .env
 *.env
 **/.env
+**/.streamlit/secrets.toml
+*service-account*.json
 
 # Python
 __pycache__/

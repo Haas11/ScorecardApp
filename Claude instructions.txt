@@ -447,6 +447,55 @@ extract will find the debug image and/or cells inside the game folder (not only 
         NiceGUI (nicer look, more work), FastAPI + editable HTML widget (most polished,
         most work). Desktop toolkits (Tk/Qt) not recommended.
 
+GROUP 7 - TEAM VIEWER: PLAYER PAGES (viewer/, Baseball-Savant-like, first: T. Kryston)
+---------------------------------------------------------------------------------------
+Layout: 3 columns (left: bio card, middle: rating bars, right: AVG over the season),
+st.columns stacks them on phones. All data comes from the published workbook: "Season
+Stats" (season line, eligibility = italic name) and "Game Log" (one row per player per
+game). No pipeline imports; no new published files except the bio data in #28.
+
+[x] #24 Player data + rating scale (Sonnet). viewer/players.py: season row, game rows
+        (sorted by date), eligible flag per player. Ratings = PERCENTILE RANK among
+        ELIGIBLE players (decided 2026-10-02: a linear worst/avg/best scale let one outlier,
+        Kryston's .605 AVG, squeeze everyone else): best = 100, worst = 1, median = 50,
+        rating = round(1 + 99 * (rank - 1) / (n - 1)), ties share their average rank,
+        inverted for K% (lower is better). Missing values (e.g. BABIP None) -> no rating.
+        Only rate stats. The season table's heat map stays team-average based (workbook).
+        Cumulative AVG per game = cumsum(H)/cumsum(AB).
+        Unit test with a small hand-made sheet (best/median/worst, ties, inverted K%).
+        Done 2026-10-02: viewer/players.py (Season, load, ratings, player_games, slug) +
+        test_players.py (9 tests). round() is half-to-even, so an exact median lands on 50.
+[x] #25 Player pages + navigation (Sonnet). One st.Page per player (sidebar section
+        "Players", url_path = name slug), eligible players first. Page = header (name,
+        G, PA) + st.columns([1, 1.4, 1.2]). Small-sample players: stats shown, ratings
+        replaced by "too few plate appearances". ~50 lines.
+        Done 2026-10-02: player_view.player_page(); data.default_workbook() shared with
+        season.py; sidebar section "Players" (eligible by PA, then the rest).
+[x] #26 Middle column: rating bars (Fable: visual design, then Sonnet). Altair chart,
+        one row per stat: label | grey track 1-100 | bar filled to the rating, coloured
+        on the heat-map scale (blue 1 - white 50 - red 100) | circle with the rating |
+        actual value. Stats (decided 2026-10-02, rate stats only): AVG, OBP, SLG, OPS,
+        wOBA, ISO, BABIP, BB%, K%, BB/K, OPS+. ~80 lines.
+        Done 2026-10-02: player_bars.py (rating_color, format_value, 5-layer Altair chart);
+        circles opacity=1 (Altair default 0.7 looked grey). Dark theme not yet eyeballed.
+[x] #27 Right column: AVG over the season (Sonnet). Altair line of cumulative AVG by
+        game date (decided 2026-10-02: cumulative, not per game), per-game points,
+        horizontal rule = team season AVG (the Team row). Room for more series
+        later (OBP/SLG toggle). ~40 lines.
+        Done 2026-10-02: player_trend.py; y labels via labelExpr as .700 (no leading 0).
+[x] #28 Left column: bio card (Sonnet, after the user supplies data). players.yml in the
+        published Drive folder (name, number, positions, bats/throws, photo file) and
+        photos in a "players/" subfolder (data.py: list one subfolder level). Fields
+        (decided 2026-10-02): number, position, bats, throws, photo. Photos and
+        bio stay out of GitHub. Placeholder until then: initials avatar, name, number from
+        players.txt if present. ~60 lines.
+        Done 2026-10-02: players.csv (name,number,position,bats,throws,photo) replaces
+        players.txt in both seasons (db.load_roster: , or ; and BOM, txt fallback);
+        photos in <season>/players/ (gitignored); publish copies both; bio card in
+        player_view. Fill in the CSV + photos, then publish.
+[ ] #29 (optional) Game log table under the columns (Sonnet): the player's Game Log rows,
+        newest first, game date linking to the game page. ~25 lines.
+
 DONE / DROPPED
 --------------
 [x] #10 Consolidate multiple readme files into one (commit 1189445, README.md + CLAUDE.md).

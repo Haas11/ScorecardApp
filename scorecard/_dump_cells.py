@@ -32,15 +32,15 @@ if not cache_dir.exists():
     print(f"Cache folder not found: {cache_dir}", file=sys.stderr)
     sys.exit(1)
 
-players_file = project_root / "players.txt"
+sys.path.insert(0, str(Path(__file__).parent))
+from db import parse_roster_file  # noqa: E402
+
 players: list[str] = []
+players_file = project_root / "players.csv"
+if not players_file.exists():
+    players_file = project_root / "players.txt"
 if players_file.exists():
-    for line in players_file.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        parts = [p.strip() for p in line.split(",")]
-        players.append(parts[0])
+    players = [name for name, _ in parse_roster_file(players_file)]
 
 grid: dict[tuple[int, int], dict] = {}
 for f in cache_dir.glob("r??_c??.json"):

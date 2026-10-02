@@ -27,6 +27,9 @@ __pycache__/
 # (The old "Quick 2026 data/" pattern below never matched the current folder.)
 Quick 2026 data/games/*/cells/
 **/step2_debug.txt
+# Player photos (bio card, #28): players.csv itself is tracked like the rest
+# of the season data, but the photo files next to it are not.
+Quick 2026*/players/
 # Ad-hoc cache backups
 */cache_backup_*.zip
 

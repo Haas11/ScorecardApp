@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import os
 import re
 import sqlite3
@@ -219,13 +221,40 @@ def init_db(db_path: Path | None = None) -> None:
     conn.close()
 
 
-def _read_roster() -> list[tuple[str, str | None]]:
-    """Return [(name, jersey_str_or_None), ...] from players.txt."""
-    players_txt = _get_data_root() / "players.txt"
+# Roster CSV columns (#28): name is the only required one. "number" empty
+# means unknown (the old players.txt convention used "0" for that).
+ROSTER_CSV_FIELDS = ["name", "number", "position", "bats", "throws", "photo"]
+
+
+def _sniff_csv_delimiter(header_line: str) -> str:
+    """Pick ',' or ';' for a roster CSV (Dutch Excel saves ';')."""
+    try:
+        return csv.Sniffer().sniff(header_line, delimiters=",;").delimiter
+    except csv.Error:
+        return ";" if header_line.count(";") > header_line.count(",") else ","
+
+
+def read_roster_csv(path: Path) -> list[dict[str, str]]:
+    """Parse a players.csv file into row dicts (stripped strings, lower-cased
+    keys). Tolerates ',' or ';' delimiters and a UTF-8 BOM. Only 'name' is
+    required; rows without one are skipped."""
+    text = path.read_text(encoding="utf-8-sig")
+    lines = text.splitlines()
+    if not lines:
+        return []
+    delim = _sniff_csv_delimiter(lines[0])
+    rows: list[dict[str, str]] = []
+    for raw in csv.DictReader(io.StringIO(text), delimiter=delim):
+        row = {(k or "").strip().lower(): (v or "").strip() for k, v in raw.items() if k}
+        if row.get("name"):
+            rows.append(row)
+    return rows
+
+
+def _read_roster_txt(path: Path) -> list[tuple[str, str | None]]:
+    """Parse a legacy players.txt (name, jersey per line; '#' comments)."""
     roster: list[tuple[str, str | None]] = []
-    if not players_txt.exists():
-        return roster
-    for line in players_txt.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -233,8 +262,70 @@ def _read_roster() -> list[tuple[str, str | None]]:
         name = parts[0].strip()
         jersey = parts[1].strip() if len(parts) > 1 else None
         if name:
-            roster.append((name, jersey))
+            roster.append((name, jersey or None))
     return roster
+
+
+def parse_roster_file(path: Path) -> list[tuple[str, str | None]]:
+    """Parse an explicit roster file (.csv or legacy .txt) into
+    [(name, number_str_or_None), ...], dispatching on its suffix."""
+    if path.suffix.lower() == ".csv":
+        return [(row["name"], row.get("number") or None) for row in read_roster_csv(path)]
+    return _read_roster_txt(path)
+
+
+def load_roster(data_root: Path | None = None) -> list[tuple[str, str | None]]:
+    """Return [(name, number_str_or_None), ...] from players.csv, falling back
+    to players.txt when no CSV exists (old seasons keep working)."""
+    data_root = data_root or _get_data_root()
+    csv_path = data_root / "players.csv"
+    if csv_path.exists():
+        return parse_roster_file(csv_path)
+    txt_path = data_root / "players.txt"
+    if txt_path.exists():
+        return parse_roster_file(txt_path)
+    return []
+
+
+def append_roster_player(data_root: Path, name: str, number: int | str | None = None) -> Path:
+    """Append a new player to players.csv (name + number only; other columns
+    left empty), creating the file with a header if it doesn't exist yet. If
+    no players.csv exists but a players.txt does, that roster is migrated into
+    the new CSV first so no players are silently dropped. Guards against a
+    missing trailing newline on an existing file, and keeps writing with
+    whatever delimiter that file already uses.
+
+    Returns the players.csv path.
+    """
+    csv_path = data_root / "players.csv"
+    number_str = "" if number in (None, "") else str(number)
+    new_row = [name, number_str, "", "", "", ""]
+
+    if not csv_path.exists():
+        existing = load_roster(data_root)  # picks up players.txt if present
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(ROSTER_CSV_FIELDS)
+            for pname, pnum in existing:
+                writer.writerow([pname, pnum or "", "", "", "", ""])
+            writer.writerow(new_row)
+        return csv_path
+
+    existing_bytes = csv_path.read_bytes()
+    delim = ","
+    if existing_bytes:
+        first_line = existing_bytes.decode("utf-8-sig").splitlines()[0]
+        delim = _sniff_csv_delimiter(first_line)
+    needs_nl = bool(existing_bytes) and existing_bytes[-1:] not in (b"\n", b"\r")
+    with open(csv_path, "a", newline="", encoding="utf-8") as f:
+        if needs_nl:
+            f.write("\n")
+        csv.writer(f, delimiter=delim).writerow(new_row)
+    return csv_path
+
+
+# Back-compat alias — kept for any external caller still using the old name.
+_read_roster = load_roster
 
 
 def _interactive_resolve(
@@ -244,9 +335,9 @@ def _interactive_resolve(
     best_score: int,
 ) -> int:
     """
-    Prompt the user to pick the correct player from players.txt, or create a
-    new one.  Falls back to silent new-player creation when stdin is not a TTY
-    (non-interactive pipelines).
+    Prompt the user to pick the correct player from players.csv/players.txt,
+    or create a new one. Falls back to silent new-player creation when stdin
+    is not a TTY (non-interactive pipelines).
     """
     # Score so low that the name bears no resemblance to any existing player
     if best_score < 30:
@@ -271,8 +362,7 @@ def _interactive_resolve(
         )
         return cur.lastrowid
 
-    roster = _read_roster()
-    players_txt = _get_data_root() / "players.txt"
+    roster = load_roster()
 
     print()
     print(f"  Unrecognized name from scorecard: '{detected_name}'")
@@ -355,12 +445,8 @@ def _interactive_resolve(
     )
     player_id = cur.lastrowid
 
-    # Append to players.txt
-    jersey_suffix = f", {jersey_int}" if jersey_int is not None else ""
-    with open(players_txt, "a", encoding="utf-8") as f:
-        f.write(f"{new_name}{jersey_suffix}\n")
-
-    print(f"  Created '{new_name}' and added to {players_txt.name}")
+    roster_path = append_roster_player(_get_data_root(), new_name, jersey_int)
+    print(f"  Created '{new_name}' and added to {roster_path.name}")
     return player_id
 
 
@@ -386,15 +472,15 @@ def _resolve_player(
     if row:
         return row["player_id"]
 
-    # 3. Exact match against players.txt (handles fresh DB where player not yet inserted)
-    for pname, pjersey in _read_roster():
+    # 3. Exact match against the roster file (handles fresh DB where player not yet inserted)
+    for pname, pjersey in load_roster():
         if normalize_name(pname) == norm:
             jersey_int = int(pjersey) if pjersey and pjersey.isdigit() else None
             cur = conn.execute(
                 "INSERT INTO players (name, normalized_name, jersey_number) VALUES (?,?,?)",
                 (pname, norm, jersey_int),
             )
-            print(f"Auto-created '{pname}' from players.txt (exact name match)")
+            print(f"Auto-created '{pname}' from the roster file (exact name match)")
             return cur.lastrowid
 
     # 4. Fuzzy match

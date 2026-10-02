@@ -11,12 +11,15 @@ from __future__ import annotations
 import streamlit as st
 
 import data
+import player_view
+import players
 from game_view import game_page
 
 st.set_page_config(page_title="Quick stats", page_icon=":material/sports_baseball:", layout="wide")
 
 try:
     games = data.games()
+    season = player_view.current_season()  # None if no workbook is published yet
 except Exception as exc:  # Drive login/permission problems: show Google's reason (never contains the key)
     if type(exc).__module__.startswith(("google", "googleapiclient")):
         st.error(f"Google Drive refused the request: {type(exc).__name__}: {exc}", icon=":material/error:")
@@ -33,5 +36,13 @@ pages = {
         for g in games
     ],
 }
+if season is not None:
+    # Eligible players first, each group sorted by PA descending.
+    ranked = season.players.sort_values(["eligible", "PA"], ascending=[False, False])
+    pages["Players"] = [
+        st.Page(player_view.player_page(name), title=name, icon=":material/person:",
+                url_path="player-" + players.slug(name))
+        for name in ranked["Name"]
+    ]
 page = st.navigation(pages, position="sidebar")
 page.run()

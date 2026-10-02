@@ -14,7 +14,7 @@ if not books:
     st.stop()
 
 # Ex Spring Training is the default season; other workbooks can be picked.
-default = next((i for i, b in enumerate(books) if "Ex Spring Training" in b["name"]), 0)
+default = books.index(data.default_workbook())
 book = books[0] if len(books) == 1 else st.selectbox(
     "Season", books, index=default, format_func=lambda b: b["name"].removesuffix(" stats.xlsx"))
 raw = data.read(book)

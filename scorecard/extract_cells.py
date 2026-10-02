@@ -2420,7 +2420,7 @@ def _prompt_player_selection(
 ) -> tuple[str, int | None]:
     """
     Show the full roster and ask the user to pick the correct player (or add a new one).
-    Updates players.txt if a new player is entered.
+    Updates players.csv if a new player is entered.
     """
     click.echo()
     if detected:
@@ -2453,15 +2453,9 @@ def _prompt_player_selection(
     jersey_raw = click.prompt("  Jersey number (leave blank to skip)", default="").strip()
     jersey_int = int(jersey_raw) if jersey_raw.isdigit() else None
 
-    from db import _get_data_root
-    players_txt = _get_data_root() / "players.txt"
-    jersey_suffix = f", {jersey_int}" if jersey_int is not None else ""
-    existing_bytes = players_txt.read_bytes() if players_txt.exists() else b""
-    with open(players_txt, "a", encoding="utf-8") as f:
-        if existing_bytes and existing_bytes[-1:] != b"\n":
-            f.write("\n")
-        f.write(f"{new_name}{jersey_suffix}\n")
-    click.echo(f"  Created '{new_name}' and added to {players_txt.name}")
+    from db import _get_data_root, append_roster_player
+    roster_path = append_roster_player(_get_data_root(), new_name, jersey_int)
+    click.echo(f"  Created '{new_name}' and added to {roster_path.name}")
 
     roster.append((new_name, jersey_int))
     return (new_name, jersey_int)
@@ -2811,8 +2805,9 @@ class _TeeWriter:
 
 @click.command()
 @click.argument("image_path", metavar="GAME")
-@click.option("--players", "players_file", default="players.txt",
-              type=click.Path(), help="Roster file (name, jersey per line, one per batting slot).")
+@click.option("--players", "players_file", default=None,
+              type=click.Path(), help="Roster file (.csv or legacy .txt, one row/line per "
+                   "batting slot; default: players.csv, or players.txt, in the season folder).")
 @click.option("--active-players", default=9, show_default=True,
               help="Number of active batting slots (subs share a slot, don't add rows).")
 @click.option("--innings", default=None, type=int,
@@ -2969,28 +2964,31 @@ def main(
     # ── Roster (batting-order slots 1..active_players) ────────────────────────
     # One line per batting slot in order; subs share a slot and are noted
     # in supplementary data — they do NOT get their own grid row.
-    # Per-game roster auto-discovery: look for {stem}.txt in the scan dir or a
-    # rosters/ subfolder, falling back to the --players option.
+    # Per-game roster auto-discovery: look for {stem}.csv/{stem}.txt in the
+    # scan dir or a rosters/ subfolder, falling back to the --players option,
+    # then the season default (players.csv, else players.txt, in data_root).
     roster: list[tuple[str, int | None]] = []  # (name, jersey)
     _per_game_candidates = [
+        img_path.parent / f"{img_path.stem}.csv",
         img_path.parent / f"{img_path.stem}.txt",
+        img_path.parent / "rosters" / f"{img_path.stem}.csv",
         img_path.parent / "rosters" / f"{img_path.stem}.txt",
     ]
-    # Resolve --players: check per-game candidates first, then data_root, then CWD/repo root.
-    _players_abs = Path(players_file)
-    if not _players_abs.exists():
-        _players_abs = data_root / players_file
-    if not _players_abs.exists():
-        _players_abs = data_root / "players.txt"
-    players_path = next((p for p in _per_game_candidates if p.exists()), _players_abs)
+    # Resolve: per-game candidates first, then --players (CWD, then data_root), then season default.
+    players_path = next((p for p in _per_game_candidates if p.exists()), None)
+    if players_path is None and players_file:
+        _players_abs = Path(players_file)
+        if not _players_abs.exists():
+            _players_abs = data_root / players_file
+        if _players_abs.exists():
+            players_path = _players_abs
+    if players_path is None:
+        _csv_default = data_root / "players.csv"
+        players_path = _csv_default if _csv_default.exists() else data_root / "players.txt"
     if players_path.exists():
-        for line in players_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = [p.strip() for p in line.split(",")]
-            name = parts[0]
-            jersey = int(parts[1]) if len(parts) > 1 and parts[1].strip().lstrip("-").isdigit() else None
+        from db import parse_roster_file
+        for name, jersey_str in parse_roster_file(players_path):
+            jersey = int(jersey_str) if jersey_str and jersey_str.lstrip("-").isdigit() else None
             roster.append((name, jersey))
     # Use only the first active_players entries for row→slot mapping
     active_roster = roster[:active_players]

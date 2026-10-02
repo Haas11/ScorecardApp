@@ -63,6 +63,22 @@ def publish(source: Path, dest: Path, xlsx: Path | None) -> None:
             shutil.copy2(xlsx, target_xlsx)
             click.echo(f"  copied  {xlsx.name}  →  {target_xlsx.name}")
 
+    # Copy roster (#28): players.csv + its players/ photo subfolder, if present.
+    players_csv = source / "players.csv"
+    if players_csv.exists():
+        shutil.copy2(players_csv, dest / "players.csv")
+        click.echo(f"  copied  players.csv")
+    players_dir = source / "players"
+    if players_dir.is_dir():
+        dest_players_dir = dest / "players"
+        dest_players_dir.mkdir(exist_ok=True)
+        n = 0
+        for f in players_dir.iterdir():
+            if f.is_file():
+                shutil.copy2(f, dest_players_dir / f.name)
+                n += 1
+        click.echo(f"  copied  players/  ({n} file(s))")
+
     click.echo(f"\nDone — {len(html_files)} HTML file(s) published to {dest}")
 
 

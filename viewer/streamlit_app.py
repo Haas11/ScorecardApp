@@ -49,5 +49,5 @@ if season is not None:
 page = st.navigation(pages, position="sidebar")
 # Club logo in the top right corner of every page.
 with st.container(horizontal=True, horizontal_alignment="right"):
-    st.image(str(Path(__file__).parent / "quicklogo.png"), width=360)
+    st.image(str(Path(__file__).parent / "quicklogo.png"), width=180)
 page.run()

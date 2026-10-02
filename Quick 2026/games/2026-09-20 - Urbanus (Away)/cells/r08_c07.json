@@ -1,0 +1,1 @@
+{"result": "1-3", "run": false, "result_conf": 4, "run_conf": 5, "notes": "The character below '1-3' is unclear but '1-3' clearly indicates a groundout.", "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "6-3", "run": false}}

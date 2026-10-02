@@ -1,3 +1,4 @@
+Layout: reused from _layout.json (not given on CLI): {'innings': None, 'n_player_rows': None, 'left_skip_frac': None}
 Image : 2026-08-23 Urbanus (Home).jpg
 Model : gemini-2.5-flash   Workers: 8   Innings: 6
 Date  : 2026-08-23   Opponent: Urbanus
@@ -52,28 +53,25 @@ Cells : 72 total | 72 cached | 0 to classify
 WRAP  : inning 1 continues into column 2 (file)
 WRAP  : inning 3 continues into column 5 (file)
 
--- RBI: 23 run cell(s) — rbi_slot already read for all (no backfill needed)
-
 
 -- Batting rules ------------------------------------------------
   [hole] P9 inn 4: still null between P8 and P1 after re-read
 
 
 -- GT run enforcement -------------------------------------------
-  [GT-R] Inn 1: 9 runs extracted, GT=8 — cannot auto-reduce
 
 
 -- Per-player (row) check ----------------------------------------
-  [Slot  1] G.L. McLelland          PA= 6  AB= 3  H= 2  R= 3
-  [Slot  2] J. Bradwell             PA= 6  AB= 4  H= 3  R= 4
-  [Slot  3] V. van Spaandonk        PA= 6  AB= 5  H= 3  R= 4
-  [Slot  4] T. Kryston              PA= 5  AB= 4  H= 1  R= 3
-  [Slot  5] S. Bakker               PA= 5  AB= 4  H= 2  R= 2
-  [Slot  6] N. Specht               PA= 5  AB= 4  H= 0  R= 0
-  [Slot  7] D. Mabushi              PA= 5  AB= 4  H= 1  R= 2
-  [Slot  8] C. Romick               PA= 5  AB= 4  H= 1  R= 2
-  [Slot  9] C. Trehy                PA= 3  AB= 3  H= 1  R= 1
-  [Slot  9]   ↳ X. Dikkes           PA= 2  AB= 1  H= 1  R= 2
+  [Slot  1] G.L. McLelland          PA=6            AB=3            H=2             R=3
+  [Slot  2] J. Bradwell             PA=6            AB=4            H=3             R=3
+  [Slot  3] V. van Spaandonk        PA=6            AB=5            H=3             R=4
+  [Slot  4] T. Kryston              PA=5            AB=4            H=1             R=3
+  [Slot  5] S. Bakker               PA=5            AB=4            H=2             R=2
+  [Slot  6] N. Specht               PA=5            AB=4            H=0             R=0
+  [Slot  7] D. Mabushi              PA=5            AB=4            H=2             R=2
+  [Slot  8] C. Romick               PA=5            AB=4            H=1             R=2
+  [Slot  9] C. Trehy                PA=3            AB=3            H=1             R=1
+  [Slot  9]   ↳ X. Dikkes           PA=2            AB=1            H=1             R=2
 
 
 -- PA sequence check ---------------------------------------------
@@ -81,29 +79,21 @@ WRAP  : inning 3 continues into column 5 (file)
 
 
 -- Per-inning (column) check -------------------------------------
-  [Inn 1 ]  PA= 12  R= 9  H= 5  E= 1  Outs=3  PA:OK  R:MISMATCH (GT=8)  H:MISMATCH (GT=6)  E:MISMATCH (GT=2)  Outs:OK
-  [Inn 2 ]  PA=  4  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 3 ]  PA= 11  R= 5  H= 4  E= 2  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 4 ]  PA=  8  R= 3  H= 1  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 5 ]  PA=  7  R= 3  H= 3  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 6 ]  PA=  6  R= 3  H= 2  E= 0  Outs=0  PA:MISMATCH (expected 9, got 6)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+  [Inn 1 ]  PA=12           R=8             H=6             E=0 (GT=2)      Outs=3
+  [Inn 2 ]  PA=4            R=0             H=0             E=1             Outs=3
+  [Inn 3 ]  PA=11           R=5             H=4             E=2             Outs=2 (exp=3)
+  [Inn 4 ]  PA=8            R=3             H=1             E=1             Outs=3
+  [Inn 5 ]  PA=7            R=3             H=3             E=1             Outs=3
+  [Inn 6 ]  PA=6 (exp=9)    R=3             H=2             E=0             Outs=0 (exp=3)
+  Run totals: all match GT.
 
-  -- Run reconciliation:
-  Inn 1: R=9 > GT=8 (over-count; should be handled by GT enforcement)
-
-  -- Per-inning (column) check after reconciliation:
-  [Inn 1 ]  PA= 12  R= 9  H= 5  E= 1  Outs=3  PA:OK  R:MISMATCH (GT=8)  H:MISMATCH (GT=6)  E:MISMATCH (GT=2)  Outs:OK
-  [Inn 2 ]  PA=  4  R= 0  H= 0  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 3 ]  PA= 11  R= 5  H= 4  E= 2  Outs=2  PA:OK  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 2)
-  [Inn 4 ]  PA=  8  R= 3  H= 1  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 5 ]  PA=  7  R= 3  H= 3  E= 1  Outs=3  PA:OK  R:OK  H:OK  E:OK  Outs:OK
-  [Inn 6 ]  PA=  6  R= 3  H= 2  E= 0  Outs=0  PA:MISMATCH (expected 9, got 6)  R:OK  H:OK  E:OK  Outs:WARNING (expected 3, got 0)
+-- RBI: 22 run cell(s) — rbi_slot already read for all (no backfill needed)
 
 Saved : 2026-08-23 Urbanus (Home)_cells.json
-Total : 48 PA extracted   23 runs
+Total : 48 PA extracted   22 runs
 GT    : 22 runs expected
 Widget: 2026-08-23 Urbanus (Home).html
 
-DB    : Replacing existing game (id=17)...
-DB    : Written as game id=17
+DB    : Replacing existing game (id=93)...
+DB    : Written as game id=93
 Log   : 2026-08-23 Urbanus (Home)_run.log

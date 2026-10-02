@@ -99,6 +99,11 @@ def sync_cells_from_json(p: Path) -> int:
             if pa.get("run_conf") is not None:
                 existing["run_conf"] = pa.get("run_conf")
             existing["sb_count"] = int(pa.get("sb") or 0)
+            # Checked by a person (GUI Review page): full confidence from now on,
+            # and any second-read verdict about the old reading is moot.
+            if "hand-checked" in (pa.get("conf_reasons") or []):
+                existing["hand_checked"] = True
+                existing.pop("verify", None)
 
             cf.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
             written += 1
@@ -128,7 +133,7 @@ def reimport_one(p: Path, conn) -> str:
 
 
 @click.command()
-@click.argument("path", metavar="GAME", required=False, default=None)
+@click.argument("path", metavar="[GAME]", required=False, default=None)
 @click.option("--all", "reimport_all", is_flag=True,
               help="Reimport every game: GAME is then a games directory "
                    "(default: <data root>/games).")
@@ -186,6 +191,12 @@ def main(path: str, reimport_all: bool, do_sync_cells: bool, data_root_opt: str 
                 click.echo(f"  FAIL {p.parent.name}  —  {exc}")
                 failed += 1
         click.echo(f"\n{ok} imported, {failed} failed.")
+        # A game whose folder was deleted leaves the DB too.
+        for row in conn.execute("SELECT game_id, raw_json_path FROM games").fetchall():
+            jp = Path(row["raw_json_path"] or "")
+            if jp.parent.parent.resolve() == games_dir and not jp.exists():
+                delete_game(conn, row["game_id"])
+                click.echo(f"  REMOVED {jp.parent.name}  —  folder no longer exists")
     else:
         status = reimport_one(single, conn)
         click.echo(f"DB+HTML: {status}")

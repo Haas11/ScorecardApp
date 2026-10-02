@@ -1,0 +1,1 @@
+{"result": "F7", "run": false, "result_conf": 5, "run_conf": 5, "notes": "The left character is interpreted as an 'F', and the right as a '7', indicating a fly out to fielder 7. The 'F' is slightly stylized, but recognizable in context of an out circle.", "verify": {"model": "gemini-2.5-flash", "result": "F7", "run": false}, "sb_count": 0}

@@ -1,0 +1,1 @@
+{"result": "1B", "run": false, "result_conf": 5, "run_conf": 5, "notes": "The result is a vertical stroke with one clear horizontal crossbar at the bottom, indicating a single (1B). The two dots above the crossbar are not clear additional crossbars for a 2B or 3B. No run dot is present.", "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "1B", "run": false}}

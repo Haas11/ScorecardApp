@@ -11,6 +11,7 @@ Called automatically by extract_cells.py at the end of each run.
 from __future__ import annotations
 
 import base64
+import html
 import json
 import re
 import sys
@@ -22,6 +23,14 @@ _NOT_AB = {"BB", "HP", "HBP", "SAC", "SH", "SF"}
 
 
 # ── Stat helpers ──────────────────────────────────────────────────────────────
+
+def _rate(num: int, den: int, empty: str = ".---") -> str:
+    """Baseball rate notation: .333, 1.000, 2.500 (SLG can exceed 1)."""
+    if den <= 0:
+        return empty
+    v = f"{num / den:.3f}"
+    return v[1:] if v.startswith("0") else v
+
 
 def _cell_type(r: str | None) -> str:
     if not r:
@@ -153,9 +162,9 @@ def compute_stats(game: dict, gt_totals: dict[int, dict] | None = None) -> dict:
             )
             obp_denom = ab + bb + hbp + sf
             slg_denom = ab
-            avg_str = f".{round(h  / ab         * 1000):03d}" if ab         > 0 else ".---"
-            obp_str = f".{round((h + bb + hbp) / obp_denom * 1000):03d}" if obp_denom > 0 else ".---"
-            slg_str = f".{round(tb / slg_denom  * 1000):03d}" if slg_denom > 0 else ".---"
+            avg_str = _rate(h, ab)
+            obp_str = _rate(h + bb + hbp, obp_denom)
+            slg_str = _rate(tb, slg_denom)
             entry_inning = (
                 min((pa.get("inning", 0) for pa in pas), default=None)
                 if idx > 0 else 1
@@ -230,9 +239,9 @@ def compute_stats(game: dict, gt_totals: dict[int, dict] | None = None) -> dict:
     total_sf  = sum(1 for pa in _all_pas if (pa.get("result") or "").upper() == "SF")
     total_tb  = sum({"1B":1,"2B":2,"3B":3,"HR":4}.get((pa.get("result") or "").upper(), 0) for pa in _all_pas)
     _obp_d    = total_ab + total_bb + total_hbp + total_sf
-    avg = f".{round(total_h / total_ab * 1000):03d}" if total_ab > 0 else ".000"
-    obp = f".{round((total_h + total_bb + total_hbp) / _obp_d * 1000):03d}" if _obp_d > 0 else ".000"
-    slg = f".{round(total_tb / total_ab * 1000):03d}" if total_ab > 0 else ".000"
+    avg = _rate(total_h, total_ab, ".000")
+    obp = _rate(total_h + total_bb + total_hbp, _obp_d, ".000")
+    slg = _rate(total_tb, total_ab, ".000")
 
     game_info = game.get("game", {})
     teams     = game_info.get("teams", {})
@@ -555,12 +564,26 @@ if (D.debug_img_b64) {
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+def _escape_strings(v):
+    """HTML-escape every string: the page builds markup with innerHTML from names,
+    results and VLM notes, and the JSON sits inside a <script> block, so a stray
+    '<' or '</script>' in extracted text must not become markup."""
+    if isinstance(v, str):
+        return html.escape(v, quote=True)
+    if isinstance(v, dict):
+        return {k: _escape_strings(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_escape_strings(x) for x in v]
+    return v
+
+
 def render_html(stats: dict) -> str:
     """Return a complete self-contained HTML string for the given stats dict."""
-    data_json = json.dumps(stats, ensure_ascii=False)
+    safe = _escape_strings(stats)
+    data_json = json.dumps(safe, ensure_ascii=False)
     return (
         _HTML
-        .replace("__TITLE__", stats.get("title", "Scorecard"))
+        .replace("__TITLE__", safe.get("title", "Scorecard"))
         .replace("__DATA_JSON__", data_json)
     )
 

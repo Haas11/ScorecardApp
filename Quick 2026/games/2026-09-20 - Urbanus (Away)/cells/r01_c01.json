@@ -1,0 +1,1 @@
+{"result": "1B", "run": true, "result_conf": 4, "run_conf": 4, "notes": "Run dot is faint but visible. The '2' in the bottom-left quadrant likely indicates the batter scored.", "rbi_slot": 2, "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "1B", "run": true}}

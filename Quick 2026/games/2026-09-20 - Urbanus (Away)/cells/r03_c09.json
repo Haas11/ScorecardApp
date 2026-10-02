@@ -1,0 +1,1 @@
+{"result": "K", "run": false, "result_conf": 5, "run_conf": 5, "notes": "The large circle indicates an out. The strokes inside, though somewhat messy, most closely resemble a 'K' for strikeout. No run scored.", "verify": {"model": "gemini-2.5-flash", "result": "K", "run": false}, "sb_count": 0}

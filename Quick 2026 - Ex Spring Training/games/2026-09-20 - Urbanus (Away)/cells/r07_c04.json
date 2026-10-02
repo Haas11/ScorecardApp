@@ -1,0 +1,1 @@
+{"result": "1B", "run": true, "result_conf": 4, "run_conf": 4, "notes": "Run dot is present but faint. 'PB' and 'SB' are base running notations, not PA result. '9' in bottom-left is unclear but does not indicate an out for this batter.", "rbi_slot": 9, "sb_count": 1, "verify": {"model": "gemini-2.5-flash", "result": "1B", "run": true}}

@@ -93,7 +93,7 @@ BOTTOM-RIGHT RESULT RULES:
 
     NO CIRCLE -> NEVER AN OUT!
 
-  TWO ROUNDED HUMPS (no circle) = walk (BB)
+  TWO ROUNDED HUMPS or resembling "88" (no circle) = walk (BB)
 
   VERTICAL STROKE with horizontal crossbar(s) in BOTTOM-RIGHT = HIT:
     1 crossbar or "i" written = single (1B) (can look like L, reversed L, or an inverted T "⊥")
@@ -122,6 +122,7 @@ BOTTOM-RIGHT RESULT RULES:
   a diagonal slash (end-of-inning marker), a wavy vertical line or brace (column separator).
   If those are the only marks in the cell → NO plate appearance (result: null).
   Read the result ONLY from the BOTTOM-RIGHT quadrant of THIS cell.
+
 
 VOIDED / MISSCORED CELLS — return null:
   If the BOTTOM-RIGHT quadrant (1st base / result area) is crossed out with
@@ -193,6 +194,87 @@ def _detect_wrap_from_grid(
             inning_num += 1
 
     return col_to_inning, overflow_cols
+
+
+# Wrap evidence from the card itself (#23). Measured on every season game with a
+# lattice grid: written totals cells >= 6.9% handwriting, blank ones <= 0.2%
+# (photo included).
+_TOTALS_BLANK_MAX = 0.02
+_EXTRA_INNING_MIN_PA = 3   # an inning has at least 3 PAs (3 outs)
+
+
+def _handwriting_ink(img: np.ndarray) -> np.ndarray:
+    """Mask of dark strokes that are not printed grid lines (works on photos: local threshold)."""
+    from rectify import line_image
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    binv = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV,
+                                 max(15, (min(img.shape[:2]) // 40) | 1), 15)
+    lines = cv2.dilate(line_image(img), np.ones((5, 5), np.uint8))
+    return cv2.bitwise_and(binv, cv2.bitwise_not(lines))
+
+
+def _totals_blank(
+    img: np.ndarray,
+    extra_tops: list[int],
+    extra_bottoms: list[int],
+    col_lefts: list[int],
+    n_cols: int,
+) -> list[bool] | None:
+    """Per column: is the totals cell (first row below the grid) completely blank?"""
+    if not extra_tops or not extra_bottoms or len(col_lefts) <= n_cols:
+        return None
+    ink = _handwriting_ink(img)
+    y1, y2 = max(0, extra_tops[0]), min(img.shape[0], extra_bottoms[0])
+    if y2 - y1 < 8:
+        return None
+    out = []
+    for ci in range(n_cols):
+        x1, x2 = col_lefts[ci], col_lefts[ci + 1]
+        h, w = y2 - y1, x2 - x1
+        r = ink[y1 + int(h * 0.12):y2 - int(h * 0.12), x1 + int(w * 0.12):x2 - int(w * 0.12)]
+        out.append(r.size == 0 or float((r > 0).mean()) < _TOTALS_BLANK_MAX)
+    return out
+
+
+def _resolve_col_to_inning(
+    grid: list[list[dict | None]],
+    n_rows: int,
+    n_cols: int,
+    totals_blank: list[bool] | None = None,
+) -> tuple[list[int], str]:
+    """Pick col_to_inning from the card's totals row, else from the grid (#23).
+
+    1. totals  — a blank totals cell under a (nearly) full column followed by a
+                 column with PAs marks a wrap; a written totals cell rules one out.
+                 Only used when the scorekeeper filled in at least half the
+                 totals of the played columns;
+    2. grid    — every batter batted with < 3 outs (_detect_wrap_from_grid).
+    The grid reading alone is fragile: one misread out hides a wrap.
+    Returns (col_to_inning, source).
+    """
+    n_pa = [sum(1 for ri in range(n_rows) if (grid[ri][ci] or {}).get("result") is not None)
+            for ci in range(n_cols)]
+    played = [ci for ci in range(n_cols) if n_pa[ci] > 0]
+
+    totals_wraps: set[int] | None = None   # 0-based ci of columns whose inning continues in ci+1
+    if totals_blank is not None and played:
+        written = sum(1 for ci in played if not totals_blank[ci])
+        if written * 2 >= len(played):
+            totals_wraps = {
+                ci for ci in range(n_cols - 1)
+                if totals_blank[ci] and n_pa[ci] >= n_rows - 2 and n_pa[ci + 1] > 0
+            }
+
+    if totals_wraps is not None:
+        c2i, inn = [], 1
+        for ci in range(n_cols):
+            c2i.append(inn)
+            if ci not in totals_wraps:
+                inn += 1
+        return c2i, "totals"
+
+    c2i, _ = _detect_wrap_from_grid(grid, n_rows, n_cols)
+    return c2i, "grid"
 
 
 def _encode_cell(crop: np.ndarray, scale: int = 4) -> tuple[bytes, str]:
@@ -422,6 +504,13 @@ def classify_cell(
                     parsed["rbi_slot"] = digit
                     _add_adjusted(parsed, "bl_ink:run->True")
                     return parsed
+            # Written notations in the base quadrants are about THIS batter: he
+            # reached base, so "no PA" is wrong. A focused call picks the result.
+            if res is None and _base_quadrant_ink(crop) > _BASE_INK_TRIGGER:
+                reached = _read_reached_base(crop, player_name, inning, client, model)
+                if reached:
+                    parsed["result"], parsed["result_conf"] = reached, min(parsed.get("result_conf") or 3, 3)
+                    _add_adjusted(parsed, f"reached:null->{reached}")
             # Focused bottom-left crop for rbi_slot — more reliable than the general prompt.
             # Only set the key when run=True: a run=False cell has nothing to read (#7),
             # and leaving the key absent (rather than None) lets a later pass that flips
@@ -439,6 +528,44 @@ def classify_cell(
 # non-out cell the VLM called run=False gets a focused re-read. On the verified
 # eval set every run cell had >= 3.3%, 18/20 non-run non-out cells had 0%.
 _BL_INK_TRIGGER = 0.02
+
+# A null read whose top-left / top-right / bottom-left quadrant holds this much
+# pen ink gets a "reached base" re-read. Eval set: the 51 empty cells peak at
+# 8.1% (stray slashes); Herons 2026-09-27 r08_c09 (circled 85, E24, BB) 17.8%.
+_BASE_INK_TRIGGER = 0.10
+
+
+def _base_quadrant_ink(crop: np.ndarray) -> float:
+    h, w = crop.shape[:2]
+    return max(_pen_ink(q, 0.12) for q in (crop[:h // 2, :w // 2], crop[:h // 2, w // 2:], crop[h // 2:, :w // 2]))
+
+
+_REACHED_SYSTEM = """You are reading one plate appearance cell of a Dutch KNBSB baseball scorecard.
+2x2 quadrants = bases: BOTTOM-RIGHT 1st (the PA result), TOP-RIGHT 2nd, TOP-LEFT 3rd,
+BOTTOM-LEFT home. Everything written in the cell is about THIS batter: notations in
+2nd/3rd/home (SB, WP, PB, E#, a digit, a small circle around digits = put out on the
+bases) mean he REACHED base. The other quadrants only say how he advanced afterwards;
+an E# there is NOT his result.
+First decide: are there WRITTEN letters/digits in 2nd, 3rd or home of THIS cell? A lone
+line, slash, dot or curve entering from the edge does not count.
+If yes, his result is NOT an out; read it from the BOTTOM-RIGHT even when sloppy:
+two humps / "88" / "BB"-like / "P6"-like = BB; vertical stroke with 1/2/3 crossbars =
+1B/2B/3B; E + digit = E#; HP/HBP; FC.
+Return ONLY JSON: {"reached": <true|false>, "result": <code or null>}"""
+
+
+def _read_reached_base(crop: np.ndarray, player_name: str, inning: int, client, model: str) -> str | None:
+    """Reaching-base result for a cell read as "no PA" despite base-quadrant notations, else None."""
+    img_bytes, media_type = _encode_cell(crop)
+    raw = _call_api(client, model, img_bytes, media_type,
+                    f"Player: {player_name}  Inning: {inning}\nReturn JSON only.",
+                    _REACHED_SYSTEM, max_tokens=60, temperature=0.0, thinking_budget=0)
+    parsed = _parse_json_response(raw) if raw and not raw.startswith("api_error:") else None
+    res = (parsed or {}).get("result")
+    if not (parsed and parsed.get("reached") and isinstance(res, str) and res.strip()):
+        return None
+    res = res.strip().upper()
+    return None if _is_out(res) else res
 
 
 def _pen_ink(region: np.ndarray, margin: float) -> float:
@@ -832,6 +959,10 @@ def _apply_batting_rules(
     # Only applied when all cells in the inning are confirmed (no api/parse errors),
     # since uncertain cells break start-player tracking.
     # When a column wraps (overflow), outs carry over from the previous column.
+    # A wrapped inning (#23) demonstrably went on into the next column, so a
+    # 3rd out before its last PA is a misread out: flag it, never remove PAs.
+    _wrapped_inn = {col_to_inning[_ci] for _ci in _overflow_ci} if col_to_inning else set()
+    _warned_inn: set[int] = set()
     start_ri = 0
     outs_by_inning: dict[int, int] = {}  # tracks cumulative outs per inning across overflow cols
     last_batter_by_inning: dict[int, int] = {}  # inning → 1-based batting slot of last batter
@@ -849,6 +980,15 @@ def _apply_batting_rules(
         for k in range(n_rows):
             ri = (start_ri + k) % n_rows
             if not _has_pa(ri, ci):
+                continue
+            if outs >= 3 and inn in _wrapped_inn:
+                if inn not in _warned_inn:
+                    _warned_inn.add(inn)
+                    click.echo(
+                        f"  [3-outs] inn {inn} is wrapped but has 3 outs before Player {ri+1} "
+                        f"col {ci+1} — an out is misread; nothing removed (fix in review)"
+                    )
+                last_batter_ri = ri
                 continue
             if outs >= 3:
                 old = grid[ri][ci].get("result")
@@ -2410,6 +2550,9 @@ def _score_cell(
     digit, and any inning-level GT mismatch that survives every enforcement
     pass. Floors at 1, caps at 5.
     """
+    if cell.get("hand_checked"):
+        return 5, 5, ["hand-checked"]  # set by sync-edits from the GUI Review page
+
     reasons: list[str] = []
 
     result_conf = cell.get("result_conf")
@@ -2680,7 +2823,7 @@ class _TeeWriter:
               help="Physical grid rows for players (template size, usually 10). Default/"
                    "persistence behaves like --innings.")
 @click.option("--model", default=None,
-              help="Anthropic model (default: EXTRACTION_MODEL env or claude-sonnet-4-6).")
+              help="VLM model (default: EXTRACTION_MODEL in .env, e.g. gemini-2.5-flash; without it claude-sonnet-4-6).")
 @click.option("--workers", default=8, show_default=True, help="Parallel VLM calls.")
 @click.option("--reuse-cache", is_flag=True, default=False,
               help="Reuse cached per-cell results (skip API calls for cached cells).")
@@ -2979,7 +3122,17 @@ def main(
                     sub_inning = _detect_sub_inning_vlm(
                         img, ri, row_tops, row_bottoms, col_lefts, n_phys_cols, client, model
                     )
-                if sub_inning:
+                if sub_inning and not auto_yes:
+                    # Auto-detection misfires (Urbanus 2026-09-20 P9: 4 instead of 6),
+                    # so a person confirms it; the answer is cached like a typed one.
+                    answer = click.prompt(
+                        f"  Row {ri+1}: {sub[0]} replaced {prev_player[0]} — first inning batted "
+                        f"(detected {sub_inning}; Enter = correct, 1-{innings})",
+                        default=str(sub_inning), show_default=False,
+                    ).strip()
+                    if answer.isdigit() and 1 <= int(answer) <= innings:
+                        sub_inning = int(answer)
+                elif sub_inning:
                     click.echo(f"  Row {ri+1}: sub{pi} inning auto-detected: {sub_inning}")
                 elif auto_yes:
                     sub_inning = 1
@@ -3207,18 +3360,42 @@ def main(
         except Exception as exc:
             click.echo(f"  WARNING: could not read _layout.json ({exc}) — re-detecting.")
 
+    # Fresh detection runs every time (pixel check only), so a stale or wrong
+    # layout file is at least reported.
+    _det_c2i, _wrap_src = _resolve_col_to_inning(
+        grid, n_active_rows, n_phys_cols,
+        totals_blank=_totals_blank(img, extra_tops, extra_bottoms, col_lefts, n_phys_cols),
+    )
     if not _layout_from_file:
-        col_to_inning, overflow_cols = _detect_wrap_from_grid(grid, n_active_rows, n_phys_cols)
+        col_to_inning = _det_c2i
     else:
-        overflow_cols = [
-            ci + 1  # 1-based
-            for ci in range(1, len(col_to_inning))
-            if col_to_inning[ci] == col_to_inning[ci - 1]
-        ]
+        _wrap_src = "file"
+        if col_to_inning != _det_c2i:
+            click.echo(
+                f"  WARNING: _layout.json col_to_inning {col_to_inning} differs from the "
+                f"card's evidence {_det_c2i} — remove the col_to_inning key from "
+                "_layout.json (and _totals.txt if it was auto-extracted) to use the detection."
+            )
+    overflow_cols = [
+        ci + 1  # 1-based
+        for ci in range(1, len(col_to_inning))
+        if col_to_inning[ci] == col_to_inning[ci - 1]
+    ]
+    # --innings too low (e.g. persisted from a first run with the wrong value):
+    # a column after the last inning holding >= 3 PAs is a played inning, not a
+    # stray read in the totals area (Almere 2026-06-07 had a single phantom 1B).
+    while True:
+        _next = [ci for ci in range(n_phys_cols) if col_to_inning[ci] == innings + 1]
+        if not _next or sum(1 for ri in range(n_active_rows) for ci in _next
+                            if (grid[ri][ci] or {}).get("result") is not None) < _EXTRA_INNING_MIN_PA:
+            break
+        innings += 1
+        click.echo(f"  WARNING: column {_next[0] + 1} holds a played inning — innings raised to {innings}")
     _layout_path.write_text(
         json.dumps(
             {
                 "col_to_inning": col_to_inning,
+                "wrap_source": _wrap_src,
                 "run_args": {
                     "innings": innings,
                     "n_player_rows": n_player_rows,
@@ -3236,10 +3413,9 @@ def main(
     if overflow_cols:
         for oc in overflow_cols:
             inn = col_to_inning[oc - 2]
-            src = "file" if _layout_from_file else "auto"
-            click.echo(f"WRAP  : inning {inn} continues into column {oc} ({src})")
+            click.echo(f"WRAP  : inning {inn} continues into column {oc} ({_wrap_src})")
     else:
-        click.echo(f"Wrap  : none detected ({'from file' if _layout_from_file else 'auto'})")
+        click.echo(f"Wrap  : none detected ({_wrap_src})")
 
     # ── Auto-detect inning totals if no _totals.txt was found ────────────────
     if gt_totals is None and extra_tops:

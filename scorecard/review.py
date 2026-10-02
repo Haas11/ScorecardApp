@@ -10,16 +10,22 @@ Default mode: shows only low-confidence PAs (needs_review=1, not yet reviewed).
               needs_review flag, which is confidence <= config.yml's
               review.threshold).
 
-After each correction the DB, the game's _cells.json, and the HTML widget are
-all updated so everything stays in sync.
+GAME is the full game name ("2026-09-27 Herons (Home)"), any path into the
+game, or a fragment of the name such as its date. Omit it to go through the
+flags of every game.
+
+A reviewed PA (corrected or confirmed) is hand-checked: confidence 5/5. After
+the session the DB, the game's _cells.json, its cell cache (so --reuse-cache
+keeps the fix) and the HTML widget are all updated.
 
 Usage:
-  uv run python review.py --game 2026-04-12 --all
+  uv run python review.py "2026-09-27 Herons (Home)" --all
+  uv run python review.py 2026-04-12
   uv run python review.py --game-id 7 --all
   uv run python review.py                      (only low-confidence flags)
 
 Input at each prompt:
-  Enter          keep everything as-is, mark reviewed
+  Enter          keep everything as-is, mark reviewed (hand-checked)
   1B / K / BB    change the result  (keeps run_scored)
   y / n          change run_scored only  (y=scored, n=did not score)
   1B y           change result AND set run_scored=yes
@@ -38,7 +44,7 @@ import click
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from db import get_connection, init_db
+from db import find_game_ids, get_connection, init_db
 
 
 def _derive_flags(result: str) -> tuple[int, int, int, int]:
@@ -85,12 +91,13 @@ def _fmt_run(val: int) -> str:
     return "Yes" if val else "No "
 
 
-def _patch_cells_json(json_path: Path, player_name: str, inning: int,
-                      batting_order: int, new_result: str, new_run: int) -> bool:
+def _patch_cells_json(json_path: Path, inning: int, batting_order: int, nth: int,
+                      new_result: str, new_run: int) -> bool:
     """
-    Update the matching PA inside _cells.json.  Returns True if a change was made.
+    Write a hand-checked PA into _cells.json.  Returns True if it was found.
     Structure: lineup[].players[].plate_appearances[]
-    Matches by batting_order + inning.
+    Matches the nth (0-based) PA of batting_order in inning: a wrapped inning
+    gives a slot two PAs in the same inning.
     """
     if not json_path.exists():
         return False
@@ -99,16 +106,13 @@ def _patch_cells_json(json_path: Path, player_name: str, inning: int,
     for slot in data.get("lineup", []):
         if slot.get("batting_order") != batting_order:
             continue
-        for player in slot.get("players", []):
-            for pa in player.get("plate_appearances", []):
-                if pa.get("inning") == inning:
-                    pa["result"] = new_result
-                    pa["run_scored"] = bool(new_run)
-                    json_path.write_text(
-                        json.dumps(data, indent=2, ensure_ascii=False),
-                        encoding="utf-8",
-                    )
-                    return True
+        pas = [pa for player in slot.get("players", [])
+               for pa in player.get("plate_appearances", []) if pa.get("inning") == inning]
+        if nth < len(pas):
+            pas[nth].update(result=new_result, run_scored=bool(new_run), confidence=5,
+                            result_conf=5, run_conf=5, conf_reasons=["hand-checked"])
+            json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            return True
     return False
 
 
@@ -129,19 +133,22 @@ def _regenerate_html(json_path: Path) -> None:
 
 
 @click.command()
+@click.argument("game", required=False, default=None)
+@click.option("--game", "game_opt", default=None, help="Same as GAME (kept for old scripts).")
 @click.option("--game-id", default=None, type=int, help="Limit to a specific game id")
-@click.option("--game", "game_date", default=None, help="Limit to a game date (YYYY-MM-DD)")
 @click.option("--all", "show_all", is_flag=True,
               help="Show every PA for the game, not just low-confidence flags.")
 @click.option("--max-conf", "max_conf", default=None, type=int,
               help="Widen the filter to any unreviewed PA with confidence <= N (1-5).")
 @click.option("--db", "db_path", default=None)
-def main(game_id: int | None, game_date: str | None, show_all: bool,
+def main(game: str | None, game_opt: str | None, game_id: int | None, show_all: bool,
          max_conf: int | None, db_path: str | None) -> None:
+    """Walk through low-confidence plate appearances of GAME and correct them."""
     from db import _DB_PATH
     path = Path(db_path) if db_path else _DB_PATH
     init_db(path)
     conn = get_connection(path)
+    game = game or game_opt
 
     # --all with a game filter: show every PA so you can fix any wrong result.
     # --max-conf N: any unreviewed PA with confidence <= N, wider than the
@@ -158,12 +165,16 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
     if game_id is not None:
         where_clauses.append("pa.game_id = ?")
         params.append(game_id)
-    if game_date is not None:
-        where_clauses.append("g.date LIKE ?")
-        params.append(f"{game_date}%")
+    if game is not None:
+        ids = find_game_ids(conn, game)
+        if not ids:
+            click.echo(f"No game in the DB matches {game!r}.")
+            return
+        where_clauses.append(f"pa.game_id IN ({','.join('?' * len(ids))})")
+        params.extend(ids)
 
-    if not where_clauses and not show_all:
-        click.echo("Specify --game or --game-id to review a specific game.")
+    if show_all and game is None and game_id is None:
+        click.echo("--all lists every PA of one game: give GAME or --game-id.")
         return
 
     where = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
@@ -171,7 +182,10 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
         f"""SELECT pa.pa_id, pa.batting_order, p.name, g.date, g.opponent,
                    pa.inning, pa.result, pa.run_scored, pa.raw_notes,
                    pa.reviewed, pa.needs_review, pa.confidence, pa.conf_reasons,
-                   g.raw_json_path, pa.game_id
+                   g.raw_json_path, pa.game_id,
+                   (SELECT COUNT(*) FROM plate_appearances o
+                     WHERE o.game_id = pa.game_id AND o.batting_order = pa.batting_order
+                       AND o.inning = pa.inning AND o.pa_id < pa.pa_id) AS nth
              FROM plate_appearances pa
              JOIN players p ON pa.player_id = p.player_id
              JOIN games g ON pa.game_id = g.game_id
@@ -252,7 +266,8 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
         bb, hp, sac, sf = _derive_flags(new_result)
         conn.execute(
             """UPDATE plate_appearances
-               SET result=?, run_scored=?, bb=?, hp=?, sac=?, sf=?, reviewed=1, needs_review=0
+               SET result=?, run_scored=?, bb=?, hp=?, sac=?, sf=?, reviewed=1, needs_review=0,
+                   confidence=5, conf_reasons='hand-checked'
                WHERE pa_id=?""",
             (new_result, new_run, bb, hp, sac, sf, pa_id),
         )
@@ -264,16 +279,11 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
         if new_run != run_scored:
             changed.append(f"run scored {_fmt_run(run_scored)} → {_fmt_run(new_run)}")
 
-        if changed:
-            click.echo(f"  Updated: {', '.join(changed)}")
-            # Keep _cells.json in sync
-            if json_path:
-                patched = _patch_cells_json(json_path, name, inning, bo, new_result, new_run)
-                if patched:
-                    click.echo(f"  Patched {json_path.name}")
+        # Corrected or confirmed: hand-checked either way, so _cells.json and
+        # the cell cache get confidence 5 too.
+        if json_path and _patch_cells_json(json_path, inning, bo, row["nth"], new_result, new_run):
             changed_games.add(gid)
-        else:
-            click.echo("  Confirmed as-is.")
+        click.echo(f"  Updated: {', '.join(changed)}" if changed else "  Confirmed as-is.")
 
         click.echo()
         reviewed_count += 1
@@ -289,7 +299,14 @@ def main(game_id: int | None, game_date: str | None, show_all: bool,
             ).fetchone()
             conn2.close()
             if row2 and row2["raw_json_path"]:
-                _regenerate_html(Path(row2["raw_json_path"]))
+                jp = Path(row2["raw_json_path"])
+                try:
+                    from reimport import sync_cells_from_json
+                    sync_cells_from_json(jp)
+                    click.echo(f"  Cell cache synced: {jp.parent.name}")
+                except Exception as exc:  # noqa: BLE001
+                    click.echo(f"  (Could not sync cell cache: {exc} — run sync-edits)")
+                _regenerate_html(jp)
 
     click.echo(f"\nReviewed {reviewed_count}/{total} PAs this session.")
 

@@ -214,6 +214,12 @@ def test_verify_candidates_selection():
         (0, "conf 2/5"), (3, "circle_mismatch"), (5, "inning_H_mismatch")]
 
 
+def test_hand_checked_cell_is_full_confidence():
+    cell = {"result": "F8", "run": False, "result_conf": 2, "run_conf": 2, "hand_checked": True,
+            "adjusted": ["circle_mismatch"]}
+    assert ec._score_cell(cell, 1, {1: {"R", "H"}}) == (5, 5, ["hand-checked"])
+
+
 if __name__ == "__main__":
     import sys
     failed = 0

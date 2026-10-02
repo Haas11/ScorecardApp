@@ -1,0 +1,1 @@
+{"result": "2B", "run": true, "result_conf": 5, "run_conf": 3, "notes": null, "rbi_slot": 4, "adjusted": ["bl_ink:run->True"], "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "2B", "run": true}}

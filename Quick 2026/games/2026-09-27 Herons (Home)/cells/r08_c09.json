@@ -1,0 +1,1 @@
+{"result": "BB", "run": false, "result_conf": 3, "run_conf": 4, "notes": "BB: circled 85 (out on the bases) and E24 in the base quadrants prove he reached; bottom-right BB read as 'P6' first", "adjusted": ["reached:null->BB"], "sb_count": 0, "verify": {"model": "gemini-2.5-flash", "result": "BB", "run": false}}

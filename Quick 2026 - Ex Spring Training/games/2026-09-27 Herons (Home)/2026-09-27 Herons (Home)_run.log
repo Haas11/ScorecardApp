@@ -1,0 +1,102 @@
+Layout: reused from _layout.json (not given on CLI): {'n_player_rows': None, 'left_skip_frac': None}
+Image : 2026-09-27 Herons (Home).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 8
+Date  : 2026-09-27   Opponent: Herons
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Rectify: warped (corner shift 3.9px, 24 H / 32 V lines)
+Lattice fit: score=1.0  cell=68px  col_width=67.0px
+Row tops:    [45, 114, 182, 249, 316, 382, 450, 517, 585, 653]
+Col lefts:   [415, 482, 549, 617, 684, 751, 818, 885, 952, 1019, 1087, 1154, 1221]
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-09-27 Herons (Home)\2026-09-27 Herons (Home)_grid_debug.png
+Grid  : 10 player rows x 12 cols, cell=68px
+Active: first 9 rows (8 game innings, 10 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-09-27 Herons (Home)\2026-09-27 Herons (Home)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  M. Gelaudie
+     2.  J. Bradwell
+     3.  T. Kryston
+     4.  V. Spaandonk
+     5.  S. Bakker
+     6.  N. Specht
+     7.  G.L. McLelland
+     8.  X. Dikkes
+     9.  C. Trehy
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'V. Spaandonk' → V. van Spaandonk (#24)
+  Row 5 starter: 'S. Bakker' → S. Bakker (#0)
+  Row 6 starter: 'N. Specht' → N. Specht (#0)
+  Row 7 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 8 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+GT    : 2026-09-27 Herons (Home)_totals.txt loaded
+
+Cells : 90 total | 90 cached | 0 empty (no ink, skipped) | 0 to classify
+WRAP  : inning 4 continues into column 5 (file)
+
+
+-- SB backfill: 1 reached-base cell(s) missing sb_count --------------------
+  P8 (X. Dikkes) inn 8: counting SB…
+    → sb_count=0
+  SB backfill: updated 1 cell(s)
+
+
+-- Batting rules ------------------------------------------------
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] M. Gelaudi              PA=5            AB=5            H=2             R=2
+  [Slot  2] J. Bradwell             PA=5            AB=5            H=2             R=1
+  [Slot  3] T. Kryston              PA=5            AB=4            H=3             R=1
+  [Slot  4] V. van Spaandonk        PA=5            AB=4            H=1             R=1
+  [Slot  5] S. Bakker               PA=5            AB=4            H=0             R=0
+  [Slot  6] N. Specht               PA=5            AB=5            H=3             R=3
+  [Slot  7] G.L. McLelland          PA=5            AB=3            H=1             R=3
+  [Slot  8] X. Dikkes               PA=5            AB=3            H=1             R=2
+  [Slot  9] C. Trehy                PA=4            AB=4            H=0             R=0
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 4
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=3            R=0             H=0 (GT=1)      E=1 (GT=0)      Outs=2 (exp=3)
+  [Inn 2 ]  PA=4            R=0             H=0             E=0             Outs=3
+  [Inn 3 ]  PA=4            R=0             H=0             E=1             Outs=3
+  [Inn 4 ]  PA=12           R=7             H=6             E=0 (GT=2)      Outs=3
+  [Inn 5 ]  PA=6            R=3             H=3             E=1 (GT=3)      Outs=2 (exp=3)
+  [Inn 6 ]  PA=3            R=0             H=1             E=0             Outs=2 (exp=3)
+  [Inn 7 ]  PA=9            R=3             H=3             E=0             Outs=2 (exp=3)
+  [Inn 8 ]  PA=3            R=0             H=0             E=0 (GT=1)      Outs=2 (exp=3)
+  Run totals: all match GT.
+
+
+-- Second read: 3 uncertain cell(s) with gemini-2.5-flash ----------
+  P8 inn 8: BB/run=False (conf 2/5): agree
+  P7 inn 5: 1B/run=True (conf 5/3): agree
+  P1 inn 4: 1B/run=True (conf 5/4): agree
+  Second read: 3 agree, 0 disagree (-> review)
+
+-- RBI: 13 run cell(s) — rbi_slot already read for all (no backfill needed)
+
+Saved : 2026-09-27 Herons (Home)_cells.json
+Total : 44 PA extracted   13 runs
+GT    : 13 runs expected
+Widget: 2026-09-27 Herons (Home).html
+
+DB    : Replacing existing game (id=95)...
+DB    : Written as game id=95
+Log   : 2026-09-27 Herons (Home)_run.log

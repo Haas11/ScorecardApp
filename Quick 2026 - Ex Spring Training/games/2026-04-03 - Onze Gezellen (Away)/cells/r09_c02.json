@@ -1,1 +1,1 @@
-{"result": "E7", "run": false, "notes": null, "sb_count": 0}
+{"result": "E7", "run": true, "notes": null, "sb_count": 0, "adjusted": ["gt:run->True(forced)"], "rbi_slot": 2}

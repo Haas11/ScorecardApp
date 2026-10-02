@@ -29,12 +29,22 @@ def _load_config() -> dict:
 def get_data_root(override: str | Path | None = None) -> Path:
     """Resolve the season data root: explicit override > env var > config.yml."""
     override = override or os.environ.get(DATA_ROOT_ENV_VAR)
-    if override:
-        p = Path(override)
-        return p.resolve() if p.is_absolute() else (Path(__file__).parent / p).resolve()
-    cfg = _load_config()
-    rel = cfg.get("paths", {}).get("data_root", "../Quick 2026")
-    return (Path(__file__).parent / rel).resolve()
+    if not override:
+        rel = _load_config().get("paths", {}).get("data_root", "../Quick 2026")
+        return (Path(__file__).parent / rel).resolve()
+    p = Path(override)
+    if p.is_absolute():
+        return p.resolve()
+    # A relative season folder is looked up from where the command runs, then the
+    # project folder, then scorecard/ — the first that exists wins. Never invent
+    # one: a typo used to create an empty season DB under scorecard/.
+    here = Path(__file__).parent
+    for base in (Path.cwd(), here.parent, here):
+        if (base / p).is_dir():
+            return (base / p).resolve()
+    raise FileNotFoundError(
+        f"Season folder {override!r} not found (looked in {Path.cwd()}, {here.parent} and {here})."
+    )
 
 
 def get_db_path(data_root: Path | None = None) -> Path:
@@ -428,6 +438,23 @@ def find_duplicate_game(
             (date, opponent, game_number),
         ).fetchone()
     return row["game_id"] if row else None
+
+
+def find_game_ids(conn: sqlite3.Connection, game: str, data_root: Path | None = None) -> list[int]:
+    """DB game ids for GAME: the full game name, any path gamepaths.resolve_game
+    accepts (#20), or a fragment of the game folder name such as a date."""
+    from gamepaths import GameNotFound, resolve_game
+    try:
+        _, name = resolve_game(game, data_root or get_data_root())
+        exact = True
+    except GameNotFound:
+        name, exact = game, False
+    ids = []
+    for row in conn.execute("SELECT game_id, raw_json_path FROM games ORDER BY date"):
+        folder = Path(row["raw_json_path"] or "").parent.name
+        if (folder == name) if exact else (name.lower() in folder.lower()):
+            ids.append(row["game_id"])
+    return ids
 
 
 def mark_reviewed(conn: sqlite3.Connection, game_id: int) -> int:

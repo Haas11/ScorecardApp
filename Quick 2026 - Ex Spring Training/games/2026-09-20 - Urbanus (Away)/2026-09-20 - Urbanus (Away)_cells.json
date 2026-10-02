@@ -1,0 +1,1097 @@
+{
+  "game": {
+    "teams": {
+      "home": "Quick",
+      "away": "Urbanus"
+    },
+    "date": "2026-09-20",
+    "game_number": null
+  },
+  "lineup": [
+    {
+      "batting_order": 1,
+      "players": [
+        {
+          "name": "G.L. McLelland",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": "1,2,4,6,8,9",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "Run dot is faint but visible. The '2' in the bottom-left quadrant likely indicates the batter scored.",
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "verify:agree",
+                "ambiguous_notes"
+              ]
+            },
+            {
+              "inning": 2,
+              "result": "BB",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "Run dot is present but slightly faint.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 4,
+              "result": "BB",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 6,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 8,
+              "result": "4-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 9,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The result is a vertical stroke with one clear horizontal crossbar at the bottom, indicating a single (1B). The two dots above the crossbar are not clear additional crossbars for a 2B or 3B. No run dot is present.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 4,
+            "R": 2,
+            "H": 2,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 2,
+      "players": [
+        {
+          "name": "J. Bradwell",
+          "position": null,
+          "jersey_number": 71,
+          "innings_played": "1,2,4,6,8,9",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "2B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 2,
+              "result": "E6",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 4,
+              "result": "5-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            },
+            {
+              "inning": 6,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 8,
+              "result": "E9",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 9,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 6,
+            "R": 2,
+            "H": 3,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 1,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 3,
+      "players": [
+        {
+          "name": "T. Kryston",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": "1,2,5,6,8,9",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 2,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            },
+            {
+              "inning": 2,
+              "result": "FC",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 5,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 6,
+              "result": "3-1",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 9,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The large circle indicates an out. The strokes inside, though somewhat messy, most closely resemble a 'K' for strikeout. No run scored.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 6,
+            "AB": 6,
+            "R": 3,
+            "H": 3,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 1,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 4,
+      "players": [
+        {
+          "name": "G. Suares",
+          "position": null,
+          "jersey_number": 2,
+          "innings_played": "1,3,5,6,8",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "SF",
+              "run_scored": false,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 3,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 5,
+              "result": "E9",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 6,
+              "result": "F8",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 8,
+              "result": "E9",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            }
+          ],
+          "summary": {
+            "PA": 5,
+            "AB": 4,
+            "R": 1,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 1,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 5,
+      "players": [
+        {
+          "name": "V. van Spaandonk",
+          "position": null,
+          "jersey_number": 24,
+          "innings_played": "1,3,5,7,8",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "3B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            },
+            {
+              "inning": 3,
+              "result": "F6",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The 'A' is interpreted as a stylized 'F' for a fly out, making the result 'F6' (fly out to shortstop). The '6' is clearly visible. No run scored.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 5,
+              "result": "F7",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 7,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            }
+          ],
+          "summary": {
+            "PA": 5,
+            "AB": 5,
+            "R": 1,
+            "H": 3,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 6,
+      "players": [
+        {
+          "name": "N. Specht",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": "1,3,5,7",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "5-3",
+              "run_scored": false,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            },
+            {
+              "inning": 3,
+              "result": "F2",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "Large circle indicates an out. The contents 'A2' are ambiguous and do not match standard out notations (F#, #-#, DP, SAC, SF). Per rules, ambiguous outs within a circle default to 'K'.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 5,
+              "result": "HR",
+              "run_scored": true,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 7,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            }
+          ],
+          "summary": {
+            "PA": 4,
+            "AB": 4,
+            "R": 1,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 2,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "C. Romick",
+          "position": null,
+          "jersey_number": 43,
+          "innings_played": "8",
+          "plate_appearances": [
+            {
+              "inning": 8,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            }
+          ],
+          "summary": {
+            "PA": 1,
+            "AB": 1,
+            "R": 0,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 7,
+      "players": [
+        {
+          "name": "X. Dikkes",
+          "position": null,
+          "jersey_number": 17,
+          "innings_played": "1,4,5,7,8",
+          "plate_appearances": [
+            {
+              "inning": 1,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            },
+            {
+              "inning": 4,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "Run dot is present but faint. 'PB' and 'SB' are base running notations, not PA result. '9' in bottom-left is unclear but does not indicate an out for this batter.",
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 4,
+              "conf_reasons": [
+                "verify:agree",
+                "ambiguous_notes"
+              ]
+            },
+            {
+              "inning": 5,
+              "result": "1B",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 1,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 7,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 8,
+              "result": "F9",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The large circle indicates an out. The '9' is clear in the bottom-right quadrant. The 'A' or 'F' shape in the left quadrants, combined with the '9', is interpreted as a fly out to fielder 9 (F9).",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 5,
+            "AB": 5,
+            "R": 1,
+            "H": 2,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 8,
+      "players": [
+        {
+          "name": "D. Mabushi",
+          "position": null,
+          "jersey_number": 0,
+          "innings_played": "2,4,5,7,9",
+          "plate_appearances": [
+            {
+              "inning": 2,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 4,
+              "result": "BB",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 2,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 5,
+              "result": "F2",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 7,
+              "result": "1-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The character below '1-3' is unclear but '1-3' clearly indicates a groundout.",
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree",
+                "ambiguous_notes"
+              ]
+            },
+            {
+              "inning": 9,
+              "result": "K",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The large circle indicates an out. The prominent 'K' shape inside the circle, despite the additional 'i' and '2' markings, leads to a strikeout. The 'i' and '2' are not standard out notations (like F#, #-#, DP, SAC, SF) that would override the K. Following the rule for ambiguous contents in a circle, 'K' is the most appropriate interpretation.",
+              "confidence": 4,
+              "result_conf": 4,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree",
+                "ambiguous_notes"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 5,
+            "AB": 4,
+            "R": 0,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    },
+    {
+      "batting_order": 9,
+      "players": [
+        {
+          "name": "C. Trehy",
+          "position": null,
+          "jersey_number": 6,
+          "innings_played": "2,4,5",
+          "plate_appearances": [
+            {
+              "inning": 2,
+              "result": "6-3",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": []
+            },
+            {
+              "inning": 4,
+              "result": "SF8",
+              "run_scored": false,
+              "rbi": 1,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The cell contains a large circle, indicating an out. The text inside appears to be 'S8'. This is not a standard F# (fly out to fielder #), DP, SAC, or SF notation. According to the rules, if the contents of the circle are ambiguous or do not clearly show a fielder number or DP/SAC/SF, the result should be 'K'.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 5,
+              "result": "F4",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "The large circle indicates an out. Inside the circle, the character resembles a '4' or 'h' which is likely a fielder number. The stroke above it could be interpreted as an 'f' or 'F', indicating a fly out. Given the context of KNBSB scorecards, 'F4' (fly out to second baseman) is a plausible reading. The alternative could be 'K' if the 'F' is not clear, but the '4' is quite distinct.",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 3,
+            "AB": 3,
+            "R": 0,
+            "H": 0,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 1,
+            "SAC": null,
+            "SF": null
+          }
+        },
+        {
+          "name": "M. Gelaudi",
+          "position": null,
+          "jersey_number": 98,
+          "innings_played": "8,9",
+          "plate_appearances": [
+            {
+              "inning": 8,
+              "result": "1B",
+              "run_scored": true,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "hand-checked"
+              ]
+            },
+            {
+              "inning": 9,
+              "result": "F9",
+              "run_scored": false,
+              "rbi": 0,
+              "sb": 0,
+              "cs": 0,
+              "notes": "",
+              "confidence": 5,
+              "result_conf": 5,
+              "run_conf": 5,
+              "conf_reasons": [
+                "verify:agree"
+              ]
+            }
+          ],
+          "summary": {
+            "PA": 2,
+            "AB": 2,
+            "R": 1,
+            "H": 1,
+            "two_B": null,
+            "three_B": null,
+            "HR": null,
+            "BB": null,
+            "HP": null,
+            "K": null,
+            "SB": null,
+            "CS": null,
+            "RBI": 0,
+            "SAC": null,
+            "SF": null
+          }
+        }
+      ]
+    }
+  ],
+  "pitching": [],
+  "inning_totals": {
+    "runs_per_inning": [
+      4,
+      1,
+      0,
+      1,
+      3,
+      0,
+      0,
+      3,
+      0,
+      0,
+      0
+    ],
+    "errors_total": null
+  },
+  "ambiguous_cells": [],
+  "last_batter_by_inning": {
+    "1": 7,
+    "2": 3,
+    "3": 6,
+    "4": 2,
+    "5": 9,
+    "6": 4,
+    "7": 8,
+    "8": 7,
+    "9": 3
+  },
+  "gt_totals": {
+    "1": {
+      "R": 4,
+      "H": 4,
+      "E": 1,
+      "LOB": 0
+    },
+    "2": {
+      "R": 1,
+      "H": 0,
+      "E": 1,
+      "LOB": 1
+    },
+    "3": {
+      "R": 0,
+      "H": 0,
+      "E": 0,
+      "LOB": 0
+    },
+    "4": {
+      "R": 1,
+      "H": 1,
+      "E": 0,
+      "LOB": 1
+    },
+    "5": {
+      "R": 3,
+      "H": 3,
+      "E": 2,
+      "LOB": 1
+    },
+    "6": {
+      "R": 0,
+      "H": 1,
+      "E": 0,
+      "LOB": 1
+    },
+    "7": {
+      "R": 0,
+      "H": 1,
+      "E": 0,
+      "LOB": 1
+    },
+    "8": {
+      "R": 3,
+      "H": 3,
+      "E": 2,
+      "LOB": 2
+    },
+    "9": {
+      "R": 0,
+      "H": 2,
+      "E": 0,
+      "LOB": 2
+    }
+  }
+}

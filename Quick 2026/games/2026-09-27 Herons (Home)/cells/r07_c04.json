@@ -1,0 +1,1 @@
+{"result": "BB", "run": true, "result_conf": 3, "run_conf": 3, "notes": null, "adjusted": ["circle_mismatch"], "rbi_slot": null, "sb_count": 1, "verify": {"model": "gemini-2.5-flash", "result": "BB", "run": true}}

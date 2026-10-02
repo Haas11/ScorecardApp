@@ -213,6 +213,9 @@ def export_season(
     sig     = sorted([s for s in filtered if not s.small_sample], key=lambda s: s.AVG, reverse=True)
     insig   = sorted([s for s in filtered if s.small_sample],     key=lambda s: s.AVG, reverse=True)
     filtered = sig + insig
+    if not filtered:
+        raise SystemExit(f"No plate appearances in {db_path} - nothing to export. "
+                         "Wrong --data-root, or the games were never imported (reimport-game --all)?")
 
     wb = openpyxl.Workbook()
 

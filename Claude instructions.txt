@@ -432,8 +432,9 @@ extract will find the debug image and/or cells inside the game folder (not only 
         README has a "Commands at a glance" table. Also: reread-season/crawl defaults to the
         configured data root; render_widget writes into the game folder like the pipeline.
 
-[~] #22: what would be the most easy way to make a GUI for this application? give suggestions. 
-        Answered 2026-09-28 (not built). Recommendation: Streamlit, local only
+[x] #22: what would be the most easy way to make a GUI for this application? give suggestions. 
+        BUILT 2026-09-28: scorecard/app.py (Games / Review / Season), see README "GUI".
+        Answered 2026-09-28. Recommendation: Streamlit, local only
         (`uv run streamlit run app.py`, same venv, API key stays in .env). Pages:
           1. Games: list games + status (read / needs review / GT mismatches), button
              "read scorecard" with live log, shows grid debug image + widget.

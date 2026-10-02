@@ -1,0 +1,102 @@
+Layout: reused from _layout.json (not given on CLI): {'innings': None, 'n_player_rows': None, 'left_skip_frac': None}
+Image : 2026-09-20 - Urbanus (Away).jpg
+Model : gemini-2.5-flash   Workers: 8   Innings: 9
+Date  : 2026-09-20   Opponent: Urbanus
+Roster: [players.txt] M. Gelaudi, J. Bradwell, V. van Spaandonk, G. Suares, X. Dikkes, D. Mabushi, N. Wisse, C. Romick, C. Trehy
+
+Detecting grid...
+Rectify: warped (corner shift 24.2px, 25 H / 34 V lines)
+Lattice fit: score=1.0  cell=101px  col_width=100.0px
+Row tops:    [76, 180, 282, 384, 484, 584, 685, 786, 887, 991]
+Col lefts:   [624, 724, 825, 926, 1027, 1128, 1228, 1330, 1432, 1534, 1636, 1736, 1833]
+Debug image -> C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-09-20 - Urbanus (Away)\2026-09-20 - Urbanus (Away)_grid_debug.png
+Grid  : 10 player rows x 12 cols, cell=101px
+Active: first 9 rows (9 game innings, 11 cols to read)
+Debug : C:\Users\vsp\Documents\ScorecardApp\Quick 2026\games\2026-09-20 - Urbanus (Away)\2026-09-20 - Urbanus (Away)_grid_debug.png
+
+Detecting player names from scan...
+
+  Slot  Names detected (starter  |  sub1  |  sub2)
+  ------------------------------------------------------------
+     1.  G.L. McLelland
+     2.  J. Bradwell
+     3.  T. Kryston
+     4.  G. Suares
+     5.  V. van Spaandonk
+     6.  N. Specht  |  C. Romick
+     7.  X. Dikkes
+     8.  D. Mabushi
+     9.  C. Trehy  |  M. Gelaudie
+
+  Enter a slot number to edit it, or press Enter to continue.
+  Edit slot []:  Row 1 starter: 'G.L. McLelland' → G.L. McLelland (#0)
+  Row 2 starter: 'J. Bradwell' → J. Bradwell (#71)
+  Row 3 starter: 'T. Kryston' → T. Kryston (#0)
+  Row 4 starter: 'G. Suares' → G. Suares (#2)
+  Row 5 starter: 'V. van Spaandonk' → V. van Spaandonk (#24)
+  Row 6 starter: 'N. Specht' → N. Specht (#0)
+  Row 6 sub1: 'C. Romick' → C. Romick (#43)
+  Row 6: sub1 inning from cache: 8
+  Row 7 starter: 'X. Dikkes' → X. Dikkes (#17)
+  Row 8 starter: 'D. Mabushi' → D. Mabushi (#0)
+  Row 9 starter: 'C. Trehy' → C. Trehy (#6)
+  Row 9 sub1: 'M. Gelaudie' → M. Gelaudi (#98)
+  Row 9: sub1 inning from cache: 6
+GT    : 2026-09-20 - Urbanus (Away)_totals.txt loaded
+
+Cells : 99 total | 99 cached | 0 empty (no ink, skipped) | 0 to classify
+Wrap  : none detected (file)
+  [hole-reread] P8 (D. Mabushi) inn 8: null between P7 and P9 — re-reading…
+    → still unreadable after re-read — leaving null (fix in review)
+  Re-read 1 hole cell(s)
+
+
+-- Batting rules ------------------------------------------------
+  [hole] P8 inn 8: still null between P7 and P9 after re-read
+
+
+-- GT run enforcement -------------------------------------------
+
+
+-- Per-player (row) check ----------------------------------------
+  [Slot  1] G.L. McLelland          PA=6            AB=4            H=2             R=2
+  [Slot  2] J. Bradwell             PA=6            AB=6            H=3             R=2
+  [Slot  3] T. Kryston              PA=6            AB=6            H=3             R=3
+  [Slot  4] G. Suares               PA=5            AB=4            H=0             R=1
+  [Slot  5] V. van Spaandonk        PA=5            AB=5            H=3             R=1
+  [Slot  6] N. Specht               PA=4            AB=4            H=1             R=1
+  [Slot  6]   ↳ C. Romick           PA=1            AB=1            H=0             R=0
+  [Slot  6]   = slot total          PA=5            AB=5            H=1             R=1
+  [Slot  7] X. Dikkes               PA=5            AB=5            H=2             R=1
+  [Slot  8] D. Mabushi              PA=5            AB=4            H=0             R=0
+  [Slot  9] C. Trehy                PA=3            AB=3            H=0             R=0
+  [Slot  9]   ↳ M. Gelaudi          PA=2            AB=2            H=1             R=1
+  [Slot  9]   = slot total          PA=5            AB=5            H=1             R=1
+
+
+-- PA sequence check ---------------------------------------------
+  OK: 6 ≥ 6 ≥ 6 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5 ≥ 5
+
+
+-- Per-inning (column) check -------------------------------------
+  [Inn 1 ]  PA=7            R=4             H=4             E=0 (GT=1)      Outs=3
+  [Inn 2 ]  PA=5            R=1             H=0             E=1             Outs=2 (exp=3)
+  [Inn 3 ]  PA=3            R=0             H=0             E=0             Outs=3
+  [Inn 4 ]  PA=5            R=1             H=1             E=0             Outs=1 (exp=3)
+  [Inn 5 ]  PA=7            R=3             H=3             E=1 (GT=2)      Outs=3
+  [Inn 6 ]  PA=4            R=0             H=1             E=0             Outs=3
+  [Inn 7 ]  PA=4            R=0             H=1             E=0             Outs=3
+  [Inn 8 ]  PA=8            R=3             H=3             E=2             Outs=3
+  [Inn 9 ]  PA=5            R=0             H=2             E=0             Outs=3
+  Run totals: all match GT.
+
+-- RBI: 12 run cell(s) — rbi_slot already read for all (no backfill needed)
+
+Saved : 2026-09-20 - Urbanus (Away)_cells.json
+Total : 48 PA extracted   12 runs
+GT    : 12 runs expected
+Widget: 2026-09-20 - Urbanus (Away).html
+
+DB    : Replacing existing game (id=96)...
+DB    : Written as game id=96
+Log   : 2026-09-20 - Urbanus (Away)_run.log

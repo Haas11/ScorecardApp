@@ -1,0 +1,1 @@
+{"result": "F2", "run": false, "result_conf": 5, "run_conf": 5, "notes": "Large circle indicates an out. The contents 'A2' are ambiguous and do not match standard out notations (F#, #-#, DP, SAC, SF). Per rules, ambiguous outs within a circle default to 'K'.", "sb_count": 0, "hand_checked": true}

@@ -1,0 +1,1 @@
+{"result": "BB", "run": true, "result_conf": 5, "run_conf": 5, "notes": "corrected from scan: BB (no out circle), RBI digit 1", "verify": {"model": "gemini-2.5-flash", "result": "BB", "run": true}, "rbi_slot": 1, "sb_count": 1}

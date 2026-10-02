@@ -46,8 +46,11 @@ if season is not None:
                 url_path="player-" + players.slug(name))
         for name in ranked["Name"]
     ]
+# Sidebar order: season stats, players, games.
+if "Players" in pages:
+    pages = {"": pages[""], "Players": pages["Players"], "Games": pages["Games"]}
 page = st.navigation(pages, position="sidebar")
-# Club logo in the top right corner of every page.
+page.run()
+# Club logo in the bottom right corner of every page, below the content.
 with st.container(horizontal=True, horizontal_alignment="right"):
     st.image(str(Path(__file__).parent / "quicklogo.png"), width=180)
-page.run()

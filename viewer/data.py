@@ -68,6 +68,21 @@ def _read(key: str, modified: str) -> bytes:  # `modified` is part of the cache 
     return Path(key).read_bytes()
 
 
+def describe_source() -> str:
+    """What the app is reading, for the 'nothing found' message."""
+    files = list_files()
+    if using_drive():
+        email = _secret("gcp_service_account").get("client_email", "?")
+        hint = ("" if files else " The service account sees nothing there: share the folder with "
+                f"{email} (Viewer), and check that folder_id is the ID at the end of the folder's URL.")
+        return f"Google Drive folder {_secret('drive')['folder_id']} as {email}: {len(files)} file(s).{hint}"
+    root = Path(os.environ.get("VIEWER_DATA_DIR", LOCAL_DIR_DEFAULT))
+    secrets = [s for s in ("drive", "gcp_service_account") if not _secret(s)]
+    return (f"Local folder {root} ({'exists' if root.is_dir() else 'does not exist'}): "
+            f"{len(files)} file(s). Not using Drive because the secrets lack "
+            f"{' and '.join(f'[{s}]' for s in secrets)}.")
+
+
 def read(entry: dict) -> bytes:
     return _read(entry["key"], entry["modified"])
 

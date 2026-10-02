@@ -10,6 +10,8 @@ st.title("Season stats")
 books = data.workbooks()
 if not books:
     st.warning("No season workbook in the published folder yet.", icon=":material/warning:")
+    st.caption(data.describe_source())
+    st.caption("Files seen: " + (", ".join(f["name"] for f in data.list_files()[:10]) or "none"))
     st.stop()
 
 # Ex Spring Training is the default season; other workbooks can be picked.

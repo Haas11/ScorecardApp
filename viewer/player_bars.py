@@ -103,7 +103,9 @@ def render(values: dict[str, float | None], ratings_row: dict[str, int | None]) 
     hover = alt.Chart(df).mark_bar(size=34, color="transparent").encode(
         x=hidden_x("x0"), x2="x1:Q", y=y_enc, tooltip=tooltip,
     )
-    track = alt.Chart(df).mark_bar(size=6, cornerRadius=3, color="#E6E6E6").encode(
+    # Empty track: light grey, or a dark grey that doesn't glare in dark mode.
+    track_color = "#3A3F4B" if st.context.theme.type == "dark" else "#E6E6E6"
+    track = alt.Chart(df).mark_bar(size=6, cornerRadius=3, color=track_color).encode(
         x=hidden_x("x0"), x2="x1:Q", y=y_enc,
     )
     bar = alt.Chart(bar_df).mark_bar(size=10, cornerRadius=5).encode(

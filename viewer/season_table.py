@@ -19,6 +19,38 @@ COUNT_COLS = ["H", "2B", "3B", "HR", "R", "RBI", "BB", "SB"]
 HEAT_COLS = ["AVG", "OBP", "SLG", "OPS", "BABIP", "ISO", "BB%", "wOBA", "RC", "OPS+", "BB/K"]
 HEAT_COLS_LOW_BETTER = ["K%", "AB/HR"]
 
+# Header tooltips on the season page: what each stat means, in words.
+STAT_HELP = {
+    "G": "Games played.",
+    "PA": "Plate appearances: every time the player came up to bat, whatever the outcome.",
+    "AB": "At-bats: plate appearances that count towards the batting average. "
+          "Walks, hit-by-pitches and sacrifices are left out.",
+    "H": "Hits: singles, doubles, triples and home runs.",
+    "2B": "Doubles: hits where the batter reached second base.",
+    "3B": "Triples: hits where the batter reached third base.",
+    "HR": "Home runs.",
+    "R": "Runs: times the player crossed home plate.",
+    "RBI": "Runs batted in: runs that scored because of the player's at-bat.",
+    "BB": "Walks (base on balls).",
+    "K": "Strikeouts.",
+    "SB": "Stolen bases.",
+    "AVG": "Batting average: the share of at-bats that ended in a hit.",
+    "OBP": "On-base percentage: how often the player reached base by a hit, walk or hit-by-pitch.",
+    "SLG": "Slugging: bases gained per at-bat through hits. Rewards extra-base hits.",
+    "OPS": "On-base plus slugging: one number for getting on base and hitting for power.",
+    "BABIP": "Batting average on balls in play: how often a ball put in play (not a home run) "
+             "fell for a hit. Very high or low values often come down to luck.",
+    "ISO": "Isolated power: extra bases per at-bat, counting only doubles, triples and home runs.",
+    "BB%": "Walk rate: the share of plate appearances that ended in a walk.",
+    "K%": "Strikeout rate: the share of plate appearances that ended in a strikeout. Lower is better.",
+    "wOBA": "Weighted on-base average: like OBP, but each way of reaching base counts by how much "
+            "it is worth, so a home run counts more than a walk.",
+    "RC": "Runs created: an estimate of how many runs the player's hitting produced for the team.",
+    "OPS+": "OPS compared with the league average: 100 is average, above 100 is better.",
+    "AB/HR": "At-bats per home run. Lower is better.",
+    "BB/K": "Walks per strikeout: plate discipline. Higher is better.",
+}
+
 
 def load(raw: bytes) -> tuple[pd.DataFrame, list[bool]]:
     """(table with the Team row first, small-sample flag per row)."""

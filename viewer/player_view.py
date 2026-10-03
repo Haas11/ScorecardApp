@@ -8,6 +8,7 @@ import data
 import player_bars
 import player_trend
 import players
+import season_table
 
 
 @st.cache_data(ttl=3600, max_entries=4, show_spinner=False)
@@ -57,7 +58,9 @@ def player_page(name: str):
                 st.header(name, anchor=False, divider="gray")
                 st.subheader(f"{_fmt_rate(row['AVG'])} / {_fmt_rate(row['OBP'])} / {_fmt_rate(row['SLG'])}",
                              anchor=False)
-                st.caption(f"AVG / OBP / SLG · {int(row['G'])} G · {int(row['PA'])} PA")
+                st.caption(f"AVG / OBP / SLG · {int(row['G'])} G · {int(row['PA'])} PA",
+                           help="\n\n".join(f"**{k}**: {season_table.STAT_HELP[k]}"
+                                            for k in ("AVG", "OBP", "SLG", "G", "PA")))
                 details = [f"#{info['number']}" if info.get("number") else None,
                            info.get("position"),
                            f"B/T: {info.get('bats', '-')}/{info.get('throws', '-')}"

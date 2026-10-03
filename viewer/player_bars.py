@@ -56,6 +56,7 @@ def _rows(values: dict[str, float | None], ratings_row: dict[str, int | None]) -
         rows.append({
             "stat": stat,
             "value_text": format_value(stat, v),
+            "about": season_table.STAT_HELP.get(stat, ""),
             "rating": float(r) if r is not None else None,
             "rating_label": str(int(r)) if r is not None else None,
             "color": rating_color(r) if r is not None else None,
@@ -67,7 +68,8 @@ def _rows(values: dict[str, float | None], ratings_row: dict[str, int | None]) -
 def render(values: dict[str, float | None], ratings_row: dict[str, int | None]) -> None:
     """Draw the percentile-rating bars for one player's rated stats."""
     st.markdown("**Percentile rankings**")
-    st.caption("Versus eligible teammates: 100 = best, 50 = median, 1 = worst.")
+    st.caption("Versus eligible teammates: 100 = best, 50 = median, 1 = worst. "
+               "Hover on a stat for an explanation.")
 
     rows = _rows(values, ratings_row)
     if not rows:
@@ -90,11 +92,17 @@ def render(values: dict[str, float | None], ratings_row: dict[str, int | None]) 
         alt.Tooltip("stat:N", title="Stat"),
         alt.Tooltip("value_text:N", title="Value"),
         alt.Tooltip("rating_label:N", title="Rating"),
+        alt.Tooltip("about:N", title="About"),
     ]
 
     def hidden_x(field: str) -> alt.X:
         return alt.X(f"{field}:Q", scale=alt.Scale(domain=_X_DOMAIN), axis=None)
 
+    # Invisible full-width band per row, so hovering anywhere on a stat's row
+    # (not only the bar) shows its tooltip with the explanation.
+    hover = alt.Chart(df).mark_bar(size=34, color="transparent").encode(
+        x=hidden_x("x0"), x2="x1:Q", y=y_enc, tooltip=tooltip,
+    )
     track = alt.Chart(df).mark_bar(size=6, cornerRadius=3, color="#E6E6E6").encode(
         x=hidden_x("x0"), x2="x1:Q", y=y_enc,
     )
@@ -119,7 +127,7 @@ def render(values: dict[str, float | None], ratings_row: dict[str, int | None]) 
     )
 
     chart = (
-        alt.layer(track, bar, circle, number, value_text)
+        alt.layer(hover, track, bar, circle, number, value_text)
         .properties(height=38 * len(df), background="transparent")
         .configure_view(strokeWidth=0)
     )
